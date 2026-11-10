@@ -1,0 +1,91 @@
+/* LanTURN design tokens v2: "Dark Soul / Liquid Glass".
+   Black foundation, white type, crimson + electric-blue energy, frosted iOS-style glass. */
+:root {
+  color-scheme: dark;
+
+  /* Foundation */
+  --void: #050609;
+  --obsidian: #0b0d14;
+  --panel: #11141f;
+
+  /* Energy colours */
+  --crimson: #e52335;
+  --crimson-hi: #ff4b5c;
+  --crimson-lo: #a3121f;
+  --blue: #2a5bd7;
+  --blue-hi: #6ea8ff;
+  --ice: #a9ccff;
+  --blue-lo: #0d1f4d;
+  --accent: #ffffff;
+  --accent-hi: #dce8ff;
+
+  /* Text (all pass 4.5:1 on --void and --obsidian) */
+  --white: #ffffff;
+  --text: #ffffff;
+  --text-2: #bcc2d9;
+  --text-3: #8f96b4;
+
+  /* Glass */
+  --glass: rgba(255, 255, 255, 0.055);
+  --glass-2: rgba(255, 255, 255, 0.09);
+  --glass-3: rgba(255, 255, 255, 0.14);
+  --glass-line: rgba(255, 255, 255, 0.15);
+  --glass-line-hi: rgba(255, 255, 255, 0.32);
+  --blur: blur(22px) saturate(170%);
+
+  /* Gradients */
+  --grad-brand: linear-gradient(120deg, var(--blue) 0%, var(--accent) 100%);
+  --grad-blue: linear-gradient(135deg, #5b97f5 0%, var(--blue-hi) 50%, var(--ice) 100%);
+  --grad-red: linear-gradient(135deg, var(--crimson-lo) 0%, var(--crimson) 50%, var(--crimson-hi) 100%);
+  --grad-accent: linear-gradient(135deg, #9db8e8 0%, var(--accent) 55%, var(--accent-hi) 100%);
+  --grad-white: linear-gradient(180deg, #ffffff 0%, #dbe7ff 100%);
+  --grad-text: linear-gradient(100deg, #ffffff 10%, var(--ice) 55%, var(--accent-hi) 100%);
+  --grad-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0) 55%);
+
+  /* Status (always paired with a word or an icon) */
+  --success: #3be0a0;
+  --success-soft: rgba(59, 224, 160, 0.13);
+  --warning: #ffc04d;
+  --warning-soft: rgba(255, 192, 77, 0.13);
+  --danger: #ff6b79;
+  --danger-soft: rgba(255, 75, 92, 0.15);
+  --info-soft: rgba(110, 168, 255, 0.16);
+
+  /* Type */
+  --font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+  --font-jp: 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', sans-serif;
+  --fs-xs: 0.8125rem;
+  --fs-sm: 0.9375rem;
+  --fs-md: 1rem;
+  --fs-lg: 1.2rem;
+  --fs-xl: 1.7rem;
+  --fs-2xl: clamp(2rem, 4vw, 3rem);
+  --fs-3xl: clamp(2.6rem, 6vw, 4.6rem);
+  --fs-hero: clamp(3.6rem, 13vw, 9.5rem);
+
+  /* Space (4px base) */
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px; --sp-7: 48px; --sp-8: 72px;
+
+  /* Shape + depth */
+  --radius-sm: 12px;
+  --radius: 20px;
+  --radius-lg: 28px;
+  --shadow-sm: 0 8px 24px -12px rgba(0, 0, 0, 0.8);
+  --shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.03);
+  --shadow-lg: 0 40px 90px -30px rgba(0, 0, 0, 0.95);
+  --glow-blue: 0 0 0 1px rgba(169, 204, 255, 0.35), 0 10px 40px -8px rgba(42, 91, 215, 0.7);
+  --glow-accent: 0 0 0 1px rgba(220, 232, 255, 0.4), 0 10px 40px -8px rgba(255, 255, 255, 0.65);
+  --glow-white: 0 0 0 1px rgba(255, 255, 255, 0.6), 0 10px 36px -10px rgba(255, 255, 255, 0.45);
+  --glow-red: 0 0 0 1px rgba(255, 75, 92, 0.4), 0 10px 40px -8px rgba(229, 35, 53, 0.7);
+  --inset-hi: inset 0 1px 0 rgba(255, 255, 255, 0.28), inset 0 -1px 0 rgba(255, 255, 255, 0.04);
+
+  /* Motion */
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Layout */
+  --container: 1200px;
+  --nav-h: 68px;
+  --focus: 0 0 0 2px var(--void), 0 0 0 4px var(--ice);
+}

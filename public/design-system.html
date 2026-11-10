@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LanTURN design system</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@700;900&display=swap">
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/app.css">
+  <link rel="stylesheet" href="/css/design-system.css">
+</head>
+<body>
+<div class="bg" aria-hidden="true"><i class="bg__orb bg__orb--a"></i><i class="bg__orb bg__orb--blue"></i><i class="bg__orb bg__orb--ice"></i><i class="bg__grid"></i></div>
+<div class="ds-root">
+<header class="topbar"><div class="container topbar__in"><a class="brand" href="/">LAN<b>TURN</b></a><span class="badge">Design system v2</span><div class="topbar__user"><a class="btn btn--secondary btn--sm" href="/">Open the app</a></div></div></header>
+<div class="ds">
+<nav class="ds__nav" aria-label="Sections">
+  <a href="#principles">Principles</a><a href="#color">Colour</a><a href="#type">Typography</a><a href="#space">Space, shape, glass</a><a href="#buttons">Buttons</a><a href="#forms">Forms</a><a href="#badges">Badges and chips</a><a href="#data">Scores and meters</a><a href="#cards">Cards and stats</a><a href="#feedback">Feedback</a><a href="#tables">Tables and timeline</a><a href="#a11y">Accessibility</a>
+</nav>
+<main id="main">
+
+<section id="principles">
+  <h1>Design system</h1>
+  <p class="lede">LanTURN v2 is <b>Dark Soul / Liquid Glass</b>: a black foundation, white type, a single ice-blue energy, and frosted iOS-style glass surfaces with soft specular highlights. Everything is built from the CSS variables in <code>tokens.css</code>, so changing a token restyles the whole app.</p>
+  <div class="grid grid--3">
+    <div class="card"><h3>Black first</h3><p class="muted">The page is <code>--void</code>. White is for text, icons and highlights only, never for large surfaces.</p></div>
+    <div class="card"><h3>Glass, not boxes</h3><p class="muted">Surfaces are translucent with a blur, a 1px light edge and an inner top highlight. A highlight follows the pointer.</p></div>
+    <div class="card"><h3>Black, white, one ice blue</h3><p class="muted">White pills are the primary action. Ice blue highlights data and links. Red appears only for errors.</p></div>
+  </div>
+</section>
+
+<section id="color">
+  <h2>Colour</h2>
+  <p class="lede">White on <code>--void</code> is 19:1. <code>--text-2</code> is 9:1 and <code>--text-3</code> is 6:1 on black. Status colours are always paired with an icon or a word, never colour alone.</p>
+<h3>Foundation</h3><div class="swatches"><div class="swatch"><div class="swatch__chip sw-void"></div><div class="swatch__meta"><b>--void</b>#050609</div></div><div class="swatch"><div class="swatch__chip sw-obsidian"></div><div class="swatch__meta"><b>--obsidian</b>#0b0d14</div></div><div class="swatch"><div class="swatch__chip sw-panel"></div><div class="swatch__meta"><b>--panel</b>#11141f</div></div><div class="swatch"><div class="swatch__chip sw-white"></div><div class="swatch__meta"><b>--white</b>#ffffff</div></div></div><h3>Energy (ice blue family, accent white) and danger red</h3><div class="swatches"><div class="swatch"><div class="swatch__chip sw-crimson"></div><div class="swatch__meta"><b>--crimson</b>#e52335</div></div><div class="swatch"><div class="swatch__chip sw-crimson-hi"></div><div class="swatch__meta"><b>--crimson-hi</b>#ff4b5c</div></div><div class="swatch"><div class="swatch__chip sw-crimson-lo"></div><div class="swatch__meta"><b>--crimson-lo</b>#a3121f</div></div><div class="swatch"><div class="swatch__chip sw-blue"></div><div class="swatch__meta"><b>--blue</b>#2a5bd7</div></div><div class="swatch"><div class="swatch__chip sw-blue-hi"></div><div class="swatch__meta"><b>--blue-hi</b>#6ea8ff</div></div><div class="swatch"><div class="swatch__chip sw-ice"></div><div class="swatch__meta"><b>--ice</b>#a9ccff</div></div><div class="swatch"><div class="swatch__chip sw-accent"></div><div class="swatch__meta"><b>--accent</b>#ffffff</div></div><div class="swatch"><div class="swatch__chip sw-accent-hi"></div><div class="swatch__meta"><b>--accent-hi</b>#dce8ff</div></div><div class="swatch"><div class="swatch__chip sw-blue-lo"></div><div class="swatch__meta"><b>--blue-lo</b>#0d1f4d</div></div></div><h3>Text</h3><div class="swatches"><div class="swatch"><div class="swatch__chip sw-white"></div><div class="swatch__meta"><b>--text</b>#ffffff</div></div><div class="swatch"><div class="swatch__chip sw-text-2"></div><div class="swatch__meta"><b>--text-2</b>#bcc2d9</div></div><div class="swatch"><div class="swatch__chip sw-text-3"></div><div class="swatch__meta"><b>--text-3</b>#8f96b4</div></div></div><h3>Status</h3><div class="swatches"><div class="swatch"><div class="swatch__chip sw-success"></div><div class="swatch__meta"><b>--success</b>#3be0a0</div></div><div class="swatch"><div class="swatch__chip sw-warning"></div><div class="swatch__meta"><b>--warning</b>#ffc04d</div></div><div class="swatch"><div class="swatch__chip sw-danger"></div><div class="swatch__meta"><b>--danger</b>#ff6b79</div></div></div>
+  <h3>Gradients</h3>
+  <div class="swatches"><div class="swatch"><div class="swatch__chip sw-g-brand"></div><div class="swatch__meta"><b>--grad-brand</b>crimson → blue</div></div><div class="swatch"><div class="swatch__chip sw-g-blue"></div><div class="swatch__meta"><b>--grad-blue</b>primary action</div></div><div class="swatch"><div class="swatch__chip sw-g-accent"></div><div class="swatch__meta"><b>--grad-accent</b>white glow</div></div></div>
+</section>
+
+<section id="type">
+  <h2>Typography</h2>
+  <p class="lede">Display: <b>Space Grotesk</b> 700, uppercase, tight tracking, for titles and numbers. Body: <b>Inter</b>. Accent: <b>Noto Sans JP</b> for kanji flourishes (decorative, hidden from screen readers). All load from Google Fonts with system fallbacks.</p>
+  <div class="demo demo--col">
+    <div><span class="muted">--fs-hero</span><div class="ts-hero grad-text">LanTURN</div></div>
+    <div><span class="muted">--fs-3xl · h1</span><div class="ts-3xl">Page title</div></div>
+    <div><span class="muted">--fs-2xl · h2</span><div class="ts-2xl">Section heading</div></div>
+    <div><span class="muted">--fs-xl · section-title</span><div class="ts-xl">Card group title</div></div>
+    <div><span class="muted">--fs-lg · h3</span><div class="ts-lg">Card title and lead text</div></div>
+    <div><span class="muted">--fs-md · body</span><div class="ts-md">Body copy is 16px with a 1.55 line height for comfortable reading.</div></div>
+    <div><span class="muted">--fs-sm</span><div class="ts-sm">Secondary text, table cells</div></div>
+    <div><span class="muted">--fs-xs · label</span><div class="ts-xs">CAPTIONS, LABELS AND BADGES (NEVER BELOW 13PX)</div></div>
+    <div><span class="muted">kanji accent</span><div class="kanji ts-3xl grad-text">斬 転 次</div></div>
+  </div>
+</section>
+
+<section id="space">
+  <h2>Space, shape and shadow</h2>
+  <h3>Spacing (4px base)</h3>
+  <div class="demo demo--col">
+    <div class="row"><code>--sp-1</code><span class="sp-bar sp-1"></span>4px</div><div class="row"><code>--sp-2</code><span class="sp-bar sp-2"></span>8px</div><div class="row"><code>--sp-3</code><span class="sp-bar sp-3"></span>12px</div><div class="row"><code>--sp-4</code><span class="sp-bar sp-4"></span>16px</div><div class="row"><code>--sp-5</code><span class="sp-bar sp-5"></span>24px</div><div class="row"><code>--sp-6</code><span class="sp-bar sp-6"></span>32px</div><div class="row"><code>--sp-7</code><span class="sp-bar sp-7"></span>48px</div><div class="row"><code>--sp-8</code><span class="sp-bar sp-8"></span>72px</div>
+  </div>
+  <h3>Glass surface</h3>
+  <div class="demo"><div class="shadow-demo glass">.glass</div><div class="shadow-demo glass blur-hi">blur 22px</div><div class="shadow-demo glass glow-b">glow blue</div><div class="shadow-demo glass glow-r">glow red</div></div>
+  <h3>Radius</h3>
+  <div class="demo"><div class="shadow-demo rd-sm">12px · sm</div><div class="shadow-demo rd-md">20px · default</div><div class="shadow-demo rd-lg">28px · lg</div></div>
+  <h3>Depth (soft shadow + inner highlight)</h3>
+  <div class="demo"><div class="shadow-demo sd-sm">sm</div><div class="shadow-demo sd-md">default</div><div class="shadow-demo sd-lg">lg</div></div>
+</section>
+
+<section id="buttons">
+  <h2>Buttons</h2>
+  <p class="lede">One primary action per area. Hover glows and sweeps a sheen, press squishes. Minimum height 44px (36px for small).</p>
+  <div class="demo">
+    <button class="btn">Primary</button><button class="btn btn--secondary">Secondary</button><button class="btn btn--accent">Accent</button><button class="btn btn--ghost">Ghost</button><button class="btn btn--danger">Danger</button><button class="btn" disabled>Disabled</button><button class="btn btn--sm">Small</button><button class="btn btn--lg">Large</button>
+  </div>
+  <div class="do-dont mt-4">
+    <div class="do"><h4>Do</h4><p>Use verbs: “Upload resume”, “Post a job”. Pair icons with text.</p></div>
+    <div class="dont"><h4>Don’t</h4><p>Put two accent buttons side by side, or use danger for anything reversible.</p></div>
+  </div>
+</section>
+
+<section id="forms">
+  <h2>Forms</h2>
+  <div class="demo demo--col">
+    <div class="form-grid">
+      <div class="field"><label for="ds-a">Text input</label><input id="ds-a" class="input" placeholder="you@college.edu"><span class="hint">Helper text sits under the field.</span></div>
+      <div class="field"><label for="ds-b">Select</label><select id="ds-b" class="select"><option>Internship</option><option>Full-time</option></select></div>
+      <div class="field"><label for="ds-c">Invalid</label><input id="ds-c" class="input" aria-invalid="true" value="not-an-email"><span class="error">Enter a valid email address.</span></div>
+    </div>
+    <div class="field"><label for="ds-d">Textarea</label><textarea id="ds-d" class="textarea" placeholder="Tell us more"></textarea></div>
+    <label class="check"><input type="checkbox" checked> Checkbox with a clear label</label>
+    <div class="segmented" role="group" aria-label="Example"><button aria-pressed="true">Student</button><button aria-pressed="false">Employer</button></div>
+    <div class="dropzone ds-narrow"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M6 10l6-6 6 6M4 20h16"/></svg><b>Dropzone</b><p class="muted">Drag a PDF here or click to choose</p></div>
+  </div>
+</section>
+
+<section id="badges">
+  <h2>Badges and chips</h2>
+  <div class="demo"><span class="badge">Applied</span><span class="badge badge--accent">Shortlisted</span><span class="badge badge--warning">Interview</span><span class="badge badge--success">Offered</span><span class="badge badge--danger">Rejected</span><span class="badge badge--neutral">Withdrawn</span></div>
+  <div class="demo mt-3"><div class="chips"><span class="chip chip--matched">✓ Kotlin <span class="weight"><i class="on"></i><i class="on"></i><i class="on"></i></span></span><span class="chip chip--missing">✗ Jetpack Compose <span class="weight"><i class="on"></i><i class="on"></i><i></i></span></span><span class="chip chip--blue">Python</span><span class="chip">Neutral</span></div></div>
+  <p class="lede mt-3">Matched skills are green with a check; missing skills are dashed with a cross. The weight dots show importance from 1 to 3.</p>
+</section>
+
+<section id="data">
+  <h2>Scores and meters</h2>
+  <div class="demo">
+    <div class="ring p-85"><span class="ring__value">85</span></div>
+    <div class="ring ring--accent p-56"><span class="ring__value">56</span></div>
+    <div class="ring ring--sm p-72"><span class="ring__value">72</span></div>
+    <div class="stack stack--sm ds-grow"><div class="meter"><span>Sections</span><div class="meter__track"><div class="meter__fill w-100"></div></div><span class="meter__val">15/15</span></div><div class="meter"><span>Length</span><div class="meter__track"><div class="meter__fill w-30"></div></div><span class="meter__val">3/10</span></div></div>
+  </div>
+</section>
+
+<section id="cards">
+  <h2>Cards and stats</h2>
+  <div class="grid grid--3">
+    <div class="card"><h3>Default card</h3><p class="muted">Frosted glass, 1px light edge, inner highlight, soft depth.</p></div>
+    <div class="card card--blue"><h3>Blue card</h3><p class="muted">For key calls to action and summaries.</p></div>
+    <div class="card card--accent"><h3>Accent card</h3><p>Ice-blue glass for a single highlight.</p></div>
+  </div>
+  <div class="stats mt-4"><div class="stat stat--accent"><div class="stat__label">Resume score</div><div class="stat__value">85</div></div><div class="stat"><div class="stat__label">Skills</div><div class="stat__value">9</div></div><div class="stat"><div class="stat__label">Applications</div><div class="stat__value">3</div></div></div>
+</section>
+
+<section id="feedback">
+  <h2>Feedback</h2>
+  <div class="stack stack--sm">
+    <div class="alert"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg><span><b>Info.</b> Neutral guidance.</span></div>
+    <div class="alert alert--success"><span><b>Success.</b> Resume analysed.</span></div>
+    <div class="alert alert--warning"><span><b>Warning.</b> Your account is waiting for approval.</span></div>
+    <div class="alert alert--danger"><span><b>Error.</b> The file is larger than 4 MB.</span></div>
+    <div class="empty"><h3>Empty state</h3><p class="muted">Explain what will appear here and offer the next step.</p></div>
+    <div class="demo"><span class="spinner"></span> Loading spinner <div class="skeleton ds-skel"></div></div>
+  </div>
+</section>
+
+<section id="tables">
+  <h2>Tables and timeline</h2>
+  <div class="table-wrap"><table class="table"><thead><tr><th scope="col">Company</th><th scope="col">Status</th><th scope="col">Registered</th></tr></thead><tbody><tr><td>Example Corp</td><td><span class="badge badge--success">Verified</span></td><td>5 Nov 2026</td></tr><tr><td>Pending Co</td><td><span class="badge badge--warning">Pending</span></td><td>6 Nov 2026</td></tr></tbody></table></div>
+  <div class="timeline mt-5"><div class="timeline__item"><span class="timeline__dot timeline__dot--done">✓</span><b>Applied</b> <span class="muted">6 Nov, 09:21</span></div><div class="timeline__item"><span class="timeline__dot">2</span><b>Shortlisted</b> <span class="muted">now</span></div></div>
+</section>
+
+<section id="a11y">
+  <h2>Accessibility rules</h2>
+  <table class="spec"><tr><th>Rule</th><th>How it is met</th></tr>
+  <tr><td>Contrast</td><td>Body text 4.5:1 or better; large text 3:1. Tokens were picked to meet this.</td></tr>
+  <tr><td>Colour is never alone</td><td>Skill state uses icon + text + border style. Status badges include an icon and a label.</td></tr>
+  <tr><td>Focus</td><td>Every control shows a 2px black + ice-blue ring on keyboard focus.</td></tr>
+  <tr><td>Targets</td><td>Buttons are at least 44px tall (36px for compact tables and chips).</td></tr>
+  <tr><td>Motion</td><td><code>prefers-reduced-motion</code> turns animation off; <code>prefers-reduced-transparency</code> swaps glass for solid panels.</td></tr>
+  <tr><td>Structure</td><td>Skip link, landmarks, one h1 per view, labelled form fields, live regions for results and toasts.</td></tr></table>
+</section>
+</main>
+</div>
+</div>
+</body>
+</html>
