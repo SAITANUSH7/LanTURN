@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { notify } from '../notify.js';
 import { z } from 'zod';
 import { db, tx } from '../db.js';
 import { conflict, notFound, forbidden, parse, wrap, page } from '../util.js';
@@ -81,6 +82,8 @@ jobsRouter.post('/jobs/:id/apply', authenticate, requireRole('STUDENT'), wrap(as
     recordEvent(aid, null, 'APPLIED', req.user.id);
     return aid;
   });
+  const who = db.prepare('SELECT full_name FROM student_profiles WHERE user_id = ?').get(req.user.id);
+  notify(row.employer_id, 'application_received', `New application: ${row.title}`, `${who?.full_name || 'A student'} applied (match ${m.score}%).`, `#/employer/jobs/${row.id}/candidates`);
   res.status(201).json(applicationOut(id));
 }));
 

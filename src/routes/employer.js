@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { notify } from '../notify.js';
 import { z } from 'zod';
 import { db, tx, parseJson } from '../db.js';
 import { conflict, notFound, parse, wrap, bad } from '../util.js';
@@ -93,6 +94,9 @@ employerRouter.put('/employer/jobs/:id', ...employer, requireVerifiedEmployer, w
 employerRouter.post('/employer/jobs/:id/close', ...employer, wrap(async (req, res) => {
   const j = ownJob(req.user.id, req.params.id);
   db.prepare("UPDATE jobs SET status = 'CLOSED' WHERE id = ?").run(j.id);
+  for (const a of db.prepare("SELECT student_id FROM applications WHERE job_id = ? AND status IN ('APPLIED','SHORTLISTED','INTERVIEW')").all(j.id)) {
+    notify(a.student_id, 'job_removed', `Job closed: ${j.title}`, 'The employer closed this position.', '#/student/applications');
+  }
   res.json(serializeJob(ownJob(req.user.id, j.id), loadJobSkills([j.id]).get(j.id)));
 }));
 
@@ -163,6 +167,8 @@ employerRouter.patch('/employer/applications/:id/status', ...employer, wrap(asyn
     db.prepare("UPDATE applications SET status = ?, updated_at = datetime('now') WHERE id = ?").run(status, a.id);
     recordEvent(a.id, a.status, status, req.user.id);
   });
+  const jt = db.prepare('SELECT j.title, e.company_name FROM jobs j LEFT JOIN employer_profiles e ON e.user_id = j.employer_id WHERE j.id = ?').get(a.job_id);
+  notify(a.student_id, 'application_status', `Application ${status.toLowerCase()}`, `${jt?.company_name || 'The employer'} moved your application for ${jt?.title || 'a job'} to ${status}.`, '#/student/applications');
   res.json({ id: a.id, status, allowedTransitions: TRANSITIONS[status], events: eventsFor(a.id) });
 }));
 

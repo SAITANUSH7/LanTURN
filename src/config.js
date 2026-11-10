@@ -42,6 +42,12 @@ export const config = {
   uploadDir: path.resolve(ROOT, env.UPLOAD_DIR || './data/uploads'),
   anthropicKey: env.ANTHROPIC_API_KEY || '',
   llmModel: env.LLM_MODEL || '',
+  // Multi-provider AI: AI_PROVIDER=auto (every provider that has a key, in AI_PRIORITY order) or one name.
+  aiProvider: (env.AI_PROVIDER || 'auto').toLowerCase(),
+  aiPriority: (env.AI_PRIORITY || 'deepseek,kimi,nvidia,opencode,gemini,groq,openrouter,openai,anthropic,custom')
+    .split(',').map((s) => s.trim().toLowerCase()).filter(Boolean),
+  aiTimeoutMs: num(env.AI_TIMEOUT_MS, 30000),
+  collegeName: env.COLLEGE_NAME || 'your college',
   aiDailyQuota: num(env.AI_DAILY_QUOTA, 20),
   resumeMaxChars: num(env.RESUME_MAX_CHARS, 20000),
   maxUploadBytes: 4 * 1024 * 1024,
