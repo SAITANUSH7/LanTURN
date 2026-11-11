@@ -1,7 +1,9 @@
 // Provider-agnostic LLM layer. Almost every vendor speaks the OpenAI "chat/completions" dialect, so one
 // adapter + a table of presets covers them; Anthropic gets its own small adapter. Every base URL and model
 // is overridable from the environment because vendors rename models often.
+import crypto from 'node:crypto';
 import { config } from '../config.js';
+import { db } from '../db.js';
 
 const env = process.env;
 
@@ -20,24 +22,54 @@ export const PRESETS = {
 
 const up = (n) => n.toUpperCase();
 
+// ---- Keys saved from the admin screen. Encrypted at rest (AES-256-GCM) with a key derived from the server secret.
+const vaultKey = () => crypto.createHash('sha256').update(`lanturn-ai-vault:${config.refreshSecret}`).digest();
+export function sealKey(plain) {
+  if (!plain) return '';
+  const iv = crypto.randomBytes(12);
+  const c = crypto.createCipheriv('aes-256-gcm', vaultKey(), iv);
+  const enc = Buffer.concat([c.update(plain, 'utf8'), c.final()]);
+  return [iv, c.getAuthTag(), enc].map((b) => b.toString('base64')).join('.');
+}
+function openKey(sealed) {
+  if (!sealed) return '';
+  try {
+    const [iv, tag, enc] = sealed.split('.').map((x) => Buffer.from(x, 'base64'));
+    const d = crypto.createDecipheriv('aes-256-gcm', vaultKey(), iv);
+    d.setAuthTag(tag);
+    return Buffer.concat([d.update(enc), d.final()]).toString('utf8');
+  } catch { return ''; } // secret rotated or row corrupted: treat as not set
+}
+const saved = (name) => {
+  try { return db.prepare('SELECT * FROM ai_settings WHERE provider = ?').get(name) || null; } catch { return null; }
+};
+
+/** Resolve one provider from admin-saved settings (win) or environment. Returns null if unusable. */
+export function resolveProvider(name, { ignoreDisabled = false } = {}) {
+  const p = PRESETS[name];
+  if (!p) return null;
+  const row = saved(name);
+  if (row && !row.enabled && !ignoreDisabled) return null;
+  const key = openKey(row?.api_key_enc) || env[p.keyEnv] || '';
+  const baseUrl = (row?.base_url || env[`${up(name)}_BASE_URL`] || (name === 'custom' ? env.LLM_BASE_URL : p.baseUrl) || '').replace(/\/+$/, '');
+  let model = row?.model || env[`${up(name)}_MODEL`] || '';
+  if (!model && name === 'anthropic') model = env.LLM_MODEL || p.model;
+  if (!model && name === 'custom') model = env.LLM_MODEL || '';
+  if (!model) model = p.model;
+  if (!baseUrl || !model || (!key && name !== 'custom')) return null;
+  if (name === 'custom' && !key && !row?.base_url && !env.LLM_BASE_URL) return null;
+  return { name, label: p.label, kind: p.kind || 'openai', baseUrl, key, model, jsonMode: env[`${up(name)}_JSON_MODE`] ? env[`${up(name)}_JSON_MODE`] === 'true' : Boolean(p.jsonMode), origin: row && openKey(row.api_key_enc) ? 'admin' : 'env' };
+}
+
 /** Providers that are configured right now, in priority order. Read lazily so tests can change env. */
 export function activeProviders() {
   const wanted = config.aiProvider === 'auto' ? config.aiPriority : [config.aiProvider];
   const out = [];
   for (const name of wanted) {
-    const p = PRESETS[name];
-    if (!p) continue;
-    const key = env[p.keyEnv] || '';
-    const baseUrl = (env[`${up(name)}_BASE_URL`] || (name === 'custom' ? env.LLM_BASE_URL : p.baseUrl) || '').replace(/\/+$/, '');
-    let model = env[`${up(name)}_MODEL`] || '';
-    if (!model && name === 'anthropic') model = env.LLM_MODEL || p.model;
-    if (!model && name === 'custom') model = env.LLM_MODEL || '';
-    if (!model) model = p.model;
-    // Local OpenAI-compatible servers (Ollama, LM Studio) need no key, so a custom base URL alone is enough.
-    if (!baseUrl || !model || (!key && name !== 'custom')) continue;
-    if (name === 'custom' && !key && !env.LLM_BASE_URL) continue;
+    const r = resolveProvider(name);
+    if (!r) continue;
     // A comma-separated model list becomes a fallback chain on the same provider (first model is tried first).
-    for (const m of model.split(',').map((x) => x.trim()).filter(Boolean)) out.push({ name, label: p.label, kind: p.kind || 'openai', baseUrl, key, model: m, jsonMode: env[`${up(name)}_JSON_MODE`] ? env[`${up(name)}_JSON_MODE`] === 'true' : Boolean(p.jsonMode) });
+    for (const m of r.model.split(',').map((x) => x.trim()).filter(Boolean)) out.push({ ...r, model: m });
   }
   return out;
 }
@@ -129,4 +161,18 @@ export async function callJson(system, user, schema, maxTokens = 1500) {
     last = new Error(`${p.name}: ${lastErr}`);
   }
   throw last;
+}
+
+/** One tiny request to check a key and model from the admin screen. Never throws; reports the outcome. */
+export async function testProvider(name) {
+  const r = resolveProvider(name, { ignoreDisabled: true });
+  if (!r) return { ok: false, error: 'Add an API key first' };
+  const model = r.model.split(',')[0].trim();
+  const t0 = Date.now();
+  try {
+    const text = await chatOnce({ ...r, model }, { system: 'Reply with the single word OK.', messages: [{ role: 'user', content: 'ping' }], maxTokens: 20, json: false });
+    return { ok: true, ms: Date.now() - t0, model, reply: String(text).replace(/<think>[\s\S]*?<\/think>/gi, '').trim().slice(0, 40) };
+  } catch (e) {
+    return { ok: false, ms: Date.now() - t0, model, error: /HTTP 401|HTTP 403/.test(e.message) ? 'The provider rejected the key (401/403)' : /HTTP 404/.test(e.message) ? 'Model or URL not found (404). Check the model name' : /abort/i.test(e.message) ? 'Timed out' : e.message.replace(/Bearer\s+\S+/g, '') };
+  }
 }

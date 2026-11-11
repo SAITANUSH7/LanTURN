@@ -4,7 +4,7 @@ import { db, tx, parseJson } from '../db.js';
 import { HttpError, bad, notFound, parse, wrap } from '../util.js';
 import { authenticate, requireRole } from '../auth.js';
 import { checkQuota } from '../ai/index.js';
-import { providerSummary, llmEnabled } from '../ai/providers.js';
+import { providerSummary, llmEnabled, PRESETS, resolveProvider, sealKey, testProvider } from '../ai/providers.js';
 import * as F from '../ai/features.js';
 import { skillGap } from '../ai/scoring.js';
 import { idParam, studentContext, loadJobSkills, JOB_SELECT, latestAnalysis } from './common.js';
@@ -196,4 +196,46 @@ aiRouter.post('/employer/ai/company-dna', ...employer, wrap(async (req, res) => 
     ON CONFLICT(user_id) DO UPDATE SET personality=excluded.personality, summary=excluded.summary, dimensions=excluded.dimensions, source=excluded.source, updated_at=excluded.updated_at`)
     .run(req.user.id, d.personality, d.summary, JSON.stringify(d.dimensions), d.source);
   res.status(201).json(cdnaOut(db.prepare('SELECT * FROM company_dna WHERE user_id = ?').get(req.user.id)));
+}));
+
+// ---------- Admin: provider keys managed from the web UI ----------
+const admin = [authenticate, requireRole('ADMIN')];
+const mask = (k) => (k ? `••••${k.slice(-4)}` : '');
+function providerRow(name) {
+  const r = resolveProvider(name, { ignoreDisabled: true });
+  const row = db.prepare('SELECT enabled, model, base_url FROM ai_settings WHERE provider = ?').get(name);
+  const p = PRESETS[name];
+  return { name, label: p.label, configured: !!r, origin: r ? r.origin : null, keyHint: r ? mask(r.key) : '', model: r ? r.model : p.model, baseUrl: r ? r.baseUrl : p.baseUrl, enabled: row ? !!row.enabled : true, customModel: !!row?.model, editableUrl: name === 'custom' || !!row?.base_url };
+}
+aiRouter.get('/admin/ai', ...admin, wrap(async (_req, res) => {
+  res.json({ providers: Object.keys(PRESETS).map(providerRow), active: providerSummary() });
+}));
+aiRouter.put('/admin/ai/:name', ...admin, wrap(async (req, res) => {
+  const name = String(req.params.name);
+  if (!PRESETS[name]) throw notFound('Unknown provider');
+  const b = parse(z.object({
+    apiKey: z.string().trim().max(500).optional(),
+    model: z.string().trim().max(500).optional(),
+    baseUrl: z.string().trim().max(300).refine((v) => !v || /^https?:\/\//i.test(v), 'Must start with http:// or https://').optional(),
+    enabled: z.boolean().optional(),
+  }).strict(), req.body);
+  const cur = db.prepare('SELECT * FROM ai_settings WHERE provider = ?').get(name);
+  const next = {
+    key: b.apiKey === undefined ? cur?.api_key_enc || '' : sealKey(b.apiKey), // omit = keep, '' = clear
+    model: b.model ?? cur?.model ?? '',
+    base: b.baseUrl ?? cur?.base_url ?? '',
+    enabled: b.enabled === undefined ? (cur ? cur.enabled : 1) : (b.enabled ? 1 : 0),
+  };
+  db.prepare(`INSERT INTO ai_settings (provider, api_key_enc, model, base_url, enabled, updated_at) VALUES (?,?,?,?,?,datetime('now'))
+    ON CONFLICT(provider) DO UPDATE SET api_key_enc=excluded.api_key_enc, model=excluded.model, base_url=excluded.base_url, enabled=excluded.enabled, updated_at=excluded.updated_at`)
+    .run(name, next.key, next.model, next.base, next.enabled);
+  res.json(providerRow(name));
+}));
+aiRouter.delete('/admin/ai/:name', ...admin, wrap(async (req, res) => {
+  db.prepare('DELETE FROM ai_settings WHERE provider = ?').run(String(req.params.name));
+  res.json(providerRow(String(req.params.name)));
+}));
+aiRouter.post('/admin/ai/:name/test', ...admin, wrap(async (req, res) => {
+  if (!PRESETS[req.params.name]) throw notFound('Unknown provider');
+  res.json(await testProvider(req.params.name));
 }));

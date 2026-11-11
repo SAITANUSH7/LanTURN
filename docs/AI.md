@@ -4,6 +4,15 @@ LanTURN is **rules-first**: every AI feature has a deterministic fallback, so th
 When one or more providers are configured, they are tried in order; if all fail, the rules engine answers and the
 response says `source: "rules"` (the UI shows a "Rules engine" badge versus an AI badge).
 
+## Adding keys from the website (no file editing)
+
+Sign in as the admin, open **AI providers** in the top bar, paste a key for any provider, optionally set the model
+(comma list = fallbacks), press **Save**, then **Test**. Keys are encrypted in the database (AES-256-GCM, key derived from
+`JWT_REFRESH_SECRET`), are never sent back to the browser (only the last 4 characters), and take effect immediately.
+Keys saved here win over environment variables. Changing `JWT_REFRESH_SECRET` makes saved keys unreadable; re-enter them.
+On hosts with a disk that is wiped on redeploy (Render free), saved keys are wiped with the database, so use environment
+variables there or add a persistent disk.
+
 ## Providers
 
 All except Anthropic use the OpenAI-style `POST {baseUrl}/chat/completions`. Set a key to enable a provider.

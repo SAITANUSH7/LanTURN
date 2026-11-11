@@ -112,3 +112,40 @@ test('notifications: apply and status change notify the other side; employer ass
   const all = await api('POST', '/notifications/read-all', { token: emp.accessToken });
   assert.equal(all.body.unread, 0);
 });
+
+test('admin can add a provider key in the web UI: encrypted at rest, never echoed, testable, removable', async () => {
+  const admin = await login('admin@test.local', 'Admin@12345');
+  const stu = await register('STUDENT');
+  assert.equal((await api('GET', '/admin/ai', { token: stu.accessToken })).status, 403);
+  assert.equal((await api('PUT', '/admin/ai/nvidia', { token: stu.accessToken, body: { apiKey: 'x' } })).status, 403);
+  const KEY = 'nvapi-SECRET-1234567890abcd';
+  const seen = [];
+  __setFetch(async (url, init) => { seen.push({ url, auth: init.headers.authorization }); return new Response(JSON.stringify({ choices: [{ message: { content: 'OK' } }] }), { status: 200 }); });
+  try {
+    const put = await api('PUT', '/admin/ai/nvidia', { token: admin, body: { apiKey: KEY, model: 'meta/llama-3.3-70b-instruct,nvidia/nemotron-3-nano-30b-a3b' } });
+    assert.equal(put.status, 200);
+    assert.equal(put.body.configured, true);
+    assert.equal(put.body.origin, 'admin');
+    assert.equal(put.body.keyHint, '••••abcd');
+    assert.ok(!put.text.includes('SECRET'), 'key must never be returned');
+    const list = await api('GET', '/admin/ai', { token: admin });
+    assert.ok(!list.text.includes('SECRET'));
+    assert.deepEqual(list.body.active.map((p) => p.model), ['meta/llama-3.3-70b-instruct', 'nvidia/nemotron-3-nano-30b-a3b']);
+    const { db } = await import('../src/db.js');
+    const raw = db.prepare("SELECT api_key_enc FROM ai_settings WHERE provider='nvidia'").get().api_key_enc;
+    assert.ok(raw && !raw.includes('SECRET'), 'stored value is encrypted');
+    const tst = await api('POST', '/admin/ai/nvidia/test', { token: admin });
+    assert.equal(tst.body.ok, true);
+    assert.equal(seen.at(-1).auth, `Bearer ${KEY}`);
+    assert.equal((await api('GET', '/health')).body.ai, 'llm+rules');
+    // disable keeps the key but stops using it
+    await api('PUT', '/admin/ai/nvidia', { token: admin, body: { enabled: false } });
+    assert.equal((await api('GET', '/health')).body.ai, 'rules');
+    await api('PUT', '/admin/ai/nvidia', { token: admin, body: { enabled: true } });
+    // bad URL rejected
+    assert.equal((await api('PUT', '/admin/ai/custom', { token: admin, body: { baseUrl: 'javascript:alert(1)' } })).status, 400);
+    const del = await api('DELETE', '/admin/ai/nvidia', { token: admin });
+    assert.equal(del.body.configured, false);
+    assert.equal((await api('GET', '/health')).body.ai, 'rules');
+  } finally { __setFetch(null); }
+});
