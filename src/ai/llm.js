@@ -38,7 +38,7 @@ Describe resources by TYPE only (for example "official documentation", "interact
 Output ONLY JSON: {headline, totalWeeks, steps:[{order, skill, why, actions[], projectIdea, resourceTypes[], weeks}]}. Every step.skill must equal a missing skill name.`;
 
 export const llmResume = (text) =>
-  callJson(RESUME_SYSTEM, `<resume>\n${text.slice(0, config.resumeMaxChars)}\n</resume>`, ResumeSchema, 1500);
+  callJson(RESUME_SYSTEM, `<resume>\n${text.slice(0, config.resumeMaxChars)}\n</resume>`, ResumeSchema, 1500, 'resume');
 
 export async function llmRoadmap(targetTitle, studentSkills, gap) {
   const user = JSON.stringify({
@@ -46,7 +46,7 @@ export async function llmRoadmap(targetTitle, studentSkills, gap) {
     currentSkills: studentSkills,
     missingSkills: gap.missing.slice(0, 8).map((m) => ({ skill: m.skill, weight: m.weight })),
   });
-  const out = await callJson(ROADMAP_SYSTEM, user, RoadmapSchema, 2500);
+  const out = await callJson(ROADMAP_SYSTEM, user, RoadmapSchema, 2500, 'roadmap');
   const allowed = new Set(gap.missing.map((m) => m.skill));
   if (out.steps.some((s) => !allowed.has(s.skill))) throw new Error('LLM output invalid: unknown skill in roadmap');
   return out;

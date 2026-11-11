@@ -51,14 +51,31 @@ export async function aiSettings() {
       try { await put(`/admin/ai/${p.name}`, body); toast(`${p.label} saved`, 'success'); await load(); } catch (e) { toast(e.message, 'error'); }
     });
     test.onclick = () => busy(test, async () => {
-      try { const r = await post(`/admin/ai/${p.name}/test`); result.textContent = r.ok ? `Working: ${r.model} answered in ${r.ms} ms.` : `Failed: ${r.error}`; result.className = r.ok ? 'strong' : 'error'; } catch (e) { toast(e.message, 'error'); }
-    });
+      clear(result).append(h('span', { class: 'spinner', 'aria-hidden': 'true' }), ' Calling the provider…');
+      try {
+        const r = await post(`/admin/ai/${p.name}/test`);
+        result.className = r.ok ? 'alert alert--success' : 'alert alert--danger';
+        clear(result).append(icon(r.ok ? 'check' : 'warn'), h('span', null, r.ok ? `It works. ${r.model} answered in ${(r.ms / 1000).toFixed(1)} s.` : `Not working: ${r.error}`));
+        loadLogs();
+      } catch (e) { clear(result); toast(e.message, 'error'); }
+    }, 'Testing…');
     const remove = p.origin === 'admin' ? h('button', { class: 'btn btn--ghost btn--sm', type: 'button', onclick: async () => { await del(`/admin/ai/${p.name}`); toast('Saved key removed', 'success'); await load(); } }, icon('trash'), 'Remove key') : null;
     return h('div', { class: 'card stack' },
       h('div', { class: 'row row--between' }, h('h3', null, p.label), h('span', { class: `badge ${p.configured ? 'badge--accent' : 'badge--neutral'}` }, p.configured ? (p.origin === 'admin' ? 'Key saved here' : 'Key from server settings') : 'Not set')),
       h('div', { class: 'form-grid' }, field('API key', key), field('Model (comma list = fallbacks)', model), url ? field('Base URL', url) : null),
       h('div', { class: 'row' }, save, test, off, remove), result);
   }
-  await load();
-  return wrapPage(pageHead('AI providers', 'Add API keys here. They are encrypted on the server and never sent back to the browser.'), summary, host);
+  const logs = h('div', { class: 'stack stack--sm' });
+  async function loadLogs() {
+    try {
+      const d = await get('/admin/ai/logs');
+      clear(logs).append(h('div', { class: 'row row--between' }, h('h3', null, 'Recent AI calls'), h('button', { class: 'btn btn--ghost btn--sm', type: 'button', onclick: loadLogs }, icon('refresh'), 'Refresh')),
+        d.items.length ? h('div', { class: 'table-wrap' }, h('table', { class: 'table' },
+          h('thead', null, h('tr', null, ['Time', 'Provider', 'Model', 'Used for', 'Result', 'Time taken', 'Details'].map((x) => h('th', { scope: 'col' }, x)))),
+          h('tbody', null, d.items.map((c) => h('tr', null, h('td', null, new Date(c.at).toLocaleTimeString()), h('td', null, c.provider), h('td', null, c.model), h('td', null, c.purpose),
+            h('td', null, h('span', { class: `badge ${c.ok ? 'badge--accent' : 'badge--neutral'}` }, c.ok ? 'OK' : 'Failed')), h('td', null, `${(c.ms / 1000).toFixed(1)} s`), h('td', null, c.note || '')))))) : h('p', { class: 'muted' }, 'No calls yet. Press Test on a provider, or use any AI feature.'));
+    } catch { /* ignore */ }
+  }
+  await load(); await loadLogs();
+  return wrapPage(pageHead('AI providers', 'Add API keys here. They are encrypted on the server and never sent back to the browser.'), summary, host, logs);
 }

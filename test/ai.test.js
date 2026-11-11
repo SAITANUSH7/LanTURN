@@ -136,6 +136,10 @@ test('admin can add a provider key in the web UI: encrypted at rest, never echoe
     assert.ok(raw && !raw.includes('SECRET'), 'stored value is encrypted');
     const tst = await api('POST', '/admin/ai/nvidia/test', { token: admin });
     assert.equal(tst.body.ok, true);
+    const logs = await api('GET', '/admin/ai/logs', { token: admin });
+    assert.equal(logs.body.items[0].provider, 'nvidia');
+    assert.equal(logs.body.items[0].ok, true);
+    assert.ok(!logs.text.includes('SECRET'));
     assert.equal(seen.at(-1).auth, `Bearer ${KEY}`);
     assert.equal((await api('GET', '/health')).body.ai, 'llm+rules');
     // disable keeps the key but stops using it

@@ -4,7 +4,7 @@ import { db, tx, parseJson } from '../db.js';
 import { HttpError, bad, notFound, parse, wrap } from '../util.js';
 import { authenticate, requireRole } from '../auth.js';
 import { checkQuota } from '../ai/index.js';
-import { providerSummary, llmEnabled, PRESETS, resolveProvider, sealKey, testProvider } from '../ai/providers.js';
+import { providerSummary, llmEnabled, PRESETS, resolveProvider, sealKey, testProvider, recentCalls } from '../ai/providers.js';
 import * as F from '../ai/features.js';
 import { skillGap } from '../ai/scoring.js';
 import { idParam, studentContext, loadJobSkills, JOB_SELECT, latestAnalysis } from './common.js';
@@ -239,3 +239,4 @@ aiRouter.post('/admin/ai/:name/test', ...admin, wrap(async (req, res) => {
   if (!PRESETS[req.params.name]) throw notFound('Unknown provider');
   res.json(await testProvider(req.params.name));
 }));
+aiRouter.get('/admin/ai/logs', ...admin, wrap(async (_req, res) => { res.json({ items: recentCalls().slice(0, 40) }); }));

@@ -4,6 +4,8 @@ import { pageHead, wrapPage } from './shared.js';
 import { radar } from '../charts.js';
 import { t } from '../i18n.js';
 
+const think = (btn, fn) => busy(btn, fn, 'Asking AI…');
+
 const dimList = (dims) => h('ul', { class: 'stack stack--sm' }, dims.map((d) => h('li', null, h('div', { class: 'row row--between' }, h('strong', null, d.name), h('span', { class: 'muted' }, `${Math.round(d.score)}/100`)), d.note ? h('small', { class: 'muted' }, d.note) : null)));
 
 // ---------------------------------------------------------------- Career DNA
@@ -12,7 +14,7 @@ export async function careerDna() {
   const draw = (d) => {
     clear(host);
     const btn = h('button', { class: 'btn', type: 'button' }, icon('sparkle'), d ? 'Refresh my Career DNA' : t('Generate my Career DNA'));
-    btn.onclick = () => busy(btn, async () => { try { draw(await post('/career/dna')); toast('Career DNA updated', 'success'); } catch (e) { toast(e.message, 'error'); } });
+    btn.onclick = () => think(btn, async () => { try { draw(await post('/career/dna')); toast('Career DNA updated', 'success'); } catch (e) { toast(e.message, 'error'); } });
     if (!d) { host.append(empty('sparkle', 'No Career DNA yet', 'Add your skills on your profile, then generate a radar of your strengths.', btn)); return; }
     host.append(
       h('div', { class: 'grid grid--2' },
@@ -44,7 +46,7 @@ export async function arena() {
   const startBtn = h('button', { class: 'btn', type: 'button' }, icon('bolt'), t('Start the test'));
   const showPicker = () => clear(stage).append(h('div', { class: 'card stack' }, h('h3', null, 'Pick a skill'), h('p', { class: 'muted' }, 'Rate yourself honestly. You get 3 open questions. Answer all correctly to earn the medal for your level; otherwise you get a basic medal.'),
     h('div', { class: 'form-grid' }, field('Skill', skillSel), field('Your level', rate)), list, startBtn));
-  startBtn.onclick = () => busy(startBtn, async () => {
+  startBtn.onclick = () => think(startBtn, async () => {
     const skill = skillSel.value.trim();
     if (!skill) { toast('Enter a skill', 'error'); return; }
     try { showTest(await post('/arena/tests', { skill, selfRating: Number(rate.value) })); } catch (e) { toast(e.message, 'error'); }
@@ -52,7 +54,7 @@ export async function arena() {
   function showTest(test) {
     const areas = test.questions.map(() => textarea({ rows: '4', maxlength: '2000', placeholder: 'Your answer…' }));
     const submit = h('button', { class: 'btn btn--accent', type: 'button' }, t('Submit answers'));
-    submit.onclick = () => busy(submit, async () => {
+    submit.onclick = () => think(submit, async () => {
       try { const m = await post(`/arena/tests/${test.id}/submit`, { answers: areas.map((a) => a.value) }); showResult(m); drawMedals(await get('/arena/medals')); } catch (e) { toast(e.message, 'error'); }
     });
     clear(stage).append(h('div', { class: 'card stack' }, h('div', { class: 'row row--between' }, h('h3', null, `${test.skill} · ${['', 'Beginner', 'Intermediate', 'Advanced'][test.tier]}`), badgeSource(test.source)),
@@ -95,15 +97,18 @@ export async function chat({ user }) {
   const go = () => {
     const msg = box.value.trim();
     if (!msg) return;
-    busy(send, async () => {
+    think(send, async () => {
       log.append(bubble('user', msg)); box.value = '';
+      const pending = h('div', { class: 'bubble bubble--assistant', role: 'status' }, h('p', { class: 'row' }, h('span', { class: 'spinner', 'aria-hidden': 'true' }), 'Thinking…'));
+      log.append(pending); log.scrollTop = log.scrollHeight;
       try {
         const r = await post('/chat/messages', { threadId: threadId || undefined, message: msg });
+        pending.remove();
         threadId = r.threadId;
         log.append(bubble('assistant', r.reply.content, r.reply.source));
         log.scrollTop = log.scrollHeight;
         loadThreads();
-      } catch (e) { toast(e.message, 'error'); }
+      } catch (e) { pending.remove(); toast(e.message, 'error'); }
     });
   };
   send.onclick = go;
@@ -141,14 +146,14 @@ export function jobTools(jobId) {
   const out = h('div', { class: 'stack stack--sm' });
   const cover = h('button', { class: 'btn btn--secondary btn--sm', type: 'button' }, icon('file'), t('Cover letter'));
   const prep = h('button', { class: 'btn btn--secondary btn--sm', type: 'button' }, icon('target'), t('Interview prep'));
-  cover.onclick = () => busy(cover, async () => {
+  cover.onclick = () => think(cover, async () => {
     try {
       const r = await post(`/jobs/${jobId}/cover-letter`);
       const copy = h('button', { class: 'btn btn--ghost btn--sm', type: 'button', onclick: () => navigator.clipboard?.writeText(r.letter).then(() => toast('Copied', 'success')) }, 'Copy');
       clear(out).append(h('div', { class: 'row' }, badgeSource(r.source), copy), h('pre', { class: 'letter' }, r.letter));
     } catch (e) { toast(e.message, 'error'); }
   });
-  prep.onclick = () => busy(prep, async () => {
+  prep.onclick = () => think(prep, async () => {
     try {
       const r = await post(`/jobs/${jobId}/interview-prep`);
       clear(out).append(badgeSource(r.source), h('ol', { class: 'stack stack--sm' }, r.questions.map((q) => h('li', null, h('strong', null, q.q), h('div', { class: 'muted' }, `${q.kind} · ${q.tip}`)))));
@@ -163,7 +168,7 @@ export async function companyDnaCard() {
   const draw = (d) => {
     clear(host);
     const btn = h('button', { class: 'btn btn--secondary btn--sm', type: 'button' }, icon('sparkle'), d ? 'Refresh' : t('Generate'));
-    btn.onclick = () => busy(btn, async () => { try { draw(await post('/employer/ai/company-dna')); } catch (e) { toast(e.message, 'error'); } });
+    btn.onclick = () => think(btn, async () => { try { draw(await post('/employer/ai/company-dna')); } catch (e) { toast(e.message, 'error'); } });
     host.append(h('div', { class: 'row row--between' }, h('h3', null, t('Company DNA')), btn));
     if (!d) { host.append(h('p', { class: 'muted' }, 'Post a job, then generate a radar of what your company looks for.')); return; }
     host.append(h('div', { class: 'row' }, h('strong', null, d.personality), badgeSource(d.source)), h('p', { class: 'prose' }, d.summary), h('div', { style: { maxWidth: '340px', margin: '0 auto' } }, radar(d.dimensions, { label: 'Company DNA' })));
@@ -175,7 +180,7 @@ export async function companyDnaCard() {
 /** Button that drafts a job description from title/type/location/skills supplied by getters. */
 export function jdWriter({ getInput, onResult }) {
   const btn = h('button', { class: 'btn btn--secondary btn--sm', type: 'button' }, icon('sparkle'), t('Write with AI'));
-  btn.onclick = () => busy(btn, async () => {
+  btn.onclick = () => think(btn, async () => {
     const inp = getInput();
     if (!inp.title) { toast('Enter a job title first', 'error'); return; }
     try { onResult(await post('/employer/ai/job-description', inp)); } catch (e) { toast(e.message, 'error'); }

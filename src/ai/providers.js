@@ -92,11 +92,39 @@ async function post(url, headers, body) {
   }
 }
 
+// ---- Call log: printed to the terminal and kept (last 100) for the admin screen. Never contains keys or prompts.
+const LOG = [];
+export const recentCalls = () => LOG.slice().reverse();
+function record(p, purpose, ok, ms, note) {
+  const e = { at: new Date().toISOString(), provider: p.name, model: p.model, purpose, ok, ms, note: note || '' };
+  LOG.push(e);
+  if (LOG.length > 100) LOG.shift();
+  if (!config.isTest) console.log(`[ai] ${ok ? 'OK  ' : 'FAIL'} ${p.name} ${p.model} ${purpose} ${(ms / 1000).toFixed(1)}s${note ? ` - ${note}` : ''}`);
+}
+const tidy = (t) => String(t || '').replace(/\s+/g, ' ').replace(/(nvapi|sk|gsk|AIza)[-\w]{10,}/g, '[key]').slice(0, 160);
+async function httpError(p, res) {
+  let body = '';
+  try { body = tidy(await res.text()); } catch { /* ignore */ }
+  return new Error(`${p.name} HTTP ${res.status}${body ? `: ${body}` : ''}`);
+}
+/** chatOnce with timing + logging. `purpose` is a short label such as "chat" or "dna". */
+async function chatLogged(p, args, purpose) {
+  const t0 = Date.now();
+  try {
+    const out = await chatOnce(p, args);
+    record(p, purpose, true, Date.now() - t0);
+    return out;
+  } catch (e) {
+    record(p, purpose, false, Date.now() - t0, tidy(/abort/i.test(e.message) ? `timed out after ${config.aiTimeoutMs / 1000}s` : e.message));
+    throw e;
+  }
+}
+
 async function chatOnce(p, { system, messages, maxTokens, json }) {
   if (p.kind === 'anthropic') {
     const res = await post(`${p.baseUrl}/messages`, { 'x-api-key': p.key, 'anthropic-version': '2023-06-01' },
       { model: p.model, max_tokens: maxTokens, temperature: 0.3, system, messages });
-    if (!res.ok) throw new Error(`${p.name} HTTP ${res.status}`);
+    if (!res.ok) throw await httpError(p, res);
     const b = await res.json();
     return (b.content || []).map((c) => c.text || '').join('');
   }
@@ -109,7 +137,7 @@ async function chatOnce(p, { system, messages, maxTokens, json }) {
     delete body.response_format;
     res = await post(`${p.baseUrl}/chat/completions`, headers, body);
   }
-  if (!res.ok) throw new Error(`${p.name} HTTP ${res.status}`);
+  if (!res.ok) throw await httpError(p, res);
   const b = await res.json();
   return b.choices?.[0]?.message?.content || '';
 }
@@ -132,7 +160,7 @@ export async function chatText({ system, messages, maxTokens = 600 }) {
   let last;
   for (const p of chain) {
     try {
-      const out = (await chatOnce(p, { system, messages, maxTokens, json: false })).replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+      const out = (await chatLogged(p, { system, messages, maxTokens, json: false }, 'chat')).replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
       if (out) return { text: out, provider: p.name, model: p.model };
     } catch (e) { last = e; }
   }
@@ -140,7 +168,7 @@ export async function chatText({ system, messages, maxTokens = 600 }) {
 }
 
 /** Validated JSON completion: per provider one retry with the validation error, then the next provider. */
-export async function callJson(system, user, schema, maxTokens = 1500) {
+export async function callJson(system, user, schema, maxTokens = 1500, purpose = 'json') {
   const chain = activeProviders();
   if (!chain.length) throw new Error('No AI provider configured');
   let last;
@@ -149,9 +177,10 @@ export async function callJson(system, user, schema, maxTokens = 1500) {
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
         const content = attempt ? `${user}\n\nYour previous reply failed validation: ${lastErr}. Return corrected JSON only.` : user;
-        const text = await chatOnce(p, { system, messages: [{ role: 'user', content }], maxTokens, json: true });
+        const text = await chatLogged(p, { system, messages: [{ role: 'user', content }], maxTokens, json: true }, purpose);
         const parsed = schema.safeParse(extractJson(text));
         if (parsed.success) { Object.defineProperty(parsed.data, '__provider', { value: p.name, enumerable: false }); return parsed.data; }
+        record(p, purpose, false, 0, 'reply did not match the expected JSON shape');
         lastErr = parsed.error.issues[0] ? `${parsed.error.issues[0].path.join('.')}: ${parsed.error.issues[0].message}` : 'schema mismatch';
       } catch (e) {
         lastErr = e.message;
@@ -170,9 +199,9 @@ export async function testProvider(name) {
   const model = r.model.split(',')[0].trim();
   const t0 = Date.now();
   try {
-    const text = await chatOnce({ ...r, model }, { system: 'Reply with the single word OK.', messages: [{ role: 'user', content: 'ping' }], maxTokens: 20, json: false });
+    const text = await chatLogged({ ...r, model }, { system: 'Reply with the single word OK.', messages: [{ role: 'user', content: 'ping' }], maxTokens: 20, json: false }, 'test');
     return { ok: true, ms: Date.now() - t0, model, reply: String(text).replace(/<think>[\s\S]*?<\/think>/gi, '').trim().slice(0, 40) };
   } catch (e) {
-    return { ok: false, ms: Date.now() - t0, model, error: /HTTP 401|HTTP 403/.test(e.message) ? 'The provider rejected the key (401/403)' : /HTTP 404/.test(e.message) ? 'Model or URL not found (404). Check the model name' : /abort/i.test(e.message) ? 'Timed out' : e.message.replace(/Bearer\s+\S+/g, '') };
+    return { ok: false, ms: Date.now() - t0, model, error: /HTTP 401|HTTP 403/.test(e.message) ? `The provider rejected the key (401/403). ${e.message.split(': ').slice(1).join(': ')}` : /HTTP 404/.test(e.message) ? `Model or URL not found (404). Check the model name. ${e.message.split(': ').slice(1).join(': ')}` : /abort/i.test(e.message) ? `Timed out after ${config.aiTimeoutMs / 1000}s` : /fetch failed/i.test(e.message) ? 'Could not reach the provider. Check internet, firewall or VPN.' : tidy(e.message) };
   }
 }
