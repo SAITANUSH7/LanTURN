@@ -163,10 +163,10 @@ export function confirmDialog({ title, body, confirmText = 'Confirm', danger = f
 
 /** Disable a button while an async action runs and show a spinner. */
 export async function busy(btn, fn, label = 'Working…') {
-  const label = btn.cloneNode(true);
+  const original = btn.cloneNode(true);
   btn.disabled = true;
   clear(btn).append(h('span', { class: 'spinner', 'aria-hidden': 'true' }), ` ${label}`);
-  try { return await fn(); } finally { btn.disabled = false; clear(btn).append(...label.childNodes); }
+  try { return await fn(); } finally { btn.disabled = false; clear(btn).append(...original.childNodes); }
 }
 
 export function field(label, control, { hint, error, id } = {}) {
