@@ -1,5 +1,5 @@
 import { get, post, put, del } from '../api.js';
-import { h, clear, icon, empty, errorBox, loadingBlock, toast, verifyBadge, fmtDate, busy, field, input } from '../ui.js';
+import { h, clear, icon, empty, errorBox, loadingBlock, toast, verifyBadge, fmtDate, busy, field, input, thinking } from '../ui.js';
 import { pageHead, wrapPage } from './shared.js';
 
 export async function employers({ query }) {
@@ -51,19 +51,34 @@ export async function aiSettings() {
       try { await put(`/admin/ai/${p.name}`, body); toast(`${p.label} saved`, 'success'); await load(); } catch (e) { toast(e.message, 'error'); }
     });
     test.onclick = () => busy(test, async () => {
-      clear(result).append(h('span', { class: 'spinner', 'aria-hidden': 'true' }), ' Calling the provider…');
+      result.className = '';
+      clear(result).append(thinking(`Calling ${p.label}…`, 'Testing the first model in the box (saved or not).'));
       try {
-        const r = await post(`/admin/ai/${p.name}/test`);
+        const r = await post(`/admin/ai/${p.name}/test`, { model: model.value.trim() || undefined });
         result.className = r.ok ? 'alert alert--success' : 'alert alert--danger';
         clear(result).append(icon(r.ok ? 'check' : 'warn'), h('span', null, r.ok ? `It works. ${r.model} answered in ${(r.ms / 1000).toFixed(1)} s.` : `Not working: ${r.error}`));
         loadLogs();
       } catch (e) { clear(result); toast(e.message, 'error'); }
     }, 'Testing…');
+    const list = h('div', { hidden: true });
+    const browse = h('button', { class: 'btn btn--secondary btn--sm', type: 'button' }, 'Browse models');
+    browse.onclick = () => busy(browse, async () => {
+      list.hidden = false; clear(list).append(thinking('Loading model list…', null));
+      try {
+        const r = await get(`/admin/ai/${p.name}/models`);
+        if (!r.ok) { clear(list).append(h('div', { class: 'alert alert--danger' }, icon('warn'), h('span', null, r.error))); return; }
+        const q = input({ type: 'search', placeholder: `Filter ${r.models.length} models`, 'aria-label': 'Filter models' });
+        const box = h('div', { class: 'models' });
+        const paint = () => { clear(box).append(...r.models.filter((m) => m.toLowerCase().includes(q.value.toLowerCase())).slice(0, 80).map((m) => h('button', { type: 'button', onclick: () => { model.value = model.value.trim() ? `${model.value.trim()},${m}` : m; toast(`Added ${m}`, 'success'); } }, m))); };
+        q.oninput = paint; paint();
+        clear(list).append(h('p', { class: 'hint muted' }, 'Click a model to add it to the box, then Save. Prefer small or "instruct" models: big reasoning models can be slow.'), q, box);
+      } catch (e) { clear(list); toast(e.message, 'error'); }
+    }, 'Loading…');
     const remove = p.origin === 'admin' ? h('button', { class: 'btn btn--ghost btn--sm', type: 'button', onclick: async () => { await del(`/admin/ai/${p.name}`); toast('Saved key removed', 'success'); await load(); } }, icon('trash'), 'Remove key') : null;
     return h('div', { class: 'card stack' },
       h('div', { class: 'row row--between' }, h('h3', null, p.label), h('span', { class: `badge ${p.configured ? 'badge--accent' : 'badge--neutral'}` }, p.configured ? (p.origin === 'admin' ? 'Key saved here' : 'Key from server settings') : 'Not set')),
       h('div', { class: 'form-grid' }, field('API key', key), field('Model (comma list = fallbacks)', model), url ? field('Base URL', url) : null),
-      h('div', { class: 'row' }, save, test, off, remove), result);
+      h('div', { class: 'row' }, save, test, browse, off, remove), result, list);
   }
   const logs = h('div', { class: 'stack stack--sm' });
   async function loadLogs() {

@@ -136,6 +136,12 @@ test('admin can add a provider key in the web UI: encrypted at rest, never echoe
     assert.ok(raw && !raw.includes('SECRET'), 'stored value is encrypted');
     const tst = await api('POST', '/admin/ai/nvidia/test', { token: admin });
     assert.equal(tst.body.ok, true);
+    __setFetch(async (url) => (url.endsWith('/models') ? new Response(JSON.stringify({ data: [{ id: 'z/model-b' }, { id: 'a/model-a' }] }), { status: 200 }) : new Response(JSON.stringify({ choices: [{ message: { content: 'OK' } }] }), { status: 200 })));
+    const ml = await api('GET', '/admin/ai/nvidia/models', { token: admin });
+    assert.deepEqual(ml.body.models, ['a/model-a', 'z/model-b']);
+    assert.ok(!ml.text.includes('SECRET'));
+    const ov = await api('POST', '/admin/ai/nvidia/test', { token: admin, body: { model: 'a/model-a,other' } });
+    assert.equal(ov.body.model, 'a/model-a');
     const logs = await api('GET', '/admin/ai/logs', { token: admin });
     assert.equal(logs.body.items[0].provider, 'nvidia');
     assert.equal(logs.body.items[0].ok, true);

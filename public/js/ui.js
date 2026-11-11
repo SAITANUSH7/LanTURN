@@ -182,3 +182,12 @@ export const textarea = (props = {}, value = '') => { const t = h('textarea', { 
 
 export const badgeSource = (src) =>
   h('span', { class: `badge ${src === 'llm' ? 'badge--accent' : 'badge--neutral'}`, title: src === 'llm' ? 'Written by a language model, scored with fixed rules' : 'Calculated by the built-in rules engine' }, icon(src === 'llm' ? 'sparkle' : 'bolt'), src === 'llm' ? 'AI review' : 'Rules engine');
+
+/** Large, clearly rotating loading panel with an elapsed-seconds counter. Stops itself when removed from the page. */
+export function thinking(label = 'Asking the AI…', hint = 'Slow models can take up to 30 seconds. Falls back to the next model if one fails.') {
+  const secs = h('small', null, '0 s');
+  const el = h('div', { class: 'thinking', role: 'status', 'aria-live': 'polite' }, h('span', { class: 'thinking__ring', 'aria-hidden': 'true' }), h('div', { class: 'thinking__text' }, h('strong', null, label), secs, hint ? h('small', null, hint) : null));
+  const t0 = Date.now();
+  const timer = setInterval(() => { if (!el.isConnected && Date.now() - t0 > 500) { clearInterval(timer); return; } secs.textContent = `${Math.floor((Date.now() - t0) / 1000)} s elapsed`; }, 500);
+  return el;
+}

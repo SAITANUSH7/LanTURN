@@ -1,10 +1,16 @@
 import { get, post, patch, del } from '../api.js';
-import { h, clear, icon, skillChip, statusBadge, fmtDateTime, empty, errorBox, loadingBlock, toast, busy, field, input, select, textarea, badgeSource, STATUS_META, initials, scoreRing } from '../ui.js';
+import { thinking, h, clear, icon, skillChip, statusBadge, fmtDateTime, empty, errorBox, loadingBlock, toast, busy, field, input, select, textarea, badgeSource, STATUS_META, initials, scoreRing } from '../ui.js';
 import { pageHead, wrapPage } from './shared.js';
 import { radar } from '../charts.js';
 import { t } from '../i18n.js';
 
-const think = (btn, fn) => busy(btn, fn, 'Asking AI…');
+// Every AI button: spinner in the button plus a large floating panel with an elapsed-time counter.
+async function think(btn, fn) {
+  const panel = thinking('Asking the AI…');
+  panel.classList.add('thinking--float');
+  document.body.append(panel);
+  try { return await busy(btn, fn, 'Asking AI…'); } finally { panel.remove(); }
+}
 
 const dimList = (dims) => h('ul', { class: 'stack stack--sm' }, dims.map((d) => h('li', null, h('div', { class: 'row row--between' }, h('strong', null, d.name), h('span', { class: 'muted' }, `${Math.round(d.score)}/100`)), d.note ? h('small', { class: 'muted' }, d.note) : null)));
 
@@ -97,9 +103,9 @@ export async function chat({ user }) {
   const go = () => {
     const msg = box.value.trim();
     if (!msg) return;
-    think(send, async () => {
+    busy(send, async () => {
       log.append(bubble('user', msg)); box.value = '';
-      const pending = h('div', { class: 'bubble bubble--assistant', role: 'status' }, h('p', { class: 'row' }, h('span', { class: 'spinner', 'aria-hidden': 'true' }), 'Thinking…'));
+      const pending = thinking('Thinking…');
       log.append(pending); log.scrollTop = log.scrollHeight;
       try {
         const r = await post('/chat/messages', { threadId: threadId || undefined, message: msg });

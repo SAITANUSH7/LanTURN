@@ -193,10 +193,10 @@ export async function callJson(system, user, schema, maxTokens = 1500, purpose =
 }
 
 /** One tiny request to check a key and model from the admin screen. Never throws; reports the outcome. */
-export async function testProvider(name) {
+export async function testProvider(name, modelOverride) {
   const r = resolveProvider(name, { ignoreDisabled: true });
   if (!r) return { ok: false, error: 'Add an API key first' };
-  const model = r.model.split(',')[0].trim();
+  const model = (modelOverride || r.model).split(',')[0].trim();
   const t0 = Date.now();
   try {
     const text = await chatLogged({ ...r, model }, { system: 'Reply with the single word OK.', messages: [{ role: 'user', content: 'ping' }], maxTokens: 20, json: false }, 'test');
@@ -204,4 +204,22 @@ export async function testProvider(name) {
   } catch (e) {
     return { ok: false, ms: Date.now() - t0, model, error: /HTTP 401|HTTP 403/.test(e.message) ? `The provider rejected the key (401/403). ${e.message.split(': ').slice(1).join(': ')}` : /HTTP 404/.test(e.message) ? `Model or URL not found (404). Check the model name. ${e.message.split(': ').slice(1).join(': ')}` : /abort/i.test(e.message) ? `Timed out after ${config.aiTimeoutMs / 1000}s` : /fetch failed/i.test(e.message) ? 'Could not reach the provider. Check internet, firewall or VPN.' : tidy(e.message) };
   }
+}
+
+/** Ask the provider which models this key can use (GET {baseUrl}/models). */
+export async function listModels(name) {
+  const r = resolveProvider(name, { ignoreDisabled: true });
+  if (!r) return { ok: false, error: 'Add an API key first', models: [] };
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 20000);
+  try {
+    const headers = r.kind === 'anthropic' ? { 'x-api-key': r.key, 'anthropic-version': '2023-06-01' } : r.key ? { authorization: `Bearer ${r.key}` } : {};
+    const res = await fetchImpl(`${r.baseUrl}/models`, { headers, signal: ctl.signal });
+    if (!res.ok) { const e = await httpError(r, res); return { ok: false, error: tidy(e.message), models: [] }; }
+    const b = await res.json();
+    const ids = (b.data || b.models || []).map((m) => (typeof m === 'string' ? m : m.id || m.name || '')).map((x) => String(x).replace(/^models\//, '')).filter(Boolean);
+    return { ok: true, models: [...new Set(ids)].sort().slice(0, 500) };
+  } catch (e) {
+    return { ok: false, error: /abort/i.test(e.message) ? 'Timed out listing models' : 'Could not reach the provider. Check internet, firewall or VPN.', models: [] };
+  } finally { clearTimeout(timer); }
 }
