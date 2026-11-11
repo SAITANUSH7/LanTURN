@@ -4,6 +4,8 @@ import * as pub from './views/public.js';
 import * as stu from './views/student.js';
 import * as emp from './views/employer.js';
 import * as adm from './views/admin.js';
+import * as ai from './views/ai.js';
+import { t, LANGS, getLang, setLang } from './i18n.js';
 
 const app = document.getElementById('app');
 
@@ -19,6 +21,12 @@ const ROUTES = [
   ['/student/resume', ['STUDENT'], stu.resume, 'Resume'],
   ['/student/career', ['STUDENT'], stu.career, 'Career'],
   ['/student/profile', ['STUDENT'], stu.profile, 'Profile'],
+  ['/student/dna', ['STUDENT'], ai.careerDna, 'Career DNA'],
+  ['/student/arena', ['STUDENT'], ai.arena, 'Skill Arena'],
+  ['/student/coach', ['STUDENT'], ai.chat, 'Career Coach'],
+  ['/notifications', ['STUDENT', 'EMPLOYER'], ai.notifications, 'Notifications'],
+  ['/employer/assistant', ['EMPLOYER'], ai.chat, 'AI Assistant'],
+  ['/employer/jobs/:id/board', ['EMPLOYER'], ai.board, 'Board'],
   ['/employer', ['EMPLOYER'], emp.dashboard, 'Dashboard'],
   ['/employer/jobs', ['EMPLOYER'], emp.jobs, 'My jobs'],
   ['/employer/jobs/new', ['EMPLOYER'], emp.jobForm, 'Post a job'],
@@ -34,8 +42,8 @@ const ROUTES = [
 }));
 
 const NAV = {
-  STUDENT: [['/student', 'Home', 'home'], ['/student/jobs', 'Jobs', 'briefcase'], ['/student/applications', 'Applications', 'clock'], ['/student/resume', 'Resume', 'file'], ['/student/career', 'Career', 'route'], ['/student/profile', 'Profile', 'user']],
-  EMPLOYER: [['/employer', 'Dashboard', 'chart'], ['/employer/jobs', 'Jobs', 'briefcase'], ['/employer/company', 'Company', 'building']],
+  STUDENT: [['/student', 'Home', 'home'], ['/student/jobs', 'Jobs', 'briefcase'], ['/student/applications', 'Applications', 'clock'], ['/student/resume', 'Resume', 'file'], ['/student/career', 'Career', 'route'], ['/student/dna', 'DNA', 'sparkle'], ['/student/arena', 'Arena', 'bolt'], ['/student/coach', 'Coach', 'users'], ['/student/profile', 'Profile', 'user']],
+  EMPLOYER: [['/employer', 'Dashboard', 'chart'], ['/employer/jobs', 'Jobs', 'briefcase'], ['/employer/assistant', 'Assistant', 'sparkle'], ['/employer/company', 'Company', 'building']],
   ADMIN: [['/admin', 'Employers', 'shield']],
 };
 export const homeFor = (role) => (role === 'STUDENT' ? '/student' : role === 'EMPLOYER' ? '/employer' : role === 'ADMIN' ? '/admin' : '/');
@@ -45,6 +53,11 @@ let leave = [];
 const currentPath = () => (location.hash.slice(1).split('?')[0] || '/');
 const parseQuery = () => Object.fromEntries(new URLSearchParams(location.hash.split('?')[1] || ''));
 
+function langPicker() {
+  const sel = h('select', { class: 'lang', 'aria-label': 'Language', onchange: (e) => { setLang(e.target.value); render(); } }, LANGS.map(([v, l]) => h('option', { value: v, selected: v === getLang() ? true : null }, l)));
+  return sel;
+}
+
 function shell() {
   const user = session.user;
   const links = user ? NAV[user.role] || [] : [];
@@ -53,14 +66,15 @@ function shell() {
   const bar = h('header', { class: 'topbar' },
     h('div', { class: 'container topbar__in' },
       h('a', { class: 'brand', href: `#${user ? homeFor(user.role) : '/'}`, 'aria-label': 'LanTURN home' }, lantern(), h('span', null, 'Lan', h('b', null, 'TURN'))),
-      user ? h('nav', { class: 'nav', 'aria-label': 'Main' }, links.map(([to, label, ic]) => h('a', { href: `#${to}`, 'aria-current': active(to) }, icon(ic), label))) : h('div', { class: 'nav' }),
+      user ? h('nav', { class: 'nav', 'aria-label': 'Main' }, links.map(([to, label, ic]) => h('a', { href: `#${to}`, 'aria-current': active(to) }, icon(ic), t(label)))) : h('div', { class: 'nav' }),
       user
         ? h('div', { class: 'topbar__user' },
+          langPicker(), user.role !== 'ADMIN' ? ai.bell() : null,
           h('div', { class: 'topbar__who' }, h('strong', null, user.name || user.email), h('small', null, user.role.toLowerCase())),
-          h('button', { class: 'btn btn--secondary btn--sm', onclick: async () => { await logout(); navigate('/'); } }, icon('logout'), 'Sign out'))
-        : h('div', { class: 'topbar__user' },
-          h('a', { class: 'btn btn--secondary btn--sm', href: '#/login' }, 'Sign in'),
-          h('a', { class: 'btn btn--accent btn--sm', href: '#/register' }, 'Get started'))));
+          h('button', { class: 'btn btn--secondary btn--sm', onclick: async () => { await logout(); navigate('/'); } }, icon('logout'), t('Sign out')))
+        : h('div', { class: 'topbar__user' }, langPicker(),
+          h('a', { class: 'btn btn--secondary btn--sm', href: '#/login' }, t('Sign in')),
+          h('a', { class: 'btn btn--accent btn--sm', href: '#/register' }, t('Get started')))));
   return h('div', null, bar, h('main', { id: 'main', tabindex: '-1' }));
 }
 
@@ -86,6 +100,7 @@ async function render() {
   const main = document.getElementById('main');
   document.title = `${route.title} · LanTURN`;
   main.append(h('div', { class: 'container page' }, loadingBlock()));
+  if (user && user.role !== 'ADMIN') ai.refreshBell();
   const ctx = { params, query: parseQuery(), navigate, onLeave: (fn) => leave.push(fn), user };
   try {
     const node = await route.view(ctx);
@@ -117,3 +132,7 @@ document.addEventListener('pointermove', (e) => {
   await restoreSession();
   await render();
 })();
+
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js').catch(() => { /* PWA is optional */ }); });
+}

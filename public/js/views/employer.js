@@ -1,6 +1,7 @@
 import { get, post, put, patch, openPdf, session, reloadUser } from '../api.js';
 import { h, clear, icon, scoreRing, skillChip, statusBadge, verifyBadge, fmtDate, fmtDateTime, empty, errorBox, loadingBlock, toast, confirmDialog, busy, field, input, select, textarea, TYPE_LABEL, STATUS_META, initials } from '../ui.js';
 import { pageHead, wrapPage, analysisView } from './shared.js';
+import { jdWriter, companyDnaCard } from './ai.js';
 
 const pendingBanner = (v) => v === 'VERIFIED' ? null
   : h('div', { class: `alert ${v === 'REJECTED' ? 'alert--danger' : 'alert--warning'}`, role: 'status' }, icon(v === 'REJECTED' ? 'x' : 'clock'),
@@ -99,6 +100,8 @@ export async function jobForm({ params, navigate }) {
     });
   } },
   field('Job title', v.title), field('Description', v.description),
+  jdWriter({ getInput: () => ({ title: v.title.value.trim(), type: v.type.value, location: v.location.value.trim(), skills: [...skills.values()].map((x) => x.name) }),
+    onResult: (r) => { v.description.value = [r.description, r.responsibilities.length ? `\nWhat you will do:\n${r.responsibilities.map((x) => `- ${x}`).join('\n')}` : '', r.requirements.length ? `\nWhat we look for:\n${r.requirements.map((x) => `- ${x}`).join('\n')}` : '', r.niceToHave.length ? `\nNice to have:\n${r.niceToHave.map((x) => `- ${x}`).join('\n')}` : ''].filter(Boolean).join('\n').slice(0, 5000); toast('Draft added. Edit it before publishing.', 'success'); } }),
   h('div', { class: 'form-grid' }, field('Type', v.type), field('Location', v.location), field('Compensation', v.comp), field('Apply by', v.deadline)),
   h('label', { class: 'check' }, v.remote, 'Remote friendly'),
   h('div', { class: 'stack stack--sm' }, h('h3', null, 'Required skills'), h('p', { class: 'hint muted' }, 'Weights drive the match score students and you see.'), skillList, h('div', { class: 'picker' }, search, list)),
@@ -136,7 +139,7 @@ export async function candidates({ params, query }) {
     } catch (e) { clear(list).append(errorBox(e, load)); }
   }
   await load();
-  return wrapPage(h('a', { class: 'crumb', href: '#/employer/jobs' }, icon('arrow-left'), 'My jobs'), pageHead('Candidates', null), titleEl, bar, list);
+  return wrapPage(h('a', { class: 'crumb', href: '#/employer/jobs' }, icon('arrow-left'), 'My jobs'), pageHead('Candidates', null, h('a', { class: 'btn btn--secondary btn--sm', href: `#/employer/jobs/${params.id}/board` }, icon('target'), 'Board view')), titleEl, bar, list);
 }
 
 export async function candidate({ params }) {
@@ -182,5 +185,5 @@ export async function company() {
       try { await put('/employers/me/company', { companyName: v.name.value.trim(), website: v.website.value.trim(), industry: v.industry.value.trim(), size: v.size.value, description: v.about.value.trim(), location: v.location.value.trim() }); await reloadUser(); toast('Company saved', 'success'); } catch (ex) { toast(ex.message, 'error'); }
     });
   } }, h('div', { class: 'form-grid' }, field('Company name', v.name), field('Website', v.website), field('Industry', v.industry), field('Size', v.size), field('Location', v.location)), field('About', v.about), h('div', null, btn));
-  return wrapPage(pageHead('Company', 'This is what students see on your job posts.', verifyBadge(c.verification)), pendingBanner(c.verification), form);
+  return wrapPage(pageHead('Company', 'This is what students see on your job posts.', verifyBadge(c.verification)), pendingBanner(c.verification), form, await companyDnaCard());
 }
