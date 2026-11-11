@@ -36,7 +36,8 @@ export function activeProviders() {
     // Local OpenAI-compatible servers (Ollama, LM Studio) need no key, so a custom base URL alone is enough.
     if (!baseUrl || !model || (!key && name !== 'custom')) continue;
     if (name === 'custom' && !key && !env.LLM_BASE_URL) continue;
-    out.push({ name, label: p.label, kind: p.kind || 'openai', baseUrl, key, model, jsonMode: env[`${up(name)}_JSON_MODE`] ? env[`${up(name)}_JSON_MODE`] === 'true' : Boolean(p.jsonMode) });
+    // A comma-separated model list becomes a fallback chain on the same provider (first model is tried first).
+    for (const m of model.split(',').map((x) => x.trim()).filter(Boolean)) out.push({ name, label: p.label, kind: p.kind || 'openai', baseUrl, key, model: m, jsonMode: env[`${up(name)}_JSON_MODE`] ? env[`${up(name)}_JSON_MODE`] === 'true' : Boolean(p.jsonMode) });
   }
   return out;
 }

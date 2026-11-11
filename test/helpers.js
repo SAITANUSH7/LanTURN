@@ -2,6 +2,9 @@ process.env.NODE_ENV = 'test';
 process.env.SEED_DEMO = 'false';
 process.env.ADMIN_EMAIL = 'admin@test.local';
 process.env.ADMIN_PASSWORD = 'Admin@12345';
+// Tests must never call real AI providers, whatever is in a developer's .env
+for (const k of ['DEEPSEEK','MOONSHOT','NVIDIA','OPENCODE','GEMINI','GROQ','OPENROUTER','OPENAI','ANTHROPIC']) process.env[`${k}_API_KEY`] = '';
+for (const k of ['NVIDIA_MODEL', 'LLM_BASE_URL', 'LLM_API_KEY', 'LLM_MODEL']) process.env[k] = '';
 process.env.UPLOAD_DIR = './data/test-uploads';
 
 const { createApp } = await import('../src/app.js');

@@ -21,6 +21,8 @@ All except Anthropic use the OpenAI-style `POST {baseUrl}/chat/completions`. Set
 | `anthropic` | `ANTHROPIC_API_KEY` | `https://api.anthropic.com/v1` | `claude-haiku-4-5` |
 | `custom` | `LLM_API_KEY` (optional) + `LLM_BASE_URL` | any OpenAI-compatible server (Ollama, LM Studio, vLLM) | `LLM_MODEL` |
 
+A comma-separated list (`NVIDIA_MODEL=a,b,c`) tries each model in turn on that provider.
+
 Model names change often. Override any provider with `<NAME>_MODEL` and `<NAME>_BASE_URL`
 (for example `DEEPSEEK_MODEL=...`, `NVIDIA_MODEL=...`). Defaults for DeepSeek, Kimi, NVIDIA and OpenCode were taken from
 their docs when this was written; Gemini, Groq, OpenRouter and OpenAI defaults are from general knowledge, so verify them.
