@@ -1,7 +1,8 @@
 import { z } from 'zod';
 import { config } from '../config.js';
+import { callJson, llmEnabled } from './providers.js';
 
-export const llmEnabled = () => Boolean(config.anthropicKey && config.llmModel);
+export { llmEnabled };
 
 const ResumeSchema = z.object({
   rubric: z.object({ clarity: z.number().int().min(0).max(20), skills: z.number().int().min(0).max(20), writing: z.number().int().min(0).max(20) }),
@@ -35,41 +36,6 @@ const ROADMAP_SYSTEM = `You create practical learning roadmaps for students. You
 Produce one step per missing skill (max 8). Each step: why it matters for the target, 2-4 concrete learning actions, one small project idea, and an estimated number of weeks for a student studying about 8 hours a week.
 Describe resources by TYPE only (for example "official documentation", "interactive tutorial"); never give URLs or invented course names.
 Output ONLY JSON: {headline, totalWeeks, steps:[{order, skill, why, actions[], projectIdea, resourceTypes[], weeks}]}. Every step.skill must equal a missing skill name.`;
-
-async function callJson(system, user, schema, maxTokens) {
-  const ctl = new AbortController();
-  const timer = setTimeout(() => ctl.abort(), 25000);
-  try {
-    let lastErr = '';
-    for (let attempt = 0; attempt < 2; attempt++) {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        signal: ctl.signal,
-        headers: { 'content-type': 'application/json', 'x-api-key': config.anthropicKey, 'anthropic-version': '2023-06-01' },
-        body: JSON.stringify({
-          model: config.llmModel,
-          max_tokens: maxTokens,
-          temperature: 0.2,
-          system,
-          messages: [{ role: 'user', content: attempt ? `${user}\n\nYour previous reply failed validation: ${lastErr}. Return corrected JSON only.` : user }],
-        }),
-      });
-      if (!res.ok) throw new Error(`LLM HTTP ${res.status}`);
-      const body = await res.json();
-      const text = (body.content || []).map((c) => c.text || '').join('').trim().replace(/^```(?:json)?|```$/g, '').trim();
-      try {
-        const parsed = schema.safeParse(JSON.parse(text));
-        if (parsed.success) return parsed.data;
-        lastErr = parsed.error.issues[0]?.message || 'schema mismatch';
-      } catch {
-        lastErr = 'not valid JSON';
-      }
-    }
-    throw new Error(`LLM output invalid: ${lastErr}`);
-  } finally {
-    clearTimeout(timer);
-  }
-}
 
 export const llmResume = (text) =>
   callJson(RESUME_SYSTEM, `<resume>\n${text.slice(0, config.resumeMaxChars)}\n</resume>`, ResumeSchema, 1500);

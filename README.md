@@ -36,3 +36,11 @@ See `docs/DEPLOY.md` (GitHub, Render, Railway).
 - Fonts (Space Grotesk, Inter, Noto Sans JP) load from Google Fonts.
 - Data lives in `data/` (SQLite + private resume files). Deploy on a host with a persistent disk, or swap the DB/storage layer for Postgres + object storage.
 - Change `JWT_*` secrets before any non-local use (enforced in production).
+
+## AI providers, new features and PWA
+
+See [docs/AI.md](docs/AI.md). In short: copy `.env.example` to `.env`, add any provider key(s)
+(DeepSeek, Kimi, NVIDIA NIM, OpenCode Zen, Gemini, Groq, OpenRouter, OpenAI, Anthropic, or a custom OpenAI-compatible URL).
+With no keys everything still works on the rules engine. Student pages: Career DNA, Skill Arena, Career Coach, Notifications.
+Employer pages: AI Assistant, Company DNA, job-description writer, applicant Kanban board. The UI has English, Hindi and
+Telugu for navigation and the new pages, and installs as a PWA (manifest + service worker; API calls are never cached).

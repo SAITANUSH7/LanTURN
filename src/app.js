@@ -5,10 +5,12 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import multer from 'multer';
 import { ROOT, config } from './config.js';
+import { llmEnabled, providerSummary } from './ai/providers.js';
 import { db } from './db.js';
 import { HttpError } from './util.js';
 import { authRouter, meRouter } from './routes/auth.js';
 import { studentRouter } from './routes/student.js';
+import { aiRouter } from './routes/ai.js';
 import { jobsRouter } from './routes/jobs.js';
 import { employerRouter, adminRouter } from './routes/employer.js';
 
@@ -50,16 +52,18 @@ export function createApp() {
     app.use('/api/auth/register', limiter(10));
     app.use('/api/resumes', limiter(30));
     app.use('/api/career', limiter(20));
+    app.use('/api/chat', limiter(20));
+    app.use('/api/arena', limiter(20));
   }
 
   app.get('/api/health', (_req, res) => {
     db.prepare('SELECT 1').get();
-    res.json({ status: 'ok', ai: config.anthropicKey && config.llmModel ? 'llm+rules' : 'rules', time: new Date().toISOString() });
+    res.json({ status: 'ok', ai: llmEnabled() ? 'llm+rules' : 'rules', providers: providerSummary().map((p) => p.name), time: new Date().toISOString() });
   });
 
   app.use('/api/auth', authRouter);
   app.use('/api/me', meRouter);
-  app.use('/api', studentRouter, jobsRouter, employerRouter, adminRouter);
+  app.use('/api', studentRouter, jobsRouter, employerRouter, aiRouter, adminRouter);
   app.use('/api', (_req, _res, next) => next(new HttpError(404, 'NOT_FOUND', 'Unknown API route')));
 
   app.use(express.static(path.join(ROOT, 'public'), { extensions: ['html'], maxAge: config.isProd ? '1h' : 0 }));

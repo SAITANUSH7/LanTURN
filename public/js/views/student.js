@@ -1,6 +1,7 @@
 import { api, get, post, put, del, openPdf, session, reloadUser } from '../api.js';
 import { h, clear, icon, scoreRing, skillChip, meter, statusBadge, fmtDate, fmtDateTime, empty, errorBox, loadingBlock, toast, confirmDialog, busy, field, input, select, textarea, TYPE_LABEL, STATUS_META, weightDots } from '../ui.js';
 import { pageHead, wrapPage, jobCard, analysisView, roadmapView } from './shared.js';
+import { jobTools } from './ai.js';
 
 const TERMINAL = ['OFFERED', 'REJECTED', 'WITHDRAWN'];
 
@@ -100,7 +101,7 @@ export async function jobDetail({ params }) {
       h('aside', { class: 'stack' },
         h('div', { class: 'card stack' }, h('div', { class: 'gap-grid' }, scoreRing(mb.score), h('div', null, h('h3', null, 'Your match'), h('p', { class: 'muted' }, 'Skills 80% · preferences 10% · freshness 10%'))),
           meter('Skill match', mb.skillMatch, 100), meter('Preferences', mb.prefMatch, 100), meter('Freshness', mb.freshness, 100)),
-        applyCard)));
+        applyCard, jobTools(job.id))));
 }
 
 // ---------------------------------------------------------------- Applications
