@@ -1,7 +1,6 @@
-# LanTURN — AI-powered career and placement platform (Batch 16)
+# LanTURN — AI-powered career and placement platform
 
-Full-stack web app: Node.js + Express + SQLite backend, vanilla-JS single-page frontend, dark "Bleach / liquid glass" design system.
-
+Full-stack web app: Node.js + Express + SQLite backend, vanilla-JS.
 ## Windows one-click
 Double-click **`launch.bat`**. It checks/installs Node 22.5+ (via winget), installs dependencies, creates `.env` with fresh random secrets, picks a free port, starts the server, opens your browser and prints a LAN URL for phones on the same Wi-Fi. `launch.bat reset` wipes local data first.
 
