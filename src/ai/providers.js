@@ -81,9 +81,9 @@ let fetchImpl = (...a) => fetch(...a);
 /** Test seam: replace the network call. */
 export const __setFetch = (fn) => { fetchImpl = fn || ((...a) => fetch(...a)); };
 
-async function post(url, headers, body) {
+async function post(url, headers, body, ms = config.aiTimeoutMs) {
   const ctl = new AbortController();
-  const timer = setTimeout(() => ctl.abort(), config.aiTimeoutMs);
+  const timer = setTimeout(() => ctl.abort(), ms);
   try {
     const res = await fetchImpl(url, { method: 'POST', signal: ctl.signal, headers: { 'content-type': 'application/json', ...headers }, body: JSON.stringify(body) });
     return res;
@@ -123,7 +123,7 @@ async function chatLogged(p, args, purpose) {
 async function chatOnce(p, { system, messages, maxTokens, json }) {
   if (p.kind === 'anthropic') {
     const res = await post(`${p.baseUrl}/messages`, { 'x-api-key': p.key, 'anthropic-version': '2023-06-01' },
-      { model: p.model, max_tokens: maxTokens, temperature: 0.3, system, messages });
+      { model: p.model, max_tokens: maxTokens, temperature: 0.3, system, messages }, p.timeoutMs);
     if (!res.ok) throw await httpError(p, res);
     const b = await res.json();
     return (b.content || []).map((c) => c.text || '').join('');
@@ -131,11 +131,11 @@ async function chatOnce(p, { system, messages, maxTokens, json }) {
   const body = { model: p.model, max_tokens: maxTokens, temperature: 0.3, messages: [{ role: 'system', content: system }, ...messages] };
   const headers = p.key ? { authorization: `Bearer ${p.key}` } : {};
   if (json && p.jsonMode) body.response_format = { type: 'json_object' };
-  let res = await post(`${p.baseUrl}/chat/completions`, headers, body);
+  let res = await post(`${p.baseUrl}/chat/completions`, headers, body, p.timeoutMs);
   if (res.status === 400 && body.response_format) {
     // Some models reject JSON mode; retry as plain text and rely on our own extraction + validation.
     delete body.response_format;
-    res = await post(`${p.baseUrl}/chat/completions`, headers, body);
+    res = await post(`${p.baseUrl}/chat/completions`, headers, body, p.timeoutMs);
   }
   if (!res.ok) throw await httpError(p, res);
   const b = await res.json();
@@ -193,16 +193,16 @@ export async function callJson(system, user, schema, maxTokens = 1500, purpose =
 }
 
 /** One tiny request to check a key and model from the admin screen. Never throws; reports the outcome. */
-export async function testProvider(name, modelOverride) {
+export async function testProvider(name, modelOverride, timeoutMs) {
   const r = resolveProvider(name, { ignoreDisabled: true });
   if (!r) return { ok: false, error: 'Add an API key first' };
   const model = (modelOverride || r.model).split(',')[0].trim();
   const t0 = Date.now();
   try {
-    const text = await chatLogged({ ...r, model }, { system: 'Reply with the single word OK.', messages: [{ role: 'user', content: 'ping' }], maxTokens: 20, json: false }, 'test');
+    const text = await chatLogged({ ...r, model, timeoutMs }, { system: 'Reply with the single word OK.', messages: [{ role: 'user', content: 'ping' }], maxTokens: 20, json: false }, 'test');
     return { ok: true, ms: Date.now() - t0, model, reply: String(text).replace(/<think>[\s\S]*?<\/think>/gi, '').trim().slice(0, 40) };
   } catch (e) {
-    return { ok: false, ms: Date.now() - t0, model, error: /HTTP 401|HTTP 403/.test(e.message) ? `The provider rejected the key (401/403). ${e.message.split(': ').slice(1).join(': ')}` : /HTTP 404/.test(e.message) ? `Model or URL not found (404). Check the model name. ${e.message.split(': ').slice(1).join(': ')}` : /abort/i.test(e.message) ? `Timed out after ${config.aiTimeoutMs / 1000}s` : /fetch failed/i.test(e.message) ? 'Could not reach the provider. Check internet, firewall or VPN.' : tidy(e.message) };
+    return { ok: false, ms: Date.now() - t0, model, error: /HTTP 401|HTTP 403/.test(e.message) ? `The provider rejected the key (401/403). ${e.message.split(': ').slice(1).join(': ')}` : /HTTP 404/.test(e.message) ? `Model or URL not found (404). Check the model name. ${e.message.split(': ').slice(1).join(': ')}` : /abort/i.test(e.message) ? `Timed out after ${(timeoutMs || config.aiTimeoutMs) / 1000}s` : /fetch failed/i.test(e.message) ? 'Could not reach the provider. Check internet, firewall or VPN.' : tidy(e.message) };
   }
 }
 

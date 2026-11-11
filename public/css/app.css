@@ -200,3 +200,9 @@ code { background: var(--glass-2); border: 1px solid var(--glass-line); padding:
 .models button { text-align: left; background: none; border: 0; padding: 6px 10px; border-radius: 8px; color: var(--text-2); cursor: pointer; font-family: ui-monospace, Consolas, monospace; font-size: var(--fs-xs); }
 .models button:hover { background: var(--glass-2); color: var(--text); }
 .thinking--float { position: fixed; left: 50%; bottom: 92px; transform: translateX(-50%); z-index: 300; width: min(440px, calc(100vw - 32px)); background: rgba(14, 17, 28, 0.96); box-shadow: var(--shadow-lg); }
+
+.probe { display: grid; grid-template-columns: 20px 1fr auto; gap: 10px; align-items: center; text-align: left; width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--glass-line); background: var(--glass); color: var(--text); cursor: pointer; font-family: ui-monospace, Consolas, monospace; font-size: var(--fs-xs); }
+.probe--ok { border-color: rgba(59, 224, 160, 0.55); }
+.probe--ok:hover { background: var(--success-soft); }
+.probe--bad { opacity: 0.6; cursor: not-allowed; }
+.probe small { color: var(--text-2); font-family: var(--font-body); }

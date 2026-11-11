@@ -71,7 +71,21 @@ export async function aiSettings() {
         const box = h('div', { class: 'models' });
         const paint = () => { clear(box).append(...r.models.filter((m) => m.toLowerCase().includes(q.value.toLowerCase())).slice(0, 80).map((m) => h('button', { type: 'button', onclick: () => { model.value = model.value.trim() ? `${model.value.trim()},${m}` : m; toast(`Added ${m}`, 'success'); } }, m))); };
         q.oninput = paint; paint();
-        clear(list).append(h('p', { class: 'hint muted' }, 'Click a model to add it to the box, then Save. Prefer small or "instruct" models: big reasoning models can be slow.'), q, box);
+        const probeOut = h('div', { class: 'stack stack--sm' });
+        const probe = h('button', { class: 'btn btn--sm', type: 'button' }, icon('bolt'), 'Find working models');
+        probe.onclick = () => busy(probe, async () => {
+          const bad = /vision|embed|rerank|guard|safety|reward|code|vl\b|clip|parse|nemoretriever|whisper|tts|asr/i;
+          const pool = r.models.filter((m) => /instruct|chat|it\b|-it/i.test(m) && !bad.test(m));
+          const pick = (pool.length >= 4 ? pool : r.models.filter((m) => !bad.test(m))).sort((a, b) => (/(8b|7b|3b|9b|mini|flash|small)/i.test(a) ? 0 : 1) - (/(8b|7b|3b|9b|mini|flash|small)/i.test(b) ? 0 : 1)).slice(0, 8);
+          clear(probeOut).append(thinking(`Trying ${pick.length} models at once…`, 'Each gets 20 seconds. Working ones are listed below.'));
+          try {
+            const pr = await post(`/admin/ai/${p.name}/probe`, { models: pick });
+            clear(probeOut).append(h('p', { class: 'strong' }, `${pr.results.filter((x) => x.ok).length} of ${pr.results.length} work with your key. Click a working one to add it.`),
+              ...pr.results.map((x) => h('button', { type: 'button', class: `probe ${x.ok ? 'probe--ok' : 'probe--bad'}`, disabled: x.ok ? null : true, title: x.error, onclick: () => { model.value = model.value.trim() ? `${model.value.trim()},${x.model}` : x.model; toast(`Added ${x.model}. Press Save.`, 'success'); } },
+                icon(x.ok ? 'check' : 'warn'), h('span', null, x.model), h('small', null, x.ok ? `${(x.ms / 1000).toFixed(1)} s` : x.error.slice(0, 70)))));
+          } catch (e) { clear(probeOut); toast(e.message, 'error'); }
+        }, 'Trying…');
+        clear(list).append(h('p', { class: 'hint muted' }, 'Not every listed model is available to your account. Press "Find working models" to test a shortlist, or click any name below to add it.'), probe, probeOut, q, box);
       } catch (e) { clear(list); toast(e.message, 'error'); }
     }, 'Loading…');
     const remove = p.origin === 'admin' ? h('button', { class: 'btn btn--ghost btn--sm', type: 'button', onclick: async () => { await del(`/admin/ai/${p.name}`); toast('Saved key removed', 'success'); await load(); } }, icon('trash'), 'Remove key') : null;

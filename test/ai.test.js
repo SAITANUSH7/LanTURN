@@ -142,9 +142,12 @@ test('admin can add a provider key in the web UI: encrypted at rest, never echoe
     assert.ok(!ml.text.includes('SECRET'));
     const ov = await api('POST', '/admin/ai/nvidia/test', { token: admin, body: { model: 'a/model-a,other' } });
     assert.equal(ov.body.model, 'a/model-a');
+    __setFetch(async (_u, init) => (JSON.parse(init.body).model === 'bad/one' ? new Response('{"status":404}', { status: 404 }) : new Response(JSON.stringify({ choices: [{ message: { content: 'OK' } }] }), { status: 200 })));
+    const pr = await api('POST', '/admin/ai/nvidia/probe', { token: admin, body: { models: ['good/one', 'bad/one'] } });
+    assert.deepEqual(pr.body.results.map((r) => r.ok), [true, false]);
     const logs = await api('GET', '/admin/ai/logs', { token: admin });
     assert.equal(logs.body.items[0].provider, 'nvidia');
-    assert.equal(logs.body.items[0].ok, true);
+    assert.ok(logs.body.items.some((i) => i.ok) && logs.body.items.some((i) => !i.ok));
     assert.ok(!logs.text.includes('SECRET'));
     assert.equal(seen.at(-1).auth, `Bearer ${KEY}`);
     assert.equal((await api('GET', '/health')).body.ai, 'llm+rules');

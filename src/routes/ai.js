@@ -241,6 +241,13 @@ aiRouter.post('/admin/ai/:name/test', ...admin, wrap(async (req, res) => {
   res.json(await testProvider(req.params.name, b.model));
 }));
 aiRouter.get('/admin/ai/logs', ...admin, wrap(async (_req, res) => { res.json({ items: recentCalls().slice(0, 40) }); }));
+// Try several models at once (short timeout) so the admin can see which ones this key can really call.
+aiRouter.post('/admin/ai/:name/probe', ...admin, wrap(async (req, res) => {
+  if (!PRESETS[req.params.name]) throw notFound('Unknown provider');
+  const b = parse(z.object({ models: z.array(z.string().trim().min(1).max(200)).min(1).max(8) }).strict(), req.body);
+  const results = await Promise.all(b.models.map((m) => testProvider(req.params.name, m, 20000)));
+  res.json({ results: results.map((r, i) => ({ model: b.models[i], ok: r.ok, ms: r.ms || 0, error: r.ok ? '' : r.error })) });
+}));
 aiRouter.get('/admin/ai/:name/models', ...admin, wrap(async (req, res) => {
   if (!PRESETS[req.params.name]) throw notFound('Unknown provider');
   res.json(await listModels(req.params.name));
