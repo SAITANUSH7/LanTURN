@@ -54,6 +54,7 @@ const ICONS = {
   bell: '<path d="M6 17V11a6 6 0 0 1 12 0v6l2 2H4z"/><path d="M10 21a2 2 0 0 0 4 0"/>',
   sparkle: '<path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/>',
   eye: '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  'eye-off': '<path d="M3 3l18 18"/><path d="M10.6 5.2A9.6 9.6 0 0 1 12 5c6 0 10 7 10 7a13.7 13.7 0 0 1-3.3 3.7"/><path d="M6.6 6.6C3.8 8.3 2 12 2 12s4 7 10 7a9.5 9.5 0 0 0 4.1-.9"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/>',
   refresh: '<path d="M20 11a8 8 0 0 0-14-4M4 5v4h4M4 13a8 8 0 0 0 14 4M20 19v-4h-4"/>',
   shield: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5L16 9.5"/>',
 };
@@ -177,6 +178,34 @@ export function field(label, control, { hint, error, id } = {}) {
 }
 
 export const input = (props = {}) => h('input', { class: 'input', ...props });
+
+/** Password field with an inline show/hide toggle. Same shape as field(), so it drops in anywhere. */
+export function passwordField(label, pw, { hint, error, id } = {}) {
+  const fid = id || `f-${Math.random().toString(36).slice(2, 8)}`;
+  pw.id = fid;
+  pw.setAttribute('autocomplete', pw.getAttribute('autocomplete') || 'current-password');
+  if (hint) pw.setAttribute('aria-describedby', `${fid}-hint`);
+  const toggle = h('button', {
+    type: 'button',
+    class: 'password-toggle',
+    'aria-label': `Show ${label.toLowerCase()}`,
+    'aria-pressed': 'false',
+    tabindex: '0',
+    onclick: () => {
+      const show = pw.type === 'password';
+      pw.type = show ? 'text' : 'password';
+      toggle.setAttribute('aria-pressed', String(show));
+      toggle.setAttribute('aria-label', `${show ? 'Hide' : 'Show'} ${label.toLowerCase()}`);
+      toggle.replaceChildren(icon(show ? 'eye-off' : 'eye'));
+      pw.focus();
+    },
+  }, icon('eye'));
+  return h('div', { class: 'field field--password' },
+    h('label', { for: fid }, label),
+    h('div', { class: 'input-with-toggle' }, pw, toggle),
+    hint ? h('span', { class: 'hint', id: `${fid}-hint` }, hint) : null,
+    error ? h('span', { class: 'error', role: 'alert' }, error) : null);
+}
 export const select = (options, value, props = {}) => h('select', { class: 'select', ...props }, options.map(([v, l]) => h('option', { value: v, selected: String(v) === String(value) ? true : null }, l)));
 export const textarea = (props = {}, value = '') => { const t = h('textarea', { class: 'textarea', ...props }); t.value = value; return t; };
 
