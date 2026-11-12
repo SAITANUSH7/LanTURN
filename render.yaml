@@ -4,27 +4,19 @@ services:
   - type: web
     name: lanturn
     runtime: node
-    plan: starter
+    plan: free
     buildCommand: npm ci --omit=dev
     startCommand: node --no-warnings server.js
     healthCheckPath: /api/health
-    disk:
-      name: lanturn-data
-      mountPath: /var/data
-      sizeGB: 1
     envVars:
       - key: NODE_ENV
         value: production
-      - key: DB_FILE
-        value: /var/data/lanturn.db
-      - key: UPLOAD_DIR
-        value: /var/data/uploads
       - key: JWT_ACCESS_SECRET
         generateValue: true
       - key: JWT_REFRESH_SECRET
         generateValue: true
       - key: SEED_DEMO
-        value: "false"
+        value: "true"
       - key: ADMIN_EMAIL
         value: admin@yourdomain.com
       - key: ADMIN_PASSWORD
