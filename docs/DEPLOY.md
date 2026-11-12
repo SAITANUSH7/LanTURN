@@ -25,6 +25,11 @@ git push -u origin main
 3. Variables: `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET` (long random strings), `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `SEED_DEMO=false`. Optional: `ANTHROPIC_API_KEY`, `LLM_MODEL`.
 4. Settings > Networking > **Generate Domain**.
 
+## Quick test deployment (free, throw-away data)
+To try everything online first: in `render.yaml` change `plan: starter` to `plan: free` and delete the `disk:` block plus the
+`DB_FILE` and `UPLOAD_DIR` entries, set `SEED_DEMO` to `"true"`, deploy, then add `NVIDIA_API_KEY` under Environment.
+Data resets on every deploy and the service sleeps when idle. Switch back to Starter + disk for real use.
+
 ## Notes
 - Production refuses to start without real JWT secrets (generate with `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`).
 - Set `SEED_DEMO=true` only for a demo deployment; demo accounts use a known password.

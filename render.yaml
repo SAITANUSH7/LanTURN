@@ -29,7 +29,12 @@ services:
         value: admin@yourdomain.com
       - key: ADMIN_PASSWORD
         sync: false   # you will be asked for this in the Render dashboard
-      - key: ANTHROPIC_API_KEY
+      # AI keys are optional here: you can also paste them later in the site (Admin > AI providers).
+      - key: NVIDIA_API_KEY
         sync: false
-      - key: LLM_MODEL
+      - key: NVIDIA_MODEL
+        value: meta/llama-3.3-70b-instruct
+      - key: DEEPSEEK_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
         sync: false
