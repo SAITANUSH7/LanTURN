@@ -26,10 +26,18 @@ export function seedTaxonomy() {
 }
 
 export function seedAdmin() {
-  const exists = db.prepare('SELECT id FROM users WHERE email = ?').get(config.adminEmail);
-  if (exists) return;
-  db.prepare("INSERT INTO users (email, password_hash, role, verification) VALUES (?,?, 'ADMIN', 'VERIFIED')")
-    .run(config.adminEmail, bcrypt.hashSync(config.adminPassword, 10));
+  const hash = bcrypt.hashSync(config.adminPassword, 10);
+  const row = db.prepare('SELECT id, password_hash FROM users WHERE email = ?').get(config.adminEmail);
+  if (!row) {
+    db.prepare("INSERT INTO users (email, password_hash, role, verification) VALUES (?,?, 'ADMIN', 'VERIFIED')")
+      .run(config.adminEmail, hash);
+    return;
+  }
+  // ADMIN_PASSWORD env var is authoritative: if it changed since the admin was first created,
+  // re-hash and update so the operator can reset the admin password simply by redeploying.
+  if (!bcrypt.compareSync(config.adminPassword, row.password_hash)) {
+    db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, row.id);
+  }
 }
 
 const skillId = (slug) => db.prepare('SELECT id FROM skills WHERE slug = ?').get(slug)?.id;
