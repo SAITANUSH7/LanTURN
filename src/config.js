@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -14,11 +15,23 @@ const env = process.env;
 const num = (v, d) => (v !== undefined && v !== '' && !Number.isNaN(Number(v)) ? Number(v) : d);
 const isProd = env.NODE_ENV === 'production';
 
+// Production needs real signing secrets. Preferred: set JWT_ACCESS_SECRET / JWT_REFRESH_SECRET as environment variables.
+// If they are missing (a common first-deploy slip), generate strong random ones once and keep them next to the database
+// instead of crashing. Sessions stay valid across restarts as long as that folder persists.
 if (isProd) {
-  for (const k of ['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET']) {
-    if (!env[k] || env[k].startsWith('dev-')) {
-      throw new Error(`${k} must be set to a long random value in production`);
+  const bad = (v) => !v || v.startsWith('dev-');
+  if (bad(env.JWT_ACCESS_SECRET) || bad(env.JWT_REFRESH_SECRET)) {
+    const dir = env.DB_FILE ? path.dirname(path.resolve(env.DB_FILE)) : path.join(ROOT, 'data');
+    const file = path.join(dir, '.lanturn-secrets.json');
+    let saved = {};
+    try { saved = JSON.parse(fs.readFileSync(file, 'utf8')); } catch { /* first boot */ }
+    if (bad(saved.access) || bad(saved.refresh)) {
+      saved = { access: crypto.randomBytes(48).toString('hex'), refresh: crypto.randomBytes(48).toString('hex') };
+      try { fs.mkdirSync(dir, { recursive: true }); fs.writeFileSync(file, JSON.stringify(saved), { mode: 0o600 }); } catch (e) { console.warn(`Could not save generated secrets (${e.message}); sessions will reset on restart.`); }
     }
+    if (bad(env.JWT_ACCESS_SECRET)) env.JWT_ACCESS_SECRET = saved.access;
+    if (bad(env.JWT_REFRESH_SECRET)) env.JWT_REFRESH_SECRET = saved.refresh;
+    console.warn('JWT secrets were not set; using generated ones. Set JWT_ACCESS_SECRET and JWT_REFRESH_SECRET for stable, multi-instance deployments.');
   }
 }
 

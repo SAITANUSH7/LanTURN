@@ -31,7 +31,7 @@ To try everything online first: in `render.yaml` change `plan: starter` to `plan
 Data resets on every deploy and the service sleeps when idle. Switch back to Starter + disk for real use.
 
 ## Notes
-- Production refuses to start without real JWT secrets (generate with `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`).
+- If the JWT secrets are not set in production, the app generates strong ones and saves them next to the database (warning in the log). Setting them yourself is still better; generate with `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`).
 - Set `SEED_DEMO=true` only for a demo deployment; demo accounts use a known password.
 - Cookies are `Secure` in production, so use the HTTPS URL the host gives you.
 - Back up the volume (`lanturn.db` and `uploads/`) before changing plans or regions.
