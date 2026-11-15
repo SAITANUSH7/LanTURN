@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import fs from 'node:fs';
 import path from 'node:path';
 import express from 'express';
 import helmet from 'helmet';
@@ -13,6 +14,10 @@ import { studentRouter } from './routes/student.js';
 import { aiRouter } from './routes/ai.js';
 import { jobsRouter } from './routes/jobs.js';
 import { employerRouter, adminRouter } from './routes/employer.js';
+import { networkingRouter } from './routes/networking.js';
+import { careerRoadmapsRouter } from './routes/careerRoadmaps.js';
+import { drivesRouter } from './routes/drives.js';
+import { realtimeRouter } from './realtime.js';
 
 export function createApp() {
   const app = express();
@@ -30,10 +35,10 @@ export function createApp() {
       useDefaults: false,
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'"],
-        styleSrc: ["'self'", 'https://fonts.googleapis.com'],
-        fontSrc: ["'self'", 'https://fonts.gstatic.com'],
-        imgSrc: ["'self'", 'data:'],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+        fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
+        imgSrc: ["'self'", 'data:', 'blob:', 'https://images.unsplash.com', 'https://api.dicebear.com'],
         connectSrc: ["'self'"],
         frameSrc: ["'self'"],
         objectSrc: ["'self'"],
@@ -61,12 +66,51 @@ export function createApp() {
     res.json({ status: 'ok', ai: llmEnabled() ? 'llm+rules' : 'rules', providers: providerSummary().map((p) => p.name), time: new Date().toISOString() });
   });
 
+  app.get('/api/platform/stats', (_req, res) => {
+    const one = (sql) => (db.prepare(sql).get()?.n || 0);
+
+    const studentsCount = one("SELECT COUNT(*) AS n FROM users WHERE role = 'STUDENT'");
+    const employersCount = one("SELECT COUNT(*) AS n FROM users WHERE role = 'EMPLOYER'");
+    const openJobsCount = one("SELECT COUNT(*) AS n FROM jobs WHERE status = 'OPEN'");
+    const applicationsCount = one("SELECT COUNT(*) AS n FROM applications");
+    const verifiedSkillsCount = one("SELECT COUNT(*) AS n FROM skill_medals");
+    const upcomingDrivesCount = one("SELECT COUNT(*) AS n FROM placement_drives WHERE status = 'UPCOMING'");
+
+    res.json({
+      studentsCount,
+      employersCount,
+      openJobsCount,
+      applicationsCount,
+      verifiedSkillsCount,
+      upcomingDrivesCount,
+      college: config.collegeName,
+    });
+  });
+
   app.use('/api/auth', authRouter);
   app.use('/api/me', meRouter);
-  app.use('/api', studentRouter, jobsRouter, employerRouter, aiRouter, adminRouter);
+  app.use('/api', studentRouter, jobsRouter, employerRouter, aiRouter, adminRouter, networkingRouter, careerRoadmapsRouter, drivesRouter, realtimeRouter);
   app.use('/api', (_req, _res, next) => next(new HttpError(404, 'NOT_FOUND', 'Unknown API route')));
 
-  app.use(express.static(path.join(ROOT, 'public'), { extensions: ['html'], maxAge: config.isProd ? '1h' : 0 }));
+  const frontendDist = path.join(ROOT, 'frontend', 'dist');
+  const publicDir = path.join(ROOT, 'public');
+
+  if (fs.existsSync(frontendDist)) {
+    app.use(express.static(frontendDist, { maxAge: config.isProd ? '1h' : 0 }));
+  }
+  app.use(express.static(publicDir, { extensions: ['html'], maxAge: config.isProd ? '1h' : 0 }));
+
+  // SPA fallback for frontend client-side routes
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) return next();
+    if (fs.existsSync(path.join(frontendDist, 'index.html'))) {
+      return res.sendFile(path.join(frontendDist, 'index.html'));
+    }
+    if (fs.existsSync(path.join(publicDir, 'index.html'))) {
+      return res.sendFile(path.join(publicDir, 'index.html'));
+    }
+    next();
+  });
 
   // eslint-disable-next-line no-unused-vars
   app.use((err, req, res, _next) => {

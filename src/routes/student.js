@@ -10,6 +10,7 @@ import { config } from '../config.js';
 import { HttpError, bad, notFound, parse, wrap } from '../util.js';
 import { authenticate, requireRole } from '../auth.js';
 import { analyzeResume, buildRoadmap, checkQuota } from '../ai/index.js';
+import { tailorResume } from '../ai/features.js';
 import { skillGap } from '../ai/scoring.js';
 import { idParam, studentSkills, studentContext, loadJobSkills, latestAnalysis } from './common.js';
 
@@ -38,6 +39,34 @@ const profileOut = (p) => ({
 
 studentRouter.get('/students/me/profile', ...student, wrap(async (req, res) => {
   res.json(profileOut(db.prepare('SELECT * FROM student_profiles WHERE user_id = ?').get(req.user.id)));
+}));
+
+studentRouter.get('/students/:id/public', authenticate, wrap(async (req, res) => {
+  const targetId = idParam(req.params.id);
+  const p = db.prepare('SELECT * FROM student_profiles WHERE user_id = ?').get(targetId);
+  if (!p) throw notFound('Student not found');
+  const skills = studentSkills(targetId);
+  const dna = db.prepare('SELECT archetype, summary, dimensions, strengths FROM career_dna WHERE user_id = ?').get(targetId);
+  const medals = db.prepare('SELECT skill, medal, correct FROM skill_medals WHERE user_id = ?').all(targetId);
+
+  res.json({
+    id: targetId,
+    personal: {
+      name: p.full_name,
+      headline: p.degree ? `${p.degree} in ${p.branch}` : 'Student',
+      location: p.location,
+      bio: p.bio,
+    },
+    academic: {
+      college: p.college,
+      degree: p.degree,
+      branch: p.branch,
+      graduationYear: p.graduation_year,
+    },
+    skills: skills.map((s) => s.name),
+    medals,
+    careerDna: dna ? { archetype: dna.archetype, summary: dna.summary, dimensions: parseJson(dna.dimensions, []), strengths: parseJson(dna.strengths, []) } : null,
+  });
 }));
 
 studentRouter.put('/students/me/profile', ...student, wrap(async (req, res) => {
@@ -157,6 +186,41 @@ studentRouter.post('/resumes/:id/analyze', ...student, wrap(async (req, res) => 
   const r = ownedResume(req.user.id, req.params.id);
   await runAnalysis(req.user.id, r);
   res.json(resumeOut(r));
+}));
+
+studentRouter.post('/resumes/:id/tailor', ...student, wrap(async (req, res) => {
+  const r = ownedResume(req.user.id, req.params.id);
+  const b = parse(z.object({
+    jobId: z.number().int().positive().optional(),
+    title: z.string().trim().max(120).optional(),
+    description: z.string().trim().max(3000).optional(),
+    skills: z.array(z.string().trim().max(60)).max(15).optional(),
+  }).strict(), req.body);
+
+  checkQuota(req.user.id, 'resume_analysis');
+
+  let target = {
+    title: b.title || 'Target Role',
+    description: b.description || '',
+    skills: b.skills || [],
+  };
+
+  if (b.jobId) {
+    const job = db.prepare('SELECT id, title, description FROM jobs WHERE id = ?').get(b.jobId);
+    if (job) {
+      const skills = loadJobSkills([job.id]).get(job.id) || [];
+      target.title = job.title;
+      target.description = job.description;
+      target.skills = skills.map((s) => s.name);
+    }
+  }
+
+  const result = await tailorResume(r.extracted_text, target);
+  res.json({
+    resumeId: r.id,
+    targetRole: target.title,
+    ...result,
+  });
 }));
 
 studentRouter.delete('/resumes/:id', ...student, wrap(async (req, res) => {

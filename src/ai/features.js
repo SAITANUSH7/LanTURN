@@ -128,3 +128,156 @@ export async function chatReply(scope, context, history) {
   }
   return { text, source: 'rules' };
 }
+
+// ---------------- Mock Interview Simulator ----------------
+const MockInterviewQuestionsSchema = z.object({
+  questions: z.array(z.object({
+    q: z.string().max(400),
+    kind: z.enum(['technical', 'system_design', 'behavioral']),
+    expectedCompetency: z.string().max(100),
+    hint: z.string().max(300),
+  })).min(3).max(5),
+});
+
+export function generateMockInterview(roleTitle, skills = []) {
+  const fb = () => ({
+    questions: [
+      {
+        q: `How would you design a scalable architecture or feature for a ${roleTitle} role using ${skills[0] || 'core technologies'}?`,
+        kind: 'system_design',
+        expectedCompetency: 'Architectural Thinking',
+        hint: 'Discuss components, data flow, error handling, and performance trade-offs.',
+      },
+      {
+        q: `What is the most challenging technical bug or problem you solved with ${skills[1] || skills[0] || 'software development'}?`,
+        kind: 'technical',
+        expectedCompetency: 'Debugging & Problem Solving',
+        hint: 'Walk through your diagnostic process, root cause analysis, and resolution.',
+      },
+      {
+        q: `Describe a situation where you had to collaborate under a tight deadline or resolve a disagreement with a team member.`,
+        kind: 'behavioral',
+        expectedCompetency: 'Team Collaboration (STAR)',
+        hint: 'Outline Situation, Task, Action, and Result with quantifiable impact.',
+      },
+    ],
+  });
+
+  return withLlm(
+    `You are an expert technical interviewer for the role: "${roleTitle}". The candidate has skills in: ${skills.join(', ') || 'modern software engineering'}. Generate exactly 3 interview questions (1 system design, 1 technical, 1 behavioral). Output ONLY JSON {questions:[{q,kind,expectedCompetency,hint}]}.`,
+    { roleTitle, skills },
+    MockInterviewQuestionsSchema,
+    900,
+    fb,
+    'mock-interview-gen'
+  );
+}
+
+const MockEvaluationSchema = z.object({
+  overallScore: z.number().int().min(0).max(100),
+  readinessLevel: z.string().max(60),
+  summary: z.string().max(600),
+  evaluations: z.array(z.object({
+    questionIndex: z.number().int().min(0),
+    score: z.number().int().min(0).max(100),
+    feedback: z.string().max(400),
+    strengths: z.array(z.string().max(200)),
+    improvements: z.array(z.string().max(200)),
+  })),
+});
+
+export function evaluateMockInterview(roleTitle, questions, answers) {
+  const fb = () => {
+    const evals = questions.map((q, idx) => {
+      const ans = String(answers[idx] || '').trim();
+      const lengthScore = Math.min(Math.round(ans.length / 5), 40);
+      const starKeywords = /(situation|task|action|result|built|designed|implemented|solved|optimized|debugged|reduced|improved)/i;
+      const starBonus = starKeywords.test(ans) ? 30 : 15;
+      const techBonus = ans.length > 80 ? 25 : 10;
+      const score = ans ? clamp(lengthScore + starBonus + techBonus, 30, 95) : 0;
+
+      return {
+        questionIndex: idx,
+        score,
+        feedback: ans.length > 50
+          ? `Solid answer addressing ${q.expectedCompetency}. Clear structure and relevant experience.`
+          : 'Answer is brief. Provide more concrete implementation details and metrics.',
+        strengths: ans.length > 50 ? ['Addressed the core question', 'Demonstrated relevant context'] : ['Basic attempt provided'],
+        improvements: ans.length > 80 ? ['Include specific performance benchmarks'] : ['Use the STAR method (Situation, Task, Action, Result) with more detail'],
+      };
+    });
+
+    const overallScore = Math.round(evals.reduce((a, b) => a + b.score, 0) / (evals.length || 1));
+    const readinessLevel = overallScore >= 80 ? 'High Interview Readiness' : overallScore >= 60 ? 'Moderate Readiness' : 'Needs Practice';
+
+    return {
+      overallScore,
+      readinessLevel,
+      summary: `Candidate demonstrated ${readinessLevel.toLowerCase()} for the ${roleTitle} position with an average score of ${overallScore}%.`,
+      evaluations: evals,
+    };
+  };
+
+  return withLlm(
+    `Evaluate the candidate's interview responses for the role: "${roleTitle}". Score each question 0-100 based on technical depth, clarity, and structure. Output ONLY JSON {overallScore,readinessLevel,summary,evaluations:[{questionIndex,score,feedback,strengths[],improvements[]}]}.`,
+    { roleTitle, questions, answers },
+    MockEvaluationSchema,
+    1400,
+    fb,
+    'mock-interview-eval'
+  );
+}
+
+// ---------------- Resume ATS Tailor & Scanner ----------------
+const TailorSchema = z.object({
+  atsScore: z.number().int().min(0).max(100),
+  matchedKeywords: z.array(z.string().max(80)),
+  missingKeywords: z.array(z.string().max(80)),
+  readabilityFeedback: z.string().max(400),
+  bulletSuggestions: z.array(z.string().max(300)).min(2).max(5),
+});
+
+export function tailorResume(resumeText, target) {
+  const fb = () => {
+    const resumeLower = String(resumeText || '').toLowerCase();
+    const candidateKeywords = (target.skills || []).length > 0
+      ? target.skills
+      : ['javascript', 'react', 'node.js', 'sql', 'git', 'api', 'testing', 'docker', 'python', 'architecture'];
+
+    const matched = [];
+    const missing = [];
+    for (const kw of candidateKeywords) {
+      if (resumeLower.includes(String(kw).toLowerCase())) matched.push(kw);
+      else missing.push(kw);
+    }
+
+    const rawScore = candidateKeywords.length > 0
+      ? Math.round((matched.length / candidateKeywords.length) * 100)
+      : 75;
+
+    const bulletSuggestions = [
+      `Engineered features for ${target.title || 'high-impact modules'} utilizing ${matched[0] || 'modern frameworks'}, boosting operational throughput by 25%.`,
+      `Integrated ${missing[0] || 'robust APIs and automated tests'} across distributed microservices, decreasing system latency by 30%.`,
+      `Collaborated in agile sprint cycles to deliver production-ready code with 95%+ unit test coverage adhering to clean code standards.`,
+    ];
+
+    return {
+      atsScore: clamp(rawScore, 35, 98),
+      matchedKeywords: matched,
+      missingKeywords: missing,
+      readabilityFeedback: resumeLower.length > 400
+        ? 'Resume has solid structure and detail. Incorporate more quantifiable metrics for maximum ATS impact.'
+        : 'Resume is brief. Expand technical achievements with specific numerical results.',
+      bulletSuggestions,
+    };
+  };
+
+  return withLlm(
+    `Compare the candidate's resume against the target role: "${target.title || 'Target Job'}". Calculate ATS match score (0-100), list matched/missing keywords, give readability feedback, and suggest 3 tailored bullet points using the STAR method. Output ONLY JSON {atsScore,matchedKeywords[],missingKeywords[],readabilityFeedback,bulletSuggestions[]}.`,
+    { resumeText: String(resumeText || '').slice(0, 3000), target },
+    TailorSchema,
+    1100,
+    fb,
+    'resume-tailor'
+  );
+}

@@ -1,5 +1,5 @@
 import { login as doLogin, register as doRegister } from '../api.js';
-import { h, icon, field, input, busy, scoreRing, skillChip, toast } from '../ui.js';
+import { h, icon, field, input, busy, scoreRing, skillChip, toast, passwordField } from '../ui.js';
 
 const TICK = ['Career intelligence system / 001', 'ランターン', 'Skills meet opportunity', '就職支援', 'Resume score · Skill gap · Roadmap', '次の進化', 'Batch 16'];
 function ticker() {
@@ -81,7 +81,7 @@ export function login({ navigate }) {
         navigate(home(u));
       } catch (ex) { err.append(h('div', { class: 'alert alert--danger' }, icon('warn'), ex.message)); }
     },
-  }, field('Email', email), field('Password', pw), err, btn, h('p', { class: 'muted' }, 'New here? ', h('a', { href: '#/register' }, 'Create an account')));
+  }, field('Email', email), passwordField('Password', pw), err, btn, h('p', { class: 'muted' }, 'New here? ', h('a', { href: '#/register' }, 'Create an account')));
   return authLayout('Welcome back', 'Sign in to continue.', form);
 }
 
@@ -113,6 +113,6 @@ export function register({ navigate }) {
         navigate(home(u));
       } catch (ex) { err.append(h('div', { class: 'alert alert--danger' }, icon('warn'), ex.message)); }
     },
-  }, h('div', { class: 'field' }, h('span', { class: 'label' }, 'I am a'), seg), nameField, field('Email', email), field('Password', pw, { hint: 'At least 8 characters.' }), note, err, btn, h('p', { class: 'muted' }, 'Already registered? ', h('a', { href: '#/login' }, 'Sign in')));
+  }, h('div', { class: 'field' }, h('span', { class: 'label' }, 'I am a'), seg), nameField, field('Email', email), passwordField('Password', pw, { hint: 'At least 8 characters.' }), note, err, btn, h('p', { class: 'muted' }, 'Already registered? ', h('a', { href: '#/login' }, 'Sign in')));
   return authLayout('Create your account', 'Free for students and employers.', form);
 }

@@ -1,0 +1,38 @@
+services:
+  lanturn:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: lanturn:3.0
+    container_name: lanturn-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET:-change-me-to-a-very-long-production-access-secret-32-chars}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-change-me-to-a-very-long-production-refresh-secret-32-chars}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@lanturn.local}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-Admin@12345}
+      - SEED_DEMO=${SEED_DEMO:-false}
+      - DB_FILE=/data/lanturn.db
+      - UPLOAD_DIR=/data/uploads
+      - AI_PROVIDER=${AI_PROVIDER:-auto}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+    volumes:
+      - lanturn_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:3000/api/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  lanturn_data:
+    driver: local

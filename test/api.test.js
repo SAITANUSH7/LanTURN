@@ -238,3 +238,74 @@ test('session endpoint returns no user (200) when signed out, and the user when 
   assert.equal(yes.status, 200);
   assert.equal(yes.body.user.id, s.user.id);
 });
+
+test('professional networking: connections, feed, posts, comments, likes, messages and endorsements', async () => {
+  const alice = await register('STUDENT');
+  const bob = await register('STUDENT');
+
+  // Connect Alice -> Bob
+  const req = await api('POST', `/networking/connect/${bob.user.id}`, { token: alice.accessToken });
+  assert.equal(req.status, 201);
+
+  // Bob views incoming requests and accepts
+  const bobConns = await api('GET', '/networking/connections', { token: bob.accessToken });
+  assert.equal(bobConns.status, 200);
+  assert.equal(bobConns.body.incomingRequests.length, 1);
+  const connId = bobConns.body.incomingRequests[0].id;
+
+  const accept = await api('POST', `/networking/requests/${connId}/accept`, { token: bob.accessToken });
+  assert.equal(accept.status, 200);
+  assert.equal(accept.body.status, 'ACCEPTED');
+
+  // Alice creates a feed post
+  const postRes = await api('POST', '/networking/posts', {
+    token: alice.accessToken,
+    body: { content: 'Just built a full-stack project on LanTURN!', postType: 'PROJECT' },
+  });
+  assert.equal(postRes.status, 201);
+  assert.equal(postRes.body.content, 'Just built a full-stack project on LanTURN!');
+  const postId = postRes.body.id;
+
+  // Bob likes the post
+  const likeRes = await api('POST', `/networking/posts/${postId}/like`, { token: bob.accessToken });
+  assert.equal(likeRes.status, 200);
+  assert.equal(likeRes.body.isLiked, true);
+  assert.equal(likeRes.body.likesCount, 1);
+
+  // Bob comments on the post
+  const commentRes = await api('POST', `/networking/posts/${postId}/comments`, {
+    token: bob.accessToken,
+    body: { content: 'Awesome work Alice!' },
+  });
+  assert.equal(commentRes.status, 201);
+  assert.equal(commentRes.body.content, 'Awesome work Alice!');
+
+  // Alice sends Bob a direct message
+  const dm = await api('POST', `/messages/${bob.user.id}`, {
+    token: alice.accessToken,
+    body: { content: 'Hey Bob, thanks for the comment!' },
+  });
+  assert.equal(dm.status, 201);
+  assert.equal(dm.body.content, 'Hey Bob, thanks for the comment!');
+
+  // Bob fetches messages from Alice
+  const bobMessages = await api('GET', `/messages/${alice.user.id}`, { token: bob.accessToken });
+  assert.equal(bobMessages.status, 200);
+  assert.equal(bobMessages.body.messages.length, 1);
+  assert.equal(bobMessages.body.messages[0].content, 'Hey Bob, thanks for the comment!');
+
+  // Bob gives Alice a skill endorsement
+  const skill = await skillId(bob.accessToken, 'Python');
+  await api('PUT', '/students/me/skills', { token: alice.accessToken, body: { skillIds: [skill] } });
+
+  const endorse = await api('POST', '/networking/endorse', {
+    token: bob.accessToken,
+    body: { studentId: alice.user.id, skillId: skill },
+  });
+  assert.equal(endorse.status, 201);
+
+  // Alice fetches her endorsements
+  const endorsements = await api('GET', `/networking/endorsements/${alice.user.id}`, { token: alice.accessToken });
+  assert.equal(endorsements.status, 200);
+  assert.ok(endorsements.body.items.some((item) => item.skill_id === skill && item.endorsement_count === 1));
+});

@@ -235,7 +235,137 @@ CREATE TABLE IF NOT EXISTS chat_messages (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_chat_messages_thread ON chat_messages(thread_id, id);
+CREATE TABLE IF NOT EXISTS connections (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  requester_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  recipient_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  status TEXT NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'ACCEPTED', 'REJECTED')),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (requester_id, recipient_id)
+);
+CREATE INDEX IF NOT EXISTS idx_connections_users ON connections(requester_id, recipient_id, status);
+CREATE TABLE IF NOT EXISTS posts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  author_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  content TEXT NOT NULL,
+  media_url TEXT NOT NULL DEFAULT '',
+  post_type TEXT NOT NULL DEFAULT 'UPDATE' CHECK (post_type IN ('UPDATE', 'ACHIEVEMENT', 'PROJECT', 'QUESTION')),
+  likes_count INTEGER NOT NULL DEFAULT 0,
+  comments_count INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_posts_author ON posts(author_id, created_at DESC);
+CREATE TABLE IF NOT EXISTS post_likes (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (user_id, post_id)
+);
+CREATE TABLE IF NOT EXISTS post_comments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  author_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  content TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_post_comments_post ON post_comments(post_id, id);
+CREATE TABLE IF NOT EXISTS direct_messages (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  sender_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  recipient_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  content TEXT NOT NULL,
+  read_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_direct_messages_convo ON direct_messages(sender_id, recipient_id, id);
+CREATE TABLE IF NOT EXISTS skill_endorsements (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  endorser_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  student_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  skill_id INTEGER NOT NULL REFERENCES skills(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (endorser_id, student_id, skill_id)
+);
+CREATE INDEX IF NOT EXISTS idx_endorsements_student ON skill_endorsements(student_id, skill_id);
+
+CREATE TABLE IF NOT EXISTS career_roadmaps (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  student_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  domain_id TEXT NOT NULL,
+  domain_title TEXT NOT NULL,
+  enrolled_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (student_id, domain_id)
+);
+CREATE INDEX IF NOT EXISTS idx_career_roadmaps_student ON career_roadmaps(student_id);
+
+CREATE TABLE IF NOT EXISTS roadmap_progress (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  roadmap_id INTEGER NOT NULL REFERENCES career_roadmaps(id) ON DELETE CASCADE,
+  student_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  stage_index INTEGER NOT NULL,
+  topic_index INTEGER NOT NULL,
+  completed_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (roadmap_id, stage_index, topic_index)
+);
+CREATE INDEX IF NOT EXISTS idx_roadmap_progress_roadmap ON roadmap_progress(roadmap_id);
+
+CREATE TABLE IF NOT EXISTS mock_interviews (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  student_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  role_title TEXT NOT NULL,
+  questions TEXT NOT NULL,
+  answers TEXT NOT NULL DEFAULT '[]',
+  feedback TEXT NOT NULL DEFAULT '[]',
+  overall_score INTEGER NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'IN_PROGRESS' CHECK (status IN ('IN_PROGRESS', 'COMPLETED')),
+  source TEXT NOT NULL DEFAULT 'rules',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_mock_interviews_student ON mock_interviews(student_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS saved_jobs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  job_id INTEGER NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(user_id, job_id)
+);
+CREATE INDEX IF NOT EXISTS idx_saved_jobs_user ON saved_jobs(user_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS placement_drives (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  company_name TEXT NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  drive_date TEXT NOT NULL,
+  venue TEXT NOT NULL DEFAULT 'Campus Auditorium / Virtual',
+  eligibility TEXT NOT NULL DEFAULT 'All Branches',
+  package_details TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'UPCOMING' CHECK (status IN ('UPCOMING', 'ONGOING', 'COMPLETED', 'CANCELLED')),
+  created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_drives_date ON placement_drives(drive_date);
+
+CREATE TABLE IF NOT EXISTS drive_registrations (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  drive_id INTEGER NOT NULL REFERENCES placement_drives(id) ON DELETE CASCADE,
+  student_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  registered_at TEXT NOT NULL DEFAULT (datetime('now')),
+  status TEXT NOT NULL DEFAULT 'REGISTERED' CHECK (status IN ('REGISTERED', 'ATTENDED', 'SHORTLISTED', 'ABSENT')),
+  UNIQUE(drive_id, student_id)
+);
+CREATE INDEX IF NOT EXISTS idx_drive_registrations_student ON drive_registrations(student_id);
 `);
+
+try {
+  db.exec('ALTER TABLE jobs ADD COLUMN verified_by_admin INTEGER NOT NULL DEFAULT 0');
+} catch {
+  // column already exists
+}
 
 /** Run fn inside a transaction; rolls back on throw. */
 export function tx(fn) {
