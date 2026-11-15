@@ -15,12 +15,15 @@ seedAdmin();
 
 let server;
 let base;
+let origin;
 export async function start() {
   const app = createApp();
   await new Promise((r) => { server = app.listen(0, r); });
-  base = `http://127.0.0.1:${server.address().port}/api`;
+  origin = `http://127.0.0.1:${server.address().port}`;
+  base = `${origin}/api`;
 }
 export const stop = () => new Promise((r) => server.close(r));
+export const getOrigin = () => origin;
 
 export async function api(method, path, { token, body, form, cookie } = {}) {
   const headers = {};

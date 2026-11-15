@@ -6,6 +6,7 @@ import { conflict, notFound, parse, wrap, bad } from '../util.js';
 import { authenticate, requireRole, requireVerifiedEmployer } from '../auth.js';
 import { idParam, loadJobSkills, serializeJob, JOB_SELECT, recordEvent, eventsFor, latestAnalysis, studentSkills } from './common.js';
 import { skillGap } from '../ai/scoring.js';
+import { llmEnabled, providerSummary } from '../ai/providers.js';
 
 export const employerRouter = Router();
 const employer = [authenticate, requireRole('EMPLOYER')];
@@ -102,6 +103,31 @@ employerRouter.post('/employer/jobs/:id/close', ...employer, wrap(async (req, re
 
 // ---------- Candidates ----------
 const STATUSES = ['APPLIED', 'SHORTLISTED', 'INTERVIEW', 'OFFERED', 'REJECTED', 'WITHDRAWN'];
+const STATUS_MAP = {
+  applied: 'APPLIED',
+  submitted: 'APPLIED',
+  reviewed: 'SHORTLISTED',
+  shortlist: 'SHORTLISTED',
+  shortlisted: 'SHORTLISTED',
+  interview: 'INTERVIEW',
+  interviewed: 'INTERVIEW',
+  accepted: 'OFFERED',
+  offer: 'OFFERED',
+  offered: 'OFFERED',
+  hired: 'OFFERED',
+  rejected: 'REJECTED',
+  reject: 'REJECTED',
+  withdrawn: 'WITHDRAWN',
+  withdraw: 'WITHDRAWN',
+};
+
+const normalizeStatus = (s) => {
+  if (!s || typeof s !== 'string') return s;
+  const upper = s.toUpperCase();
+  if (STATUSES.includes(upper)) return upper;
+  return STATUS_MAP[s.toLowerCase()] || s;
+};
+
 export const TRANSITIONS = {
   APPLIED: ['SHORTLISTED', 'REJECTED'],
   SHORTLISTED: ['INTERVIEW', 'REJECTED'],
@@ -160,16 +186,22 @@ employerRouter.get('/employer/applications/:id', ...employer, wrap(async (req, r
 }));
 
 employerRouter.patch('/employer/applications/:id/status', ...employer, wrap(async (req, res) => {
-  const { status } = parse(z.object({ status: z.enum(STATUSES) }).strict(), req.body);
+  const rawStatus = req.body?.status;
+  const targetStatus = normalizeStatus(rawStatus);
+  if (!STATUSES.includes(targetStatus)) {
+    throw bad(`Invalid status: ${rawStatus}. Allowed: ${STATUSES.join(', ')}`);
+  }
   const a = ownApplication(req.user.id, req.params.id);
-  if (!TRANSITIONS[a.status].includes(status)) throw conflict(`Cannot move from ${a.status} to ${status}`, 'INVALID_TRANSITION');
+  if (a.status !== targetStatus && !TRANSITIONS[a.status].includes(targetStatus)) {
+    throw conflict(`Cannot move from ${a.status} to ${targetStatus}`, 'INVALID_TRANSITION');
+  }
   tx(() => {
-    db.prepare("UPDATE applications SET status = ?, updated_at = datetime('now') WHERE id = ?").run(status, a.id);
-    recordEvent(a.id, a.status, status, req.user.id);
+    db.prepare("UPDATE applications SET status = ?, updated_at = datetime('now') WHERE id = ?").run(targetStatus, a.id);
+    recordEvent(a.id, a.status, targetStatus, req.user.id);
   });
   const jt = db.prepare('SELECT j.title, e.company_name FROM jobs j LEFT JOIN employer_profiles e ON e.user_id = j.employer_id WHERE j.id = ?').get(a.job_id);
-  notify(a.student_id, 'application_status', `Application ${status.toLowerCase()}`, `${jt?.company_name || 'The employer'} moved your application for ${jt?.title || 'a job'} to ${status}.`, '#/student/applications');
-  res.json({ id: a.id, status, allowedTransitions: TRANSITIONS[status], events: eventsFor(a.id) });
+  notify(a.student_id, 'application_status', `Application ${targetStatus.toLowerCase()}`, `${jt?.company_name || 'The employer'} moved your application for ${jt?.title || 'a job'} to ${targetStatus}.`, '#/student/applications');
+  res.json({ id: a.id, status: targetStatus, allowedTransitions: TRANSITIONS[targetStatus], events: eventsFor(a.id) });
 }));
 
 // ---------- Dashboard ----------
@@ -187,9 +219,281 @@ employerRouter.get('/employer/dashboard', ...employer, wrap(async (req, res) => 
   });
 }));
 
+// ---------- Candidate Shortlist Recommendations ----------
+employerRouter.get('/employer/jobs/:id/recommendations', ...employer, wrap(async (req, res) => {
+  const job = ownJob(req.user.id, req.params.id);
+  const rows = db.prepare(`SELECT a.id, a.status, a.match_score, a.resume_id, a.student_id, p.full_name, p.degree, p.branch, p.college
+    FROM applications a JOIN student_profiles p ON p.user_id = a.student_id WHERE a.job_id = ?`).all(job.id);
+
+  const scored = rows.map((r) => {
+    const medals = db.prepare('SELECT skill, medal FROM skill_medals WHERE user_id = ?').all(r.student_id);
+    const dna = db.prepare('SELECT archetype FROM career_dna WHERE user_id = ?').get(r.student_id);
+    const analysis = r.resume_id ? latestAnalysis(r.resume_id) : null;
+    const resumeScore = analysis?.overallScore || 0;
+
+    let compositeScore = r.match_score * 0.6 + resumeScore * 0.25 + (medals.length * 5);
+    compositeScore = Math.min(Math.round(compositeScore), 99);
+
+    const reasons = [];
+    if (r.match_score >= 80) reasons.push(`High skill match (${r.match_score}%) for role requirements`);
+    if (medals.length > 0) reasons.push(`Earned ${medals.length} verified skill medal${medals.length > 1 ? 's' : ''}`);
+    if (dna) reasons.push(`Validated archetype: ${dna.archetype}`);
+
+    return {
+      applicationId: r.id,
+      studentId: r.student_id,
+      name: r.full_name,
+      college: r.college,
+      degree: r.degree,
+      branch: r.branch,
+      status: r.status,
+      matchScore: r.match_score,
+      resumeScore,
+      compositeScore,
+      medalsCount: medals.length,
+      archetype: dna?.archetype || null,
+      recommendationReason: reasons.join(' · ') || 'Potential candidate with foundational skills',
+    };
+  });
+
+  scored.sort((a, b) => b.compositeScore - a.compositeScore);
+  res.json({ jobId: job.id, jobTitle: job.title, recommendations: scored });
+}));
+
 // ---------- Admin ----------
 export const adminRouter = Router();
 const admin = [authenticate, requireRole('ADMIN')];
+
+adminRouter.get('/admin/analytics', ...admin, wrap(async (_req, res) => {
+  const one = (sql) => (db.prepare(sql).get()?.n || 0);
+
+  const totalStudents = one("SELECT COUNT(*) AS n FROM users WHERE role = 'STUDENT'");
+  const totalEmployers = one("SELECT COUNT(*) AS n FROM users WHERE role = 'EMPLOYER'");
+  const totalJobs = one("SELECT COUNT(*) AS n FROM jobs");
+  const openJobs = one("SELECT COUNT(*) AS n FROM jobs WHERE status = 'OPEN'");
+  const verifiedJobs = one("SELECT COUNT(*) AS n FROM jobs WHERE verified_by_admin = 1");
+  const totalApplications = one("SELECT COUNT(*) AS n FROM applications");
+  const offeredApplications = one("SELECT COUNT(*) AS n FROM applications WHERE status = 'OFFERED'");
+  const interviewedApplications = one("SELECT COUNT(*) AS n FROM applications WHERE status = 'INTERVIEW'");
+  const shortlistedApplications = one("SELECT COUNT(*) AS n FROM applications WHERE status = 'SHORTLISTED'");
+
+  const placementRate = totalApplications > 0 ? Math.round((offeredApplications / totalApplications) * 100) : 0;
+
+  // In-demand skills across job requirements
+  const inDemandSkills = db.prepare(`
+    SELECT s.name, COUNT(*) as demandCount, AVG(js.weight) as avgWeight
+    FROM job_skills js
+    JOIN skills s ON s.id = js.skill_id
+    GROUP BY js.skill_id
+    ORDER BY demandCount DESC, avgWeight DESC
+    LIMIT 8
+  `).all();
+
+  // Top student skills
+  const topStudentSkills = db.prepare(`
+    SELECT s.name, COUNT(*) as studentCount
+    FROM student_skills ss
+    JOIN skills s ON s.id = ss.skill_id
+    GROUP BY ss.skill_id
+    ORDER BY studentCount DESC
+    LIMIT 8
+  `).all();
+
+  // Average application match score
+  const avgMatch = Math.round(db.prepare("SELECT AVG(match_score) as avg FROM applications").get()?.avg || 0);
+
+  res.json({
+    metrics: {
+      totalStudents,
+      totalEmployers,
+      totalJobs,
+      openJobs,
+      totalApplications,
+      offeredApplications,
+      interviewedApplications,
+      shortlistedApplications,
+      placementRate,
+      avgMatchScore: avgMatch,
+      verifiedJobs,
+    },
+    inDemandSkills,
+    topStudentSkills,
+  });
+}));
+
+adminRouter.get('/admin/analytics/summary', ...admin, wrap(async (_req, res) => {
+  const one = (sql) => (db.prepare(sql).get()?.n || 0);
+
+  const totalStudents = one("SELECT COUNT(*) AS n FROM users WHERE role = 'STUDENT'");
+  const totalEmployers = one("SELECT COUNT(*) AS n FROM users WHERE role = 'EMPLOYER'");
+  const totalJobs = one("SELECT COUNT(*) AS n FROM jobs");
+  const openJobs = one("SELECT COUNT(*) AS n FROM jobs WHERE status = 'OPEN'");
+  const verifiedJobs = one("SELECT COUNT(*) AS n FROM jobs WHERE verified_by_admin = 1");
+  const totalApplications = one("SELECT COUNT(*) AS n FROM applications");
+  const offeredApplications = one("SELECT COUNT(*) AS n FROM applications WHERE status = 'OFFERED'");
+  const placementRate = totalApplications > 0 ? Math.round((offeredApplications / totalApplications) * 100) : 0;
+  const avgMatch = Math.round(db.prepare("SELECT AVG(match_score) as avg FROM applications").get()?.avg || 0);
+
+  res.json({
+    users: totalStudents + totalEmployers,
+    students: totalStudents,
+    employers: totalEmployers,
+    totalJobs,
+    activeJobs: openJobs,
+    applications: totalApplications,
+    verifiedJobs,
+    hired: offeredApplications,
+    placementRate,
+    avgMatchScore: avgMatch,
+  });
+}));
+
+adminRouter.get('/admin/ai/diagnostics', ...admin, wrap(async (_req, res) => {
+  const summary = providerSummary();
+  res.json({
+    aiMode: llmEnabled() ? 'llm+rules' : 'rules',
+    configuredProviders: summary.filter((p) => p.configured).map((p) => p.name),
+    allProviders: summary,
+    quotaLimits: {
+      chat: 20,
+      interview: 10,
+      resumeAnalysis: 10,
+      jobDescription: 15,
+      skillArena: 10,
+    },
+    systemTime: new Date().toISOString(),
+  });
+}));
+
+adminRouter.get('/admin/jobs', ...admin, wrap(async (req, res) => {
+  const rows = db.prepare(`
+    SELECT j.*, ep.company_name,
+      (SELECT COUNT(*) FROM applications a WHERE a.job_id = j.id) as app_count
+    FROM jobs j
+    LEFT JOIN employer_profiles ep ON ep.user_id = j.employer_id
+    ORDER BY j.created_at DESC, j.id DESC
+  `).all();
+
+  const items = rows.map((r) => ({
+    jobId: r.id,
+    id: r.id,
+    title: r.title,
+    description: r.description,
+    type: r.type,
+    jobType: r.type,
+    location: r.location,
+    remote: Boolean(r.remote),
+    compensation: r.compensation,
+    status: r.status === 'OPEN' ? 'active' : r.status.toLowerCase(),
+    rawStatus: r.status,
+    verifiedByAdmin: Boolean(r.verified_by_admin),
+    employerId: r.employer_id,
+    companyName: r.company_name || 'Partner Company',
+    companyLogoURL: null,
+    applicationCount: r.app_count || 0,
+    createdAt: r.created_at,
+  }));
+
+  res.json({ items });
+}));
+
+adminRouter.patch('/admin/jobs/:id/verify', ...admin, wrap(async (req, res) => {
+  const id = idParam(req.params.id);
+  const job = db.prepare('SELECT id FROM jobs WHERE id = ?').get(id);
+  if (!job) throw notFound('Job not found');
+
+  db.prepare('UPDATE jobs SET verified_by_admin = 1 WHERE id = ?').run(id);
+  res.json({ jobId: id, verifiedByAdmin: true });
+}));
+
+adminRouter.patch('/admin/jobs/:id/status', ...admin, wrap(async (req, res) => {
+  const id = idParam(req.params.id);
+  const job = db.prepare('SELECT id FROM jobs WHERE id = ?').get(id);
+  if (!job) throw notFound('Job not found');
+
+  const raw = String(req.body?.status || '').toLowerCase().trim();
+  const target = (raw === 'active' || raw === 'open') ? 'OPEN' : 'CLOSED';
+
+  db.prepare('UPDATE jobs SET status = ? WHERE id = ?').run(target, id);
+  res.json({ jobId: id, status: target === 'OPEN' ? 'active' : 'closed', rawStatus: target });
+}));
+
+adminRouter.get('/admin/users', ...admin, wrap(async (req, res) => {
+  const role = req.query.role ? String(req.query.role).toUpperCase() : null;
+  const status = req.query.status ? String(req.query.status).toLowerCase() : null;
+
+  let query = `
+    SELECT u.id, u.email, u.role, u.verification, u.created_at,
+      sp.full_name AS student_name, sp.college, sp.degree, sp.branch,
+      ep.company_name, ep.industry, ep.location AS emp_location
+    FROM users u
+    LEFT JOIN student_profiles sp ON sp.user_id = u.id
+    LEFT JOIN employer_profiles ep ON ep.user_id = u.id
+    WHERE 1=1
+  `;
+  const params = [];
+  if (role && ['STUDENT', 'EMPLOYER', 'ADMIN'].includes(role)) {
+    query += ' AND u.role = ?';
+    params.push(role);
+  }
+  if (status === 'disabled') {
+    query += " AND u.verification = 'REJECTED'";
+  } else if (status === 'active') {
+    query += " AND u.verification != 'REJECTED'";
+  }
+  query += ' ORDER BY u.created_at DESC, u.id DESC LIMIT 100';
+
+  const rows = db.prepare(query).all(...params);
+  const items = rows.map((u) => {
+    const isStudent = u.role === 'STUDENT';
+    const isEmp = u.role === 'EMPLOYER';
+    const displayName = isStudent ? u.student_name : (isEmp ? u.company_name : 'Platform Administrator');
+
+    return {
+      uid: u.id,
+      id: u.id,
+      email: u.email,
+      role: u.role.toLowerCase(),
+      rawRole: u.role,
+      status: u.verification === 'REJECTED' ? 'disabled' : 'active',
+      verification: u.verification,
+      displayName: displayName || u.email.split('@')[0],
+      college: u.college || null,
+      degree: u.degree || null,
+      branch: u.branch || null,
+      industry: u.industry || null,
+      createdAt: u.created_at,
+    };
+  });
+
+  res.json({ items });
+}));
+
+adminRouter.patch('/admin/users/:id/status', ...admin, wrap(async (req, res) => {
+  const id = idParam(req.params.id);
+  const user = db.prepare('SELECT id, verification FROM users WHERE id = ?').get(id);
+  if (!user) throw notFound('User not found');
+
+  const raw = String(req.body?.status || '').toLowerCase().trim();
+  const newVerif = (raw === 'disabled' || raw === 'rejected') ? 'REJECTED' : 'VERIFIED';
+
+  db.prepare('UPDATE users SET verification = ? WHERE id = ?').run(newVerif, id);
+  res.json({ uid: id, status: newVerif === 'REJECTED' ? 'disabled' : 'active', verification: newVerif });
+}));
+
+adminRouter.patch('/admin/users/:id/role', ...admin, wrap(async (req, res) => {
+  const id = idParam(req.params.id);
+  const user = db.prepare('SELECT id, role FROM users WHERE id = ?').get(id);
+  if (!user) throw notFound('User not found');
+
+  const raw = String(req.body?.role || '').toUpperCase().trim();
+  if (!['STUDENT', 'EMPLOYER', 'ADMIN'].includes(raw)) {
+    throw bad('Invalid role. Allowed: STUDENT, EMPLOYER, ADMIN');
+  }
+
+  db.prepare('UPDATE users SET role = ? WHERE id = ?').run(raw, id);
+  res.json({ uid: id, role: raw.toLowerCase(), rawRole: raw });
+}));
 
 adminRouter.get('/admin/employers', ...admin, wrap(async (req, res) => {
   const status = ['PENDING', 'VERIFIED', 'REJECTED'].includes(req.query.status) ? req.query.status : null;

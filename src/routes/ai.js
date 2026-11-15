@@ -72,6 +72,40 @@ const medalOut = (m) => ({ id: m.id, skill: m.skill, medal: m.medal, correct: m.
 aiRouter.get('/arena/medals', ...student, wrap(async (req, res) => {
   res.json(db.prepare('SELECT * FROM skill_medals WHERE user_id = ? ORDER BY id DESC').all(req.user.id).map(medalOut));
 }));
+
+aiRouter.get('/arena/leaderboard', authenticate, wrap(async (_req, res) => {
+  const rows = db.prepare(`
+    SELECT sm.user_id, sp.full_name, sp.college, sp.degree, sp.branch,
+      COUNT(sm.id) AS total_medals,
+      SUM(CASE 
+        WHEN LOWER(sm.medal) = 'gold' THEN 100
+        WHEN LOWER(sm.medal) = 'silver' THEN 70
+        WHEN LOWER(sm.medal) = 'bronze' THEN 40
+        ELSE 10 END) AS points,
+      GROUP_CONCAT(DISTINCT sm.skill) AS skills_list
+    FROM skill_medals sm
+    JOIN users u ON u.id = sm.user_id
+    LEFT JOIN student_profiles sp ON sp.user_id = sm.user_id
+    GROUP BY sm.user_id
+    ORDER BY points DESC, total_medals DESC
+    LIMIT 25
+  `).all();
+
+  const leaderboard = rows.map((r, index) => ({
+    rank: index + 1,
+    userId: r.user_id,
+    name: r.full_name || 'Anonymous Student',
+    college: r.college || 'LanTURN Campus',
+    degree: r.degree || '',
+    branch: r.branch || '',
+    totalMedals: r.total_medals,
+    points: r.points || 0,
+    topSkills: (r.skills_list || '').split(',').filter(Boolean).slice(0, 5),
+  }));
+
+  res.json({ leaderboard });
+}));
+
 aiRouter.post('/arena/tests', ...student, wrap(async (req, res) => {
   const b = parse(z.object({ skill: z.string().trim().min(1).max(60), selfRating: z.number().int().min(1).max(3) }).strict(), req.body);
   checkQuota(req.user.id, 'arena');
@@ -79,8 +113,16 @@ aiRouter.post('/arena/tests', ...student, wrap(async (req, res) => {
   const id = Number(db.prepare('INSERT INTO skill_tests (user_id, skill, tier, questions, source) VALUES (?,?,?,?,?)').run(req.user.id, b.skill, b.selfRating, JSON.stringify(g.questions), g.source).lastInsertRowid);
   res.status(201).json(testOut(db.prepare('SELECT * FROM skill_tests WHERE id = ?').get(id)));
 }));
+
 aiRouter.post('/arena/tests/:id/submit', ...student, wrap(async (req, res) => {
-  const b = parse(z.object({ answers: z.array(z.string().max(2000)).length(3) }).strict(), req.body);
+  const b = parse(z.object({
+    answers: z.array(z.string().max(2000)).length(3),
+    telemetry: z.object({
+      tabSwitches: z.number().int().min(0).optional(),
+      pasteEvents: z.number().int().min(0).optional(),
+      timeTakenSeconds: z.number().int().min(0).optional(),
+    }).optional(),
+  }).strict(), req.body);
   const t = db.prepare('SELECT * FROM skill_tests WHERE id = ? AND user_id = ?').get(idParam(req.params.id), req.user.id);
   if (!t) throw notFound('Test not found');
   if (t.status !== 'OPEN') throw new HttpError(409, 'ALREADY_SUBMITTED', 'This test was already submitted');
@@ -116,6 +158,69 @@ aiRouter.post('/jobs/:id/interview-prep', ...student, wrap(async (req, res) => {
   checkQuota(req.user.id, 'interview');
   const out = await F.interviewPrep({ title: row.title, skills: skills.map((s) => s.name) });
   res.json({ questions: out.questions, source: out.source });
+}));
+
+// ---------- Student: Mock Interview Simulator ----------
+const interviewOut = (r) => ({
+  id: r.id,
+  roleTitle: r.role_title,
+  questions: parseJson(r.questions, []),
+  answers: parseJson(r.answers, []),
+  feedback: parseJson(r.feedback, null),
+  overallScore: r.overall_score,
+  status: r.status,
+  source: r.source,
+  createdAt: r.created_at,
+  updatedAt: r.updated_at,
+});
+
+aiRouter.get('/interviews', ...student, wrap(async (req, res) => {
+  const rows = db.prepare('SELECT * FROM mock_interviews WHERE student_id = ? ORDER BY id DESC LIMIT 50').all(req.user.id);
+  res.json({ items: rows.map(interviewOut) });
+}));
+
+aiRouter.get('/interviews/:id', ...student, wrap(async (req, res) => {
+  const r = db.prepare('SELECT * FROM mock_interviews WHERE id = ? AND student_id = ?').get(idParam(req.params.id), req.user.id);
+  if (!r) throw notFound('Mock interview session not found');
+  res.json(interviewOut(r));
+}));
+
+aiRouter.post('/interviews/start', ...student, wrap(async (req, res) => {
+  const b = parse(z.object({
+    roleTitle: z.string().trim().min(2).max(120),
+    skills: z.array(z.string().trim().min(1).max(60)).max(10).optional(),
+  }).strict(), req.body);
+
+  checkQuota(req.user.id, 'interview');
+  const ctx = studentContext(req.user.id);
+  const candidateSkills = b.skills || ctx.skills.map((s) => s.name);
+
+  const generated = await F.generateMockInterview(b.roleTitle, candidateSkills);
+  const id = Number(
+    db.prepare('INSERT INTO mock_interviews (student_id, role_title, questions, source) VALUES (?, ?, ?, ?)')
+      .run(req.user.id, b.roleTitle, JSON.stringify(generated.questions), generated.source).lastInsertRowid
+  );
+
+  res.status(201).json(interviewOut(db.prepare('SELECT * FROM mock_interviews WHERE id = ?').get(id)));
+}));
+
+aiRouter.post('/interviews/:id/submit', ...student, wrap(async (req, res) => {
+  const r = db.prepare('SELECT * FROM mock_interviews WHERE id = ? AND student_id = ?').get(idParam(req.params.id), req.user.id);
+  if (!r) throw notFound('Mock interview session not found');
+  if (r.status === 'COMPLETED') throw bad('This interview session is already completed');
+
+  const b = parse(z.object({
+    answers: z.array(z.string().trim().max(4000)).min(1).max(10),
+  }).strict(), req.body);
+
+  checkQuota(req.user.id, 'interview');
+  const questions = parseJson(r.questions, []);
+  const evaluation = await F.evaluateMockInterview(r.role_title, questions, b.answers);
+
+  db.prepare(`UPDATE mock_interviews SET answers = ?, feedback = ?, overall_score = ?, status = 'COMPLETED', source = ?, updated_at = datetime('now') WHERE id = ?`)
+    .run(JSON.stringify(b.answers), JSON.stringify(evaluation), evaluation.overallScore, evaluation.source, r.id);
+
+  res.json(interviewOut(db.prepare('SELECT * FROM mock_interviews WHERE id = ?').get(r.id)));
 }));
 
 // ---------- Chat threads (student coach + employer assistant) ----------

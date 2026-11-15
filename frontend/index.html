@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="LanTURN — AI-powered placement platform connecting students with employers" />
+    <meta name="theme-color" content="#1A1A1A" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="LanTURN" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <title>LanTURN — Placement Platform</title>
+
+    <!-- Preconnects -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+    <!-- Preload hero logo (LCP) -->
+    <link rel="preload" as="image" href="/hero-logo.png" imagesrcset="/hero-logo.png" fetchpriority="high" />
+    <!-- Load font non-render-blocking with display=swap -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" />
+
+    <!-- Inline critical loading styles so skeleton shows INSTANTLY -->
+    <style>
+      body { margin: 0; font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #FFC107; }
+      #root-loader {
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        min-height: 100vh; gap: 16px; padding: 24px;
+      }
+      .rl-bar { height: 3px; width: 200px; background: #E8E8E8; border-radius: 999px; overflow: hidden; }
+      .rl-fill { height: 100%; width: 40%; background: #1A1A1A; border-radius: 999px;
+        animation: rl-slide 1.2s ease-in-out infinite; }
+      @keyframes rl-slide { 0%{transform:translateX(-100%)} 50%{transform:translateX(150%)} 100%{transform:translateX(-100%)} }
+      .rl-text { font-size: 13px; color: #8A8A8A; font-weight: 500; letter-spacing: 0.02em; }
+      /* Skeleton shell (visible before React mounts) */
+      .skel-shell { max-width: 1024px; margin: 0 auto; padding: 80px 24px 24px; width: 100%; }
+      .skel-row { display: flex; gap: 16px; margin-bottom: 16px; }
+      .skel-box { background: rgba(255,255,255,0.5); border-radius: 16px; animation: skel-pulse 1.5s ease-in-out infinite; }
+      .skel-nav { height: 56px; background: rgba(136,14,79,0.9); box-shadow: 0 1px 3px rgba(0,0,0,0.1); position: fixed; top: 0; left: 0; right: 0; z-index: 50; }
+      @keyframes skel-pulse { 0%,100%{opacity:0.6} 50%{opacity:0.3} }
+    </style>
+  </head>
+  <body>
+    <!-- Instant skeleton (shows before ANY JS loads) -->
+    <div id="root">
+      <div id="root-loader">
+        <div class="skel-nav"></div>
+        <div class="skel-shell">
+          <div class="skel-row">
+            <div class="skel-box" style="height:32px;width:220px"></div>
+          </div>
+          <div class="skel-row">
+            <div class="skel-box" style="height:120px;flex:1"></div>
+            <div class="skel-box" style="height:120px;flex:1"></div>
+            <div class="skel-box" style="height:120px;flex:1"></div>
+            <div class="skel-box" style="height:120px;flex:1"></div>
+          </div>
+          <div class="skel-row">
+            <div class="skel-box" style="height:200px;flex:1"></div>
+            <div class="skel-box" style="height:200px;flex:1"></div>
+          </div>
+          <div class="skel-row">
+            <div class="skel-box" style="height:160px;flex:1"></div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:12px;margin-top:24px">
+            <div class="rl-bar"><div class="rl-fill"></div></div>
+            <span class="rl-text">Loading LanTURN...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

@@ -1,5 +1,8 @@
 node_modules
-data
+/data
 .env
 .git
 *.log
+frontend/node_modules
+frontend/dist
+.gemini

@@ -15,12 +15,16 @@ function withMatches(rows, req) {
   const applied = ctx
     ? new Set(db.prepare('SELECT job_id FROM applications WHERE student_id = ?').all(req.user.id).map((r) => r.job_id))
     : new Set();
+  const saved = ctx
+    ? new Set(db.prepare('SELECT job_id FROM saved_jobs WHERE user_id = ?').all(req.user.id).map((r) => r.job_id))
+    : new Set();
   return rows.map((r) => {
     const job = serializeJob(r, skills.get(r.id));
     if (ctx) {
       const m = matchFor(r, skills.get(r.id), ctx);
       job.match = { score: m.score, skillMatch: m.skillMatch, matchedCount: m.matched.length, missingCount: m.missing.length };
       job.applied = applied.has(r.id);
+      job.isSaved = saved.has(r.id);
     }
     return job;
   });
@@ -49,6 +53,15 @@ jobsRouter.get('/jobs/recommended', authenticate, requireRole('STUDENT'), wrap(a
   res.json({ items });
 }));
 
+jobsRouter.get('/jobs/saved', authenticate, requireRole('STUDENT'), wrap(async (req, res) => {
+  const rows = db.prepare(`
+    ${JOB_SELECT} JOIN saved_jobs sj ON sj.job_id = j.id
+    WHERE sj.user_id = ? AND ${open}
+    ORDER BY sj.created_at DESC
+  `).all(req.user.id);
+  res.json({ items: withMatches(rows, req) });
+}));
+
 jobsRouter.get('/jobs/:id', authenticate, wrap(async (req, res) => {
   const row = db.prepare(`${JOB_SELECT} WHERE j.id = ?`).get(idParam(req.params.id));
   const isOwner = row && req.user.role === 'EMPLOYER' && row.employer_id === req.user.id;
@@ -60,8 +73,25 @@ jobsRouter.get('/jobs/:id', authenticate, wrap(async (req, res) => {
     job.matchBreakdown = matchFor(row, skills, ctx);
     const app = db.prepare('SELECT id, status FROM applications WHERE job_id = ? AND student_id = ?').get(row.id, req.user.id);
     job.application = app || null;
+    const isSaved = Boolean(db.prepare('SELECT 1 FROM saved_jobs WHERE user_id = ? AND job_id = ?').get(req.user.id, row.id));
+    job.isSaved = isSaved;
   }
   res.json(job);
+}));
+
+jobsRouter.post('/jobs/:id/save', authenticate, requireRole('STUDENT'), wrap(async (req, res) => {
+  const id = idParam(req.params.id);
+  const job = db.prepare('SELECT id FROM jobs WHERE id = ?').get(id);
+  if (!job) throw notFound('Job not found');
+
+  db.prepare('INSERT OR IGNORE INTO saved_jobs (user_id, job_id) VALUES (?, ?)').run(req.user.id, id);
+  res.status(201).json({ jobId: id, isSaved: true });
+}));
+
+jobsRouter.delete('/jobs/:id/save', authenticate, requireRole('STUDENT'), wrap(async (req, res) => {
+  const id = idParam(req.params.id);
+  db.prepare('DELETE FROM saved_jobs WHERE user_id = ? AND job_id = ?').run(req.user.id, id);
+  res.json({ jobId: id, isSaved: false });
 }));
 
 const ApplySchema = z.object({ resumeId: z.number().int().positive(), coverNote: z.string().trim().max(1500).default('') }).strict();
