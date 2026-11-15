@@ -16,6 +16,7 @@ import { jobsRouter } from './routes/jobs.js';
 import { employerRouter, adminRouter } from './routes/employer.js';
 import { networkingRouter } from './routes/networking.js';
 import { careerRoadmapsRouter } from './routes/careerRoadmaps.js';
+import { careerMapRouter } from './routes/careerMap.js';
 import { drivesRouter } from './routes/drives.js';
 import { realtimeRouter } from './realtime.js';
 
@@ -89,7 +90,7 @@ export function createApp() {
 
   app.use('/api/auth', authRouter);
   app.use('/api/me', meRouter);
-  app.use('/api', studentRouter, jobsRouter, employerRouter, aiRouter, adminRouter, networkingRouter, careerRoadmapsRouter, drivesRouter, realtimeRouter);
+  app.use('/api', studentRouter, jobsRouter, employerRouter, aiRouter, adminRouter, networkingRouter, careerRoadmapsRouter, careerMapRouter, drivesRouter, realtimeRouter);
   app.use('/api', (_req, _res, next) => next(new HttpError(404, 'NOT_FOUND', 'Unknown API route')));
 
   const frontendDist = path.join(ROOT, 'frontend', 'dist');
