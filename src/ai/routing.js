@@ -7,9 +7,9 @@ import { db } from '../db.js';
 
 const env = process.env;
 export const GROUPS = {
-  code: { label: 'Code and reasoning', hint: 'Skill tests, grading, interview prep, job descriptions', purposes: ['arena-questions', 'arena-grade', 'interview-prep', 'job-description'], fallback: env.AI_ROUTE_CODE || 'deepseek-ai/deepseek-v3.1' },
-  write: { label: 'Chat and writing', hint: 'Career Coach, hiring assistant, cover letters, Company DNA, map summary', purposes: ['chat', 'cover-letter', 'company-dna', 'career-map'], fallback: env.AI_ROUTE_WRITE || 'meta/llama-3.3-70b-instruct' },
-  json: { label: 'Strict JSON extraction', hint: 'Resume analysis, roadmaps, Career DNA', purposes: ['resume', 'roadmap', 'dna', 'json'], fallback: env.AI_ROUTE_JSON || 'nvidia/nemotron-3-nano-30b-a3b' },
+  code: { label: 'Code and reasoning', hint: 'Skill tests, grading, interview prep, job descriptions', purposes: ['arena-questions', 'arena-grade', 'interview-prep', 'job-description'], fallback: env.AI_ROUTE_CODE || 'deepseek-ai/deepseek-v4.1-flash', params: { temperature: 1, top_p: 0.95 } },
+  write: { label: 'Chat and writing', hint: 'Career Coach, hiring assistant, cover letters, Company DNA, map summary', purposes: ['chat', 'cover-letter', 'company-dna', 'career-map'], fallback: env.AI_ROUTE_WRITE || 'meta/llama-3.3-70b-instruct', params: { temperature: 0.2, top_p: 0.7 } },
+  json: { label: 'Strict JSON extraction', hint: 'Resume analysis, roadmaps, Career DNA', purposes: ['resume', 'roadmap', 'dna', 'json'], fallback: env.AI_ROUTE_JSON || 'nvidia/nemotron-3.5-super-vl-120b-a12b', params: { temperature: 0.2, top_p: 0.95, chat_template_kwargs: { enable_thinking: false } } },
 };
 const ORDER = ['json', 'code', 'write'];
 
@@ -31,7 +31,9 @@ export function routeChain(chain, purpose) {
   const routes = currentRoutes();
   const g = groupOf(purpose);
   const models = [routes[g], ...ORDER.filter((x) => x !== g).map((x) => routes[x])];
-  const routed = [...new Set(models)].map((model) => ({ ...nv, model }));
+  // Each model keeps the sampling settings from its model card (thinking is off for JSON so the answer is not buried in reasoning).
+  const groupOfModel = Object.fromEntries(ORDER.map((x) => [routes[x], x]));
+  const routed = [...new Set(models)].map((model) => ({ ...nv, model, params: GROUPS[groupOfModel[model]].params }));
   const seen = new Set(routed.map((p) => p.model));
   const extra = chain.filter((p) => p.name === 'nvidia' && !seen.has(p.model));
   return [...routed, ...chain.filter((p) => p.name !== 'nvidia'), ...extra];

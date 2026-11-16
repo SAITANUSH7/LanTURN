@@ -130,6 +130,7 @@ async function chatOnce(p, { system, messages, maxTokens, json }) {
     return (b.content || []).map((c) => c.text || '').join('');
   }
   const body = { model: p.model, max_tokens: maxTokens, temperature: 0.3, messages: [{ role: 'system', content: system }, ...messages] };
+  if (p.params) Object.assign(body, p.params);
   const headers = p.key ? { authorization: `Bearer ${p.key}` } : {};
   if (json && p.jsonMode) body.response_format = { type: 'json_object' };
   let res = await post(`${p.baseUrl}/chat/completions`, headers, body, p.timeoutMs);
