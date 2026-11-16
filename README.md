@@ -118,7 +118,7 @@ When seeded (`npm run seed`), the following accounts are ready to use:
 
 | Role | Email | Password | Features Accessible |
 |---|---|---|---|
-| **Admin** | `admin@test.local` | `Admin@12345` | AI Provider Keys, Employer Verification, Platform Metrics |
+| **Admin** | `admin@lanturn.local` | `Admin@12345` | AI Provider Keys, Employer Verification, Platform Metrics |
 | **Verified Employer** | `hr@examplecorp.test` | `Demo@12345` | Job Postings, Applicant Kanban, Candidate Inspection, AI Hiring Assistant |
 | **Verified Student** | `student.one@example.test` | `Demo@12345` | Career DNA, Career AIsle, Skill Arena, Networking, Job Search |
 | **Verified Student** | `student.two@example.test` | `Demo@12345` | AI/ML Specialist Profile, Enrolled Roadmaps |
