@@ -354,7 +354,7 @@ aiRouter.delete('/admin/ai/:name', ...admin, wrap(async (req, res) => {
 aiRouter.post('/admin/ai/:name/test', ...admin, wrap(async (req, res) => {
   if (!PRESETS[req.params.name]) throw notFound('Unknown provider');
   const b = parse(z.object({ model: z.string().trim().max(200).optional() }).strict(), req.body || {});
-  res.json(await testProvider(req.params.name, b.model));
+  res.json(await testProvider(req.params.name, b.model, 60000));
 }));
 aiRouter.get('/admin/ai/logs', ...admin, wrap(async (_req, res) => { res.json({ items: recentCalls().slice(0, 40) }); }));
 // Try several models at once (short timeout) so the admin can see which ones this key can really call.

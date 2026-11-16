@@ -1,7 +1,7 @@
 // Provider-agnostic LLM layer. Almost every vendor speaks the OpenAI "chat/completions" dialect, so one
 // adapter + a table of presets covers them; Anthropic gets its own small adapter. Every base URL and model
 // is overridable from the environment because vendors rename models often.
-import { routeChain } from './routing.js';
+import { routeChain, paramsForModel } from './routing.js';
 import crypto from 'node:crypto';
 import { config } from '../config.js';
 import { db } from '../db.js';
@@ -201,7 +201,7 @@ export async function callJson(system, user, schema, maxTokens = 1500, purpose =
         lastErr = parsed.error.issues[0] ? `${parsed.error.issues[0].path.join('.')}: ${parsed.error.issues[0].message}` : 'schema mismatch';
       } catch (e) {
         lastErr = e.message;
-        if (/HTTP (401|403|404|429|5\d\d)|abort|fetch failed/i.test(e.message)) break; // retrying the same provider will not help
+        if (/HTTP (401|403|404|410|429|5\d\d)|abort|fetch failed/i.test(e.message)) break; // retrying the same provider will not help
       }
     }
     last = new Error(`${p.name}: ${lastErr}`);
@@ -216,10 +216,10 @@ export async function testProvider(name, modelOverride, timeoutMs) {
   const model = (modelOverride || r.model).split(',')[0].trim();
   const t0 = Date.now();
   try {
-    const text = await chatLogged({ ...r, model, timeoutMs }, { system: 'Reply with the single word OK.', messages: [{ role: 'user', content: 'ping' }], maxTokens: 20, json: false }, 'test');
+    const text = await chatLogged({ ...r, model, timeoutMs, params: r.name === 'nvidia' ? paramsForModel(model) : undefined }, { system: 'Reply with the single word OK.', messages: [{ role: 'user', content: 'ping' }], maxTokens: 20, json: false }, 'test');
     return { ok: true, ms: Date.now() - t0, model, reply: String(text).replace(/<think>[\s\S]*?<\/think>/gi, '').trim().slice(0, 40) };
   } catch (e) {
-    return { ok: false, ms: Date.now() - t0, model, error: /HTTP 401|HTTP 403/.test(e.message) ? `The provider rejected the key (401/403). ${e.message.split(': ').slice(1).join(': ')}` : /HTTP 404/.test(e.message) ? `Model or URL not found (404). Check the model name. ${e.message.split(': ').slice(1).join(': ')}` : /abort/i.test(e.message) ? `Timed out after ${(timeoutMs || config.aiTimeoutMs) / 1000}s` : /fetch failed/i.test(e.message) ? 'Could not reach the provider. Check internet, firewall or VPN.' : tidy(e.message) };
+    return { ok: false, ms: Date.now() - t0, model, error: /HTTP 401|HTTP 403/.test(e.message) ? `The provider rejected the key (401/403). ${e.message.split(': ').slice(1).join(': ')}` : /HTTP 410/.test(e.message) ? `This model has been retired by the provider (410). Pick a newer one from Browse models. ${e.message.split(': ').slice(1).join(': ')}` : /HTTP 404/.test(e.message) ? `Model or URL not found (404). Check the model name. ${e.message.split(': ').slice(1).join(': ')}` : /abort/i.test(e.message) ? `Timed out after ${(timeoutMs || config.aiTimeoutMs) / 1000}s` : /fetch failed/i.test(e.message) ? 'Could not reach the provider. Check internet, firewall or VPN.' : tidy(e.message) };
   }
 }
 
