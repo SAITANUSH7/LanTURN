@@ -4,8 +4,7 @@ COPY package*.json ./
 RUN npm ci --omit=dev
 COPY . .
 ENV NODE_ENV=production
-# Persistent volume for SQLite DB and resume uploads
+# Attach a Railway Volume mounted at /data (Railway does not allow the VOLUME instruction)
 ENV DB_FILE=/data/lanturn.db UPLOAD_DIR=/data/uploads
-VOLUME ["/data"]
 EXPOSE 3000
 CMD ["node", "--no-warnings", "server.js"]
