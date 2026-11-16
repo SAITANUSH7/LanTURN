@@ -5,6 +5,7 @@ import { HttpError, bad, notFound, parse, wrap } from '../util.js';
 import { authenticate, requireRole } from '../auth.js';
 import { checkQuota } from '../ai/index.js';
 import { providerSummary, llmEnabled, PRESETS, resolveProvider, sealKey, testProvider, listModels, recentCalls } from '../ai/providers.js';
+import { GROUPS, currentRoutes, saveRoute, resetRoutes } from '../ai/routing.js';
 import * as F from '../ai/features.js';
 import { skillGap } from '../ai/scoring.js';
 import { idParam, studentContext, loadJobSkills, JOB_SELECT, latestAnalysis } from './common.js';
@@ -312,6 +313,16 @@ function providerRow(name) {
   const p = PRESETS[name];
   return { name, label: p.label, configured: !!r, origin: r ? r.origin : null, keyHint: r ? mask(r.key) : '', model: r ? r.model : p.model, baseUrl: r ? r.baseUrl : p.baseUrl, enabled: row ? !!row.enabled : true, customModel: !!row?.model, editableUrl: name === 'custom' || !!row?.base_url };
 }
+aiRouter.get('/admin/ai/routes', ...admin, wrap(async (_req, res) => {
+  const cur = currentRoutes();
+  res.json({ active: resolveProvider('nvidia') !== null, groups: Object.entries(GROUPS).map(([key, g]) => ({ key, label: g.label, hint: g.hint, model: cur[key], default: g.fallback })) });
+}));
+aiRouter.put('/admin/ai/routes', ...admin, wrap(async (req, res) => {
+  const b = parse(z.object({ code: z.string().regex(/^[\w./:-]{1,120}$/).optional(), write: z.string().regex(/^[\w./:-]{1,120}$/).optional(), json: z.string().regex(/^[\w./:-]{1,120}$/).optional() }).strict(), req.body ?? {});
+  for (const [k, v] of Object.entries(b)) saveRoute(k, v);
+  res.json({ ok: true, routes: currentRoutes() });
+}));
+aiRouter.delete('/admin/ai/routes', ...admin, wrap(async (_req, res) => { resetRoutes(); res.json({ ok: true, routes: currentRoutes() }); }));
 aiRouter.get('/admin/ai', ...admin, wrap(async (_req, res) => {
   res.json({ providers: Object.keys(PRESETS).map(providerRow), active: providerSummary() });
 }));

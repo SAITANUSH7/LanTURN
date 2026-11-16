@@ -1,6 +1,7 @@
 // Provider-agnostic LLM layer. Almost every vendor speaks the OpenAI "chat/completions" dialect, so one
 // adapter + a table of presets covers them; Anthropic gets its own small adapter. Every base URL and model
 // is overridable from the environment because vendors rename models often.
+import { routeChain } from './routing.js';
 import crypto from 'node:crypto';
 import { config } from '../config.js';
 import { db } from '../db.js';
@@ -62,7 +63,7 @@ export function resolveProvider(name, { ignoreDisabled = false } = {}) {
 }
 
 /** Providers that are configured right now, in priority order. Read lazily so tests can change env. */
-export function activeProviders() {
+export function activeProviders(purpose) {
   const wanted = config.aiProvider === 'auto' ? config.aiPriority : [config.aiProvider];
   const out = [];
   for (const name of wanted) {
@@ -71,7 +72,7 @@ export function activeProviders() {
     // A comma-separated model list becomes a fallback chain on the same provider (first model is tried first).
     for (const m of r.model.split(',').map((x) => x.trim()).filter(Boolean)) out.push({ ...r, model: m });
   }
-  return out;
+  return purpose ? routeChain(out, purpose) : out;
 }
 
 export const llmEnabled = () => activeProviders().length > 0;
@@ -154,13 +155,13 @@ export function extractJson(text) {
 }
 
 /** Plain-text completion with provider fallback. Throws if every provider fails. */
-export async function chatText({ system, messages, maxTokens = 600 }) {
-  const chain = activeProviders();
+export async function chatText({ system, messages, maxTokens = 600, purpose = 'chat' }) {
+  const chain = activeProviders(purpose);
   if (!chain.length) throw new Error('No AI provider configured');
   let last;
   for (const p of chain) {
     try {
-      const out = (await chatLogged(p, { system, messages, maxTokens, json: false }, 'chat')).replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+      const out = (await chatLogged(p, { system, messages, maxTokens, json: false }, purpose)).replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
       if (out) return { text: out, provider: p.name, model: p.model };
     } catch (e) { last = e; }
   }
@@ -169,7 +170,7 @@ export async function chatText({ system, messages, maxTokens = 600 }) {
 
 /** Validated JSON completion: per provider one retry with the validation error, then the next provider. */
 export async function callJson(system, user, schema, maxTokens = 1500, purpose = 'json') {
-  const chain = activeProviders();
+  const chain = activeProviders(purpose);
   if (!chain.length) throw new Error('No AI provider configured');
   let last;
   for (const p of chain) {

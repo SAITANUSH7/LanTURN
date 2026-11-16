@@ -70,3 +70,14 @@ Email delivery is not implemented; add a mailer inside `src/notify.js` if needed
 The teammate repo's ~60 `.py` scripts generate Kotlin/Compose files for an Android app. They do not drive any
 backend, so they are not copied. Their screens map to web pages here: student home and badge, Career AI chat
 (`/student/coach`), notifications (`/notifications`), employer dashboard, jobs, applicants and AI (`/employer/*`).
+
+## Task routing (one NVIDIA key, three models)
+Each task goes to the model that suits it, then falls back to the other two, then other providers, then the rules engine.
+
+| Group | Tasks | Default model |
+|---|---|---|
+| code | skill tests and grading, interview prep, job descriptions | `deepseek-ai/deepseek-v3.1` |
+| write | Career Coach, hiring assistant, cover letters, Company DNA, map summary | `meta/llama-3.3-70b-instruct` |
+| json | resume analysis, roadmaps, Career DNA | `nvidia/nemotron-3-nano-30b-a3b` |
+
+Change them in Admin → AI providers → Task routing (saved in the database), or set `AI_ROUTE_CODE`, `AI_ROUTE_WRITE`, `AI_ROUTE_JSON`. Use "Find working models" on the NVIDIA card first: not every listed model is callable on every account.

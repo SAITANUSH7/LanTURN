@@ -112,7 +112,7 @@ export async function chatReply(scope, context, history) {
   const system = `${scope === 'employer' ? HIRING() : COACH()}\n${wrapData(context)}`;
   const messages = history.slice(-12).map((m) => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content.slice(0, 2000) }));
   if (llmEnabled()) {
-    try { const r = await chatText({ system, messages, maxTokens: 500 }); return { text: r.text, source: 'llm' }; } catch { /* fall back */ }
+    try { const r = await chatText({ system, messages, maxTokens: 500, purpose: 'chat' }); return { text: r.text, source: 'llm' }; } catch { /* fall back */ }
   }
   const last = messages.at(-1)?.content.toLowerCase() || '';
   let text;

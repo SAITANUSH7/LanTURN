@@ -34,7 +34,27 @@ export async function aiSettings() {
   async function load() {
     const d = await get('/admin/ai');
     clear(summary).append(icon('info'), h('span', null, d.active.length ? `Active order: ${[...new Set(d.active.map((p) => p.label))].join(' → ')}, then the rules engine.` : 'No provider is active. The site is running on the built-in rules engine.'));
-    clear(host).append(...d.providers.map(card));
+    clear(host).append(await routingCard(), ...d.providers.map(card));
+  }
+  async function routingCard() {
+    const r = await get('/admin/ai/routes');
+    const rows = r.groups.map((g) => {
+      const model = input({ value: g.model, spellcheck: 'false', 'aria-label': `${g.label} model` });
+      const out = h('small', { class: 'muted', 'aria-live': 'polite' });
+      const test = h('button', { class: 'btn btn--secondary btn--sm', type: 'button' }, 'Test');
+      test.onclick = () => busy(test, async () => {
+        clear(out).append(thinking('Calling model…', null));
+        try { const t = await post('/admin/ai/nvidia/test', { model: model.value.trim() }); clear(out).append(t.ok ? `Works (${(t.ms / 1000).toFixed(1)} s)` : `Not working: ${t.error}`); loadLogs(); } catch (e) { clear(out); toast(e.message, 'error'); }
+      }, 'Testing…');
+      return { key: g.key, model, row: h('div', { class: 'stack stack--sm' }, h('strong', null, g.label), h('small', { class: 'muted' }, g.hint), h('div', { class: 'row' }, model, test), out) };
+    });
+    const save = h('button', { class: 'btn btn--sm', type: 'button' }, 'Save routing');
+    save.onclick = () => busy(save, async () => { try { await put('/admin/ai/routes', Object.fromEntries(rows.map((x) => [x.key, x.model.value.trim()]))); toast('Routing saved', 'success'); } catch (e) { toast(e.message, 'error'); } });
+    const reset = h('button', { class: 'btn btn--secondary btn--sm', type: 'button' }, 'Reset to defaults');
+    reset.onclick = () => busy(reset, async () => { try { await del('/admin/ai/routes'); toast('Defaults restored', 'success'); await load(); } catch (e) { toast(e.message, 'error'); } });
+    return h('div', { class: 'card stack' }, h('h3', null, 'Task routing (NVIDIA NIM)'),
+      h('p', { class: 'muted' }, r.active ? 'One NVIDIA key, three models. Each task uses its model first, then the other two, then other providers, then the rules engine.' : 'Add an NVIDIA API key below to activate routing.'),
+      ...rows.map((x) => x.row), h('div', { class: 'row' }, save, reset));
   }
   function card(p) {
     const key = input({ type: 'password', autocomplete: 'off', spellcheck: 'false', placeholder: p.configured ? `Saved ${p.keyHint}. Paste a new key to replace` : 'Paste API key', 'aria-label': `${p.label} API key` });

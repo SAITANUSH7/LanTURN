@@ -162,3 +162,18 @@ test('admin can add a provider key in the web UI: encrypted at rest, never echoe
     assert.equal((await api('GET', '/health')).body.ai, 'rules');
   } finally { __setFetch(null); }
 });
+
+test('task routing sends each task to its own NVIDIA model first, then the others', async () => {
+  const { routeChain, groupOf } = await import('../src/ai/routing.js');
+  const nv = { name: 'nvidia', model: 'x' };
+  const chain = [nv, { name: 'groq', model: 'g' }];
+  const first = (purpose) => routeChain(chain, purpose).map((p) => p.model);
+  assert.equal(groupOf('chat'), 'write');
+  assert.equal(groupOf('arena-grade'), 'code');
+  assert.equal(groupOf('whatever'), 'json');
+  assert.match(first('chat')[0], /llama/);
+  assert.match(first('interview-prep')[0], /deepseek/);
+  assert.match(first('resume')[0], /nemotron/);
+  assert.deepEqual(first('chat').slice(3), ['g', 'x']); // 3 routed, then other providers, then the configured NVIDIA model
+  assert.deepEqual(routeChain([{ name: 'groq', model: 'g' }], 'chat').map((p) => p.model), ['g']);
+});
