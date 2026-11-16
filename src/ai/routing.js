@@ -11,6 +11,7 @@ export const GROUPS = {
   write: { label: 'Chat and writing', hint: 'Career Coach, hiring assistant, cover letters, Company DNA, map summary', purposes: ['chat', 'cover-letter', 'company-dna', 'career-map'], fallback: env.AI_ROUTE_WRITE || 'meta/llama-3.3-70b-instruct', params: { temperature: 0.2, top_p: 0.7 } },
   json: { label: 'Strict JSON extraction', hint: 'Resume analysis, roadmaps, Career DNA', purposes: ['resume', 'roadmap', 'dna', 'json'], fallback: env.AI_ROUTE_JSON || 'nvidia/nemotron-3.5-super-vl-120b-a12b', params: { temperature: 0.2, top_p: 0.95, chat_template_kwargs: { enable_thinking: false } } },
 };
+GROUPS.vision = { label: 'Image reading (OCR)', hint: 'Resume photos, screenshots and scanned PDFs', purposes: ['ocr'], fallback: env.AI_ROUTE_VISION || 'nvidia/nemotron-3.5-super-vl-120b-a12b', params: { temperature: 0.1, top_p: 0.9, chat_template_kwargs: { enable_thinking: false } } };
 const ORDER = ['json', 'code', 'write'];
 
 db.exec('CREATE TABLE IF NOT EXISTS ai_routes (group_key TEXT PRIMARY KEY, model TEXT NOT NULL)');
@@ -29,6 +30,8 @@ export function routeChain(chain, purpose) {
   const nv = chain.find((p) => p.name === 'nvidia');
   if (!nv) return chain;
   const routes = currentRoutes();
+  // Text models cannot read images: for OCR use only the vision model, then other providers.
+  if (groupOf(purpose) === 'vision') return [{ ...nv, model: routes.vision, params: GROUPS.vision.params }, ...chain.filter((p) => p.name !== 'nvidia')];
   const g = groupOf(purpose);
   const models = [routes[g], ...ORDER.filter((x) => x !== g).map((x) => routes[x])];
   // Each model keeps the sampling settings from its model card (thinking is off for JSON so the answer is not buried in reasoning).

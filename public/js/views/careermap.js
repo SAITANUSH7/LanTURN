@@ -50,18 +50,18 @@ export function drawGraph(graph, onPick) {
 
 function uploader(onDone) {
   const needsConsent = !session.user.consentAt;
-  const file = h('input', { type: 'file', accept: 'application/pdf,.pdf' });
-  const name = h('span', { class: 'strong' }, 'Choose your resume (PDF, max 4 MB)');
+  const file = h('input', { type: 'file', accept: 'application/pdf,.pdf,image/png,image/jpeg,image/webp' });
+  const name = h('span', { class: 'strong' }, 'Choose your resume (PDF or photo, max 4 MB)');
   const consent = h('input', { type: 'checkbox' });
   const btn = h('button', { class: 'btn', type: 'button', disabled: true }, icon('upload'), 'Build my map');
-  file.onchange = () => { name.textContent = file.files[0]?.name || 'Choose your resume (PDF, max 4 MB)'; btn.disabled = !file.files[0]; };
+  file.onchange = () => { name.textContent = file.files[0]?.name || 'Choose your resume (PDF or photo, max 4 MB)'; btn.disabled = !file.files[0]; };
   btn.onclick = () => busy(btn, async () => {
     if (needsConsent && !consent.checked) { toast('Please tick the consent box first.', 'error'); return; }
     const fd = new FormData(); fd.append('file', file.files[0]); if (consent.checked) fd.append('consent', 'true');
     try { await api('POST', '/resumes', { form: fd }); await reloadUser(); toast('Resume read. Building your map…', 'success'); await onDone(); } catch (e) { toast(e.message, 'error'); }
   }, 'Reading resume…');
   return h('div', { class: 'card stack' }, h('h3', null, 'Start from your resume'),
-    h('label', { class: 'dropzone' }, icon('upload'), name, h('p', { class: 'muted' }, 'Text-based PDFs only.'), file),
+    h('label', { class: 'dropzone' }, icon('upload'), name, h('p', { class: 'muted' }, 'PDF, or a PNG, JPG or WebP photo.'), file),
     needsConsent ? h('label', { class: 'check' }, consent, h('span', null, 'I agree that my resume text is processed by LanTURN to build this map (and by a language model if the administrator enabled one).')) : null,
     h('div', null, btn));
 }

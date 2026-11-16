@@ -81,3 +81,6 @@ Each task goes to the model that suits it, then falls back to the other two, the
 | json | resume analysis, roadmaps, Career DNA | `nvidia/nemotron-3.5-super-vl-120b-a12b` |
 
 Change them in Admin → AI providers → Task routing (saved in the database), or set `AI_ROUTE_CODE`, `AI_ROUTE_WRITE`, `AI_ROUTE_JSON`. Use "Find working models" on the NVIDIA card first: not every listed model is callable on every account.
+
+## Image and scanned resumes (vision)
+Resume uploads accept PDF, PNG, JPG and WebP. Photos, and PDFs with no selectable text (scans), are read by the vision model (`vision` route, default `nvidia/nemotron-3.5-super-vl-120b-a12b`) and then analysed like any resume. Scanned PDFs need `poppler-utils` (installed in the Dockerfile); the first 2 pages are read. Each OCR counts toward the daily AI quota. Without a configured vision provider, such files get a clear error and text PDFs still work.

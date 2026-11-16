@@ -12,7 +12,7 @@
     "start": "node --no-warnings server.js",
     "dev": "node --no-warnings --watch server.js",
     "seed": "node --no-warnings src/seed-cli.js",
-    "test": "node --no-warnings --test test/api.test.js test/ai.test.js test/spa.test.js test/phase3.test.js test/phase4.test.js test/phase6.test.js test/phase7.test.js test/phase8.test.js test/phase9.test.js",
+    "test": "node --no-warnings --test test/*.test.js",
     "build:frontend": "cd frontend && node ./node_modules/vite/bin/vite.js build",
     "start:prod": "node --no-warnings server.js"
   },

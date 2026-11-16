@@ -169,6 +169,21 @@ export async function chatText({ system, messages, maxTokens = 600, purpose = 'c
   throw last || new Error('AI unavailable');
 }
 
+/** Send images to a vision model. parts: [{ mime, base64 }]. Returns plain text. Throws if no provider can do it. */
+export async function visionText({ instruction, images, maxTokens = 3000 }) {
+  const chain = activeProviders('ocr').filter((p) => p.kind === 'openai');
+  if (!chain.length) throw new Error('No AI provider configured');
+  const content = [{ type: 'text', text: instruction }, ...images.map((i) => ({ type: 'image_url', image_url: { url: `data:${i.mime};base64,${i.base64}` } }))];
+  let last;
+  for (const p of chain) {
+    try {
+      const out = (await chatLogged({ ...p, timeoutMs: Math.max(60000, config.aiTimeoutMs) }, { system: 'You transcribe documents exactly. Output only the document text.', messages: [{ role: 'user', content }], maxTokens, json: false }, 'ocr')).replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+      if (out) return out;
+    } catch (e) { last = e; }
+  }
+  throw last || new Error('AI unavailable');
+}
+
 /** Validated JSON completion: per provider one retry with the validation error, then the next provider. */
 export async function callJson(system, user, schema, maxTokens = 1500, purpose = 'json') {
   const chain = activeProviders(purpose);

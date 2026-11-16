@@ -142,12 +142,12 @@ function appCard(a, reload) {
 export async function resume() {
   const host = h('div', { class: 'stack stack--lg' });
   const needsConsent = !session.user.consentAt;
-  const file = h('input', { type: 'file', accept: 'application/pdf,.pdf' });
-  const fileName = h('span', { class: 'strong' }, 'Choose a PDF (max 4 MB)');
+  const file = h('input', { type: 'file', accept: 'application/pdf,.pdf,image/png,image/jpeg,image/webp' });
+  const fileName = h('span', { class: 'strong' }, 'Choose a PDF or photo (max 4 MB)');
   const consent = h('input', { type: 'checkbox' });
   const uploadBtn = h('button', { class: 'btn', type: 'button', disabled: true }, icon('upload'), 'Upload and analyse');
-  const drop = h('label', { class: 'dropzone' }, icon('upload'), fileName, h('p', { class: 'muted' }, 'Text-based PDFs only. Scans and images cannot be read.'), file);
-  file.onchange = () => { fileName.textContent = file.files[0]?.name || 'Choose a PDF (max 4 MB)'; uploadBtn.disabled = !file.files[0]; };
+  const drop = h('label', { class: 'dropzone' }, icon('upload'), fileName, h('p', { class: 'muted' }, 'PDF, or a PNG, JPG or WebP photo. Scans and photos are read by the AI vision model.'), file);
+  file.onchange = () => { fileName.textContent = file.files[0]?.name || 'Choose a PDF or photo (max 4 MB)'; uploadBtn.disabled = !file.files[0]; };
   ['dragenter', 'dragover'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('is-over'); }));
   ['dragleave', 'drop'].forEach((ev) => drop.addEventListener(ev, () => drop.classList.remove('is-over')));
   drop.addEventListener('drop', (e) => { e.preventDefault(); if (e.dataTransfer.files[0]) { file.files = e.dataTransfer.files; file.onchange(); } });
@@ -160,7 +160,7 @@ export async function resume() {
       await api('POST', '/resumes', { form: fd });
       toast('Resume analysed', 'success');
       await reloadUser();
-      file.value = ''; fileName.textContent = 'Choose a PDF (max 4 MB)';
+      file.value = ''; fileName.textContent = 'Choose a PDF or photo (max 4 MB)';
       await refresh();
     } catch (e) { toast(e.message, 'error'); }
   });

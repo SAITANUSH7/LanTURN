@@ -11,6 +11,7 @@ import { HttpError, bad, notFound, parse, wrap } from '../util.js';
 import { authenticate, requireRole } from '../auth.js';
 import { analyzeResume, buildRoadmap, checkQuota } from '../ai/index.js';
 import { tailorResume } from '../ai/features.js';
+import { imageMime, ocrAvailable, textFromImage, textFromScannedPdf } from '../ai/ocr.js';
 import { skillGap } from '../ai/scoring.js';
 import { idParam, studentSkills, studentContext, loadJobSkills, latestAnalysis } from './common.js';
 
@@ -148,27 +149,52 @@ async function runAnalysis(userId, resume) {
 }
 
 studentRouter.post('/resumes', ...student, upload.single('file'), wrap(async (req, res) => {
-  if (!req.file) throw bad('file: a PDF is required');
+  if (!req.file) throw bad('file: a PDF or an image is required');
   const consent = req.body?.consent === 'true';
   if (!req.user.consent_at && !consent) throw new HttpError(400, 'CONSENT_REQUIRED', 'Please confirm that your resume text may be processed to analyse it');
   const buf = req.file.buffer;
-  if (buf.subarray(0, 5).toString('latin1') !== '%PDF-') throw new HttpError(415, 'UNSUPPORTED_MEDIA_TYPE', 'Only PDF files are supported');
-  let parsed;
-  try {
-    // pdf-parse reads the whole backing ArrayBuffer, so hand it a standalone copy (Node pools small Buffers).
-    parsed = await pdfParse(new Uint8Array(buf));
-  } catch (e) {
-    console.warn('pdf parse error:', e?.message);
-    throw new HttpError(422, 'UNREADABLE_PDF', 'This PDF could not be read. It may be encrypted or damaged.');
+  const isPdf = buf.subarray(0, 5).toString('latin1') === '%PDF-';
+  const imgMime = isPdf ? null : imageMime(buf);
+  if (!isPdf && !imgMime) throw new HttpError(415, 'UNSUPPORTED_MEDIA_TYPE', 'Upload a PDF, or a PNG, JPG or WebP photo of your resume');
+  const NEEDS_AI = new HttpError(422, 'UNREADABLE_PDF', 'This file has no selectable text. Reading it needs the AI vision model, which is not available right now. Upload a text-based PDF instead.');
+  const OCR_FAIL = new HttpError(422, 'UNREADABLE_PDF', 'We could not read enough text from this file. Try a sharper, well-lit image or a text-based PDF.');
+  let text = '';
+  let pages = 1;
+  let ext = 'pdf';
+  let viaOcr = false;
+  if (imgMime) {
+    if (!ocrAvailable()) throw NEEDS_AI;
+    checkQuota(req.user.id, 'ocr');
+    try { text = await textFromImage(buf, imgMime); } catch (e) { console.warn('ocr failed:', e.message); throw OCR_FAIL; }
+    ext = imgMime === 'image/png' ? 'png' : imgMime === 'image/webp' ? 'webp' : 'jpg';
+    viaOcr = true;
+  } else {
+    let parsed;
+    try {
+      // pdf-parse reads the whole backing ArrayBuffer, so hand it a standalone copy (Node pools small Buffers).
+      parsed = await pdfParse(new Uint8Array(buf));
+    } catch (e) {
+      console.warn('pdf parse error:', e?.message);
+      throw new HttpError(422, 'UNREADABLE_PDF', 'This PDF could not be read. It may be encrypted or damaged.');
+    }
+    pages = parsed.numpages || 1;
+    if (pages > 10) throw new HttpError(422, 'UNREADABLE_PDF', 'Resumes longer than 10 pages are not supported');
+    text = (parsed.text || '').replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+    if (text.length < 200) {
+      // Likely a scan: render the first pages and read them with the vision model.
+      if (!ocrAvailable()) throw NEEDS_AI;
+      checkQuota(req.user.id, 'ocr');
+      try { text = await textFromScannedPdf(buf); } catch (e) { console.warn('ocr failed:', e.message); throw OCR_FAIL; }
+      viaOcr = true;
+    }
   }
-  const text = (parsed.text || '').replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
-  if (parsed.numpages > 10) throw new HttpError(422, 'UNREADABLE_PDF', 'Resumes longer than 10 pages are not supported');
-  if (text.length < 200) throw new HttpError(422, 'UNREADABLE_PDF', 'We could not find enough text. Upload a text-based PDF, not a scan or image.');
-  const key = `${crypto.randomUUID()}.pdf`;
+  text = text.replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+  if (text.length < 200) throw viaOcr ? OCR_FAIL : new HttpError(422, 'UNREADABLE_PDF', 'We could not find enough text. Upload a text-based PDF or a clear image.');
+  const key = `${crypto.randomUUID()}.${ext}`;
   fs.writeFileSync(path.join(config.uploadDir, key), buf, { mode: 0o600 });
   if (!req.user.consent_at) db.prepare("UPDATE users SET consent_at = datetime('now') WHERE id = ?").run(req.user.id);
   const filename = path.basename(req.file.originalname || 'resume.pdf').slice(0, 120);
-  const id = Number(db.prepare('INSERT INTO resumes (student_id, filename, file_key, size_bytes, page_count, extracted_text) VALUES (?,?,?,?,?,?)').run(req.user.id, filename, key, buf.length, parsed.numpages || 1, text).lastInsertRowid);
+  const id = Number(db.prepare('INSERT INTO resumes (student_id, filename, file_key, size_bytes, page_count, extracted_text) VALUES (?,?,?,?,?,?)').run(req.user.id, filename, key, buf.length, pages, text).lastInsertRowid);
   await runAnalysis(req.user.id, db.prepare('SELECT * FROM resumes WHERE id = ?').get(id));
   res.status(201).json(resumeOut(db.prepare('SELECT * FROM resumes WHERE id = ?').get(id)));
 }));
