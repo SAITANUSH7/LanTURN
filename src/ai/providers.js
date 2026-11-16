@@ -72,7 +72,7 @@ export function activeProviders(purpose) {
     // A comma-separated model list becomes a fallback chain on the same provider (first model is tried first).
     for (const m of r.model.split(',').map((x) => x.trim()).filter(Boolean)) out.push({ ...r, model: m });
   }
-  return purpose ? routeChain(out, purpose) : out;
+  return purpose ? routeChain(out, purpose, (n) => resolveProvider(n)) : out;
 }
 
 export const llmEnabled = () => activeProviders().length > 0;

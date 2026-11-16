@@ -84,3 +84,6 @@ Change them in Admin → AI providers → Task routing (saved in the database), 
 
 ## Image and scanned resumes (vision)
 Resume uploads accept PDF, PNG, JPG and WebP. Photos, and PDFs with no selectable text (scans), are read by the vision model (`vision` route, default `nvidia/nemotron-3.5-super-vl-120b-a12b`) and then analysed like any resume. Scanned PDFs need `poppler-utils` (installed in the Dockerfile); the first 2 pages are read. Each OCR counts toward the daily AI quota. Without a configured vision provider, such files get a clear error and text PDFs still work.
+
+### Using another provider for a task (e.g. free DeepSeek via OpenCode Zen)
+A routing row can name `provider:model` instead of an NVIDIA model, for example `opencode:deepseek-v4-flash-free`. Add that provider's key in its own card first. The task then uses it first, with the NVIDIA models and the rules engine as fallbacks. The row's Test button tests that provider.

@@ -26,7 +26,10 @@ export const saveRoute = (group, model) => db.prepare('INSERT INTO ai_routes (gr
 export const resetRoutes = () => db.prepare('DELETE FROM ai_routes').run();
 
 /** Reorder a provider chain for a task. Only touches NVIDIA entries; other providers keep their place after them. */
-export function routeChain(chain, purpose) {
+/** A route value is either an NVIDIA model id ("deepseek-ai/...") or "provider:model" (e.g. "opencode:deepseek-v4-flash-free"). */
+export const splitRoute = (value, known) => { const i = value.indexOf(':'); return i > 0 && known(value.slice(0, i)) ? [value.slice(0, i), value.slice(i + 1)] : [null, value]; };
+
+export function routeChain(chain, purpose, resolve) {
   const nv = chain.find((p) => p.name === 'nvidia');
   if (!nv) return chain;
   const routes = currentRoutes();
@@ -37,10 +40,15 @@ export function routeChain(chain, purpose) {
   // Each model keeps the sampling settings from its model card (thinking is off for JSON so the answer is not buried in reasoning).
   const groupOfModel = Object.fromEntries(ORDER.map((x) => [routes[x], x]));
   groupOfModel[routes[g]] = g; // the task's own settings win when two groups share a model
-  const routed = [...new Set(models)].map((model) => ({ ...nv, model, params: GROUPS[groupOfModel[model]].params }));
-  const seen = new Set(routed.map((p) => p.model));
+  const routed = [...new Set(models)].flatMap((value) => {
+    const [prov, model] = splitRoute(value, (n) => Boolean(resolve) && n !== 'nvidia' && resolve(n) !== null);
+    if (prov) return [{ ...resolve(prov), model }];
+    return [{ ...nv, model, params: GROUPS[groupOfModel[value]].params }];
+  });
+  const seen = new Set(routed.filter((p) => p.name === 'nvidia').map((p) => p.model));
   const extra = chain.filter((p) => p.name === 'nvidia' && !seen.has(p.model));
-  return [...routed, ...chain.filter((p) => p.name !== 'nvidia'), ...extra];
+  const others = chain.filter((p) => p.name !== 'nvidia' && !routed.some((r) => r.name === p.name && r.model === p.model));
+  return [...routed, ...others, ...extra];
 }
 
 /** Sampling settings for a model as currently routed (used by the admin Test button so it behaves like a real call). */

@@ -178,4 +178,12 @@ test('task routing sends each task to its own NVIDIA model first, then the other
   assert.equal(routeChain(chain, 'chat')[0].params.temperature, 0.4);
   assert.deepEqual(first('chat').slice(-2), ['g', 'x']); // routed models, then other providers, then the configured NVIDIA model
   assert.deepEqual(routeChain([{ name: 'groq', model: 'g' }], 'chat').map((p) => p.model), ['g']);
+  const oc = { name: 'opencode', model: 'deepseek-v4-flash-free', baseUrl: 'u' };
+  const { saveRoute, resetRoutes } = await import('../src/ai/routing.js');
+  saveRoute('code', 'opencode:deepseek-v4-flash-free');
+  const r = routeChain(chain, 'interview-prep', (n) => (n === 'opencode' ? oc : null));
+  assert.equal(r[0].name, 'opencode');
+  assert.equal(r[0].model, 'deepseek-v4-flash-free');
+  assert.ok(r.slice(1).some((p) => p.name === 'nvidia'));
+  resetRoutes();
 });

@@ -44,7 +44,8 @@ export async function aiSettings() {
       const test = h('button', { class: 'btn btn--secondary btn--sm', type: 'button' }, 'Test');
       test.onclick = () => busy(test, async () => {
         clear(out).append(thinking('Calling model…', null));
-        try { const t = await post('/admin/ai/nvidia/test', { model: model.value.trim() }); clear(out).append(t.ok ? `Works (${(t.ms / 1000).toFixed(1)} s)` : `Not working: ${t.error}`); loadLogs(); } catch (e) { clear(out); toast(e.message, 'error'); }
+        try { const v = model.value.trim(); const i = v.indexOf(':'); const named = i > 0 && /^(opencode|deepseek|kimi|gemini|groq|openrouter|openai|anthropic|custom)$/.test(v.slice(0, i));
+        const t = await post(`/admin/ai/${named ? v.slice(0, i) : 'nvidia'}/test`, { model: named ? v.slice(i + 1) : v }); clear(out).append(t.ok ? `Works (${(t.ms / 1000).toFixed(1)} s)` : `Not working: ${t.error}`); loadLogs(); } catch (e) { clear(out); toast(e.message, 'error'); }
       }, 'Testing…');
       return { key: g.key, model, row: h('div', { class: 'stack stack--sm' }, h('strong', null, g.label), h('small', { class: 'muted' }, g.hint), h('div', { class: 'row' }, model, test), out) };
     });
