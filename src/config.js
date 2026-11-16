@@ -40,6 +40,8 @@ export const config = {
   isProd,
   isTest: env.NODE_ENV === 'test',
   port: num(env.PORT, 3000),
+  // The tested product UI is public/ (vanilla). Set USE_REACT=1 to serve the experimental frontend/dist instead.
+  useReact: env.USE_REACT === '1',
   accessSecret: env.JWT_ACCESS_SECRET || 'dev-access-secret-change-me',
   refreshSecret: env.JWT_REFRESH_SECRET || 'dev-refresh-secret-change-me',
   accessTtlMin: num(env.ACCESS_TOKEN_TTL_MIN, 15),

@@ -97,7 +97,7 @@ export function createApp() {
   const frontendDist = path.join(ROOT, 'frontend', 'dist');
   const publicDir = path.join(ROOT, 'public');
 
-  if (fs.existsSync(frontendDist)) {
+  if (config.useReact && fs.existsSync(frontendDist)) {
     app.use(express.static(frontendDist, { maxAge: config.isProd ? '1h' : 0 }));
   }
   app.use(express.static(publicDir, { extensions: ['html'], maxAge: config.isProd ? '1h' : 0 }));
@@ -105,7 +105,7 @@ export function createApp() {
   // SPA fallback for frontend client-side routes
   app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api')) return next();
-    if (fs.existsSync(path.join(frontendDist, 'index.html'))) {
+    if (config.useReact && fs.existsSync(path.join(frontendDist, 'index.html'))) {
       return res.sendFile(path.join(frontendDist, 'index.html'));
     }
     if (fs.existsSync(path.join(publicDir, 'index.html'))) {

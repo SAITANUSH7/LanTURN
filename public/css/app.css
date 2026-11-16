@@ -206,3 +206,31 @@ code { background: var(--glass-2); border: 1px solid var(--glass-line); padding:
 .probe--ok:hover { background: var(--success-soft); }
 .probe--bad { opacity: 0.6; cursor: not-allowed; }
 .probe small { color: var(--text-2); font-family: var(--font-body); }
+
+/* ---- Career Map ---- */
+.cmap-wrap { overflow-x: auto; padding-bottom: var(--sp-2, 8px); }
+.cmap { display: block; min-width: 1100px; }
+.cmap__layer { fill: var(--text-3); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; font-family: var(--font-body); }
+.cmap__edge { fill: none; stroke: var(--glass-line); stroke-width: 1.5; }
+.cmap__edge--path { stroke: var(--ice); stroke-width: 2; }
+.cmap__edge--todo { stroke-dasharray: 4 4; }
+.cmap__node rect { fill: rgba(255,255,255,.05); stroke: var(--glass-line); stroke-width: 1; }
+.cmap__node--done rect { fill: rgba(110,200,150,.14); stroke: rgba(110,200,150,.6); }
+.cmap__node--current rect { fill: rgba(110,168,255,.2); stroke: var(--ice); stroke-width: 1.5; }
+.cmap__node--gap rect { fill: rgba(255,190,90,.12); stroke: rgba(255,190,90,.65); stroke-dasharray: 4 3; }
+.cmap__node--you rect { fill: rgba(255,255,255,.14); stroke: #fff; }
+.cmap__node--domain, .cmap__node--goal { cursor: pointer; }
+.cmap__node--domain:hover rect, .cmap__node:focus-visible rect { stroke: #fff; }
+.cmap__node.is-focus rect { stroke: var(--ice); stroke-width: 2; }
+.cmap__node:focus { outline: none; }
+.cmap__title { fill: var(--text); font-size: 12.5px; font-weight: 600; font-family: var(--font-body); }
+.cmap__sub { fill: var(--text-2); font-size: 11px; font-family: var(--font-body); }
+.cmap__bar { fill: var(--ice); }
+.cmap-dir { display: grid; gap: 4px; text-align: left; width: 100%; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--glass-line); background: transparent; color: var(--text); cursor: pointer; font: inherit; }
+.cmap-dir.is-on, .cmap-dir:hover { border-color: var(--ice); background: rgba(110,168,255,.1); }
+.cmap-dir__name { font-weight: 600; }
+.cmap-dir__meta { color: var(--text-2); font-size: var(--fs-sm, 13px); }
+.cmap-dir__bar { height: 4px; border-radius: 2px; background: var(--glass-line); overflow: hidden; }
+.cmap-dir__bar i { display: block; height: 100%; background: var(--ice); }
+.cmap-actions { padding-left: 1.2em; }
+[hidden] { display: none !important; }

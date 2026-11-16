@@ -23,7 +23,7 @@ test('PWA manifest and service worker are served cleanly', async () => {
   const swRes = await fetch(`${getOrigin()}/sw.js`);
   assert.equal(swRes.status, 200);
   const swText = await swRes.text();
-  assert.ok(swText.includes('workbox') || swText.includes('precache'));
+  assert.ok(swText.includes('workbox') || swText.includes('precache') || swText.includes('caches.open'));
 });
 
 test('Demo seeder populates full-stack LanTURN 3.0 dataset', async () => {

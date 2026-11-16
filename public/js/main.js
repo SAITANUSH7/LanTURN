@@ -4,6 +4,7 @@ import * as pub from './views/public.js';
 import * as stu from './views/student.js';
 import * as emp from './views/employer.js';
 import * as adm from './views/admin.js';
+import { careerMap } from './views/careermap.js';
 import * as ai from './views/ai.js';
 import { t, LANGS, getLang, setLang } from './i18n.js';
 
@@ -21,6 +22,7 @@ const ROUTES = [
   ['/student/resume', ['STUDENT'], stu.resume, 'Resume'],
   ['/student/career', ['STUDENT'], stu.career, 'Career'],
   ['/student/profile', ['STUDENT'], stu.profile, 'Profile'],
+  ['/student/map', ['STUDENT'], careerMap, 'Career Map'],
   ['/student/dna', ['STUDENT'], ai.careerDna, 'Career DNA'],
   ['/student/arena', ['STUDENT'], ai.arena, 'Skill Arena'],
   ['/student/coach', ['STUDENT'], ai.chat, 'Career Coach'],
@@ -43,7 +45,7 @@ const ROUTES = [
 }));
 
 const NAV = {
-  STUDENT: [['/student', 'Home', 'home'], ['/student/jobs', 'Jobs', 'briefcase'], ['/student/applications', 'Applications', 'clock'], ['/student/resume', 'Resume', 'file'], ['/student/career', 'Career', 'route'], ['/student/dna', 'DNA', 'sparkle'], ['/student/arena', 'Arena', 'bolt'], ['/student/coach', 'Coach', 'users'], ['/student/profile', 'Profile', 'user']],
+  STUDENT: [['/student', 'Home', 'home'], ['/student/jobs', 'Jobs', 'briefcase'], ['/student/applications', 'Applications', 'clock'], ['/student/resume', 'Resume', 'file'], ['/student/career', 'Career', 'route'], ['/student/map', 'Map', 'route'], ['/student/dna', 'DNA', 'sparkle'], ['/student/arena', 'Arena', 'bolt'], ['/student/coach', 'Coach', 'users'], ['/student/profile', 'Profile', 'user']],
   EMPLOYER: [['/employer', 'Dashboard', 'chart'], ['/employer/jobs', 'Jobs', 'briefcase'], ['/employer/assistant', 'Assistant', 'sparkle'], ['/employer/company', 'Company', 'building']],
   ADMIN: [['/admin', 'Employers', 'shield'], ['/admin/ai', 'AI providers', 'sparkle']],
 };

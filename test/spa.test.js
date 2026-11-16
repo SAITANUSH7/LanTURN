@@ -1,11 +1,18 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { start, stop, api, getOrigin } from './helpers.js';
+import { config } from '../src/config.js';
+const skip = !config.useReact && 'set USE_REACT=1 and build frontend/ to test the React UI';
 
 before(start);
 after(stop);
 
-test('SPA serves built React frontend for /', async () => {
+test('default UI is the vanilla app', async () => {
+  const html = await (await fetch(`${getOrigin()}/`)).text();
+  assert.ok(config.useReact || html.includes('/js/main.js'));
+});
+
+test('SPA serves built React frontend for /', { skip }, async () => {
   const res = await fetch(`${getOrigin()}/`);
   assert.equal(res.status, 200);
   const html = await res.text();
@@ -13,7 +20,7 @@ test('SPA serves built React frontend for /', async () => {
   assert.ok(html.includes('LanTURN'), 'Should contain LanTURN title/brand in head or manifest');
 });
 
-test('SPA fallback routes client-side paths to index.html', async () => {
+test('SPA fallback routes client-side paths to index.html', { skip }, async () => {
   const res = await fetch(`${getOrigin()}/networking`);
   assert.equal(res.status, 200);
   const html = await res.text();
