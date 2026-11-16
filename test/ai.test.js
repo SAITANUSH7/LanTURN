@@ -172,7 +172,7 @@ test('task routing sends each task to its own NVIDIA model first, then the other
   assert.equal(groupOf('arena-grade'), 'code');
   assert.equal(groupOf('whatever'), 'json');
   assert.match(first('chat')[0], /nemotron-3.5/);
-  assert.match(first('interview-prep')[0], /deepseek-v4/);
+  assert.match(first('interview-prep')[0], /nemotron-3.5/);
   assert.match(first('resume')[0], /nemotron-3.5/);
   assert.equal(routeChain(chain, 'resume')[0].params.chat_template_kwargs.enable_thinking, false);
   assert.equal(routeChain(chain, 'chat')[0].params.temperature, 0.4);

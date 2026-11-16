@@ -76,8 +76,8 @@ Each task goes to the model that suits it, then falls back to the other two, the
 
 | Group | Tasks | Default model |
 |---|---|---|
-| code | skill tests and grading, interview prep, job descriptions | `deepseek-ai/deepseek-v4.1-flash` |
-| write | Career Coach, hiring assistant, cover letters, Company DNA, map summary | `meta/llama-3.3-70b-instruct` |
+| code | skill tests and grading, interview prep, job descriptions | `nvidia/nemotron-3.5-super-vl-120b-a12b` (set `deepseek-ai/deepseek-v4.1-flash` once its Test passes on your key) |
+| write | Career Coach, hiring assistant, cover letters, Company DNA, map summary | `nvidia/nemotron-3.5-super-vl-120b-a12b` (Llama 3.3 was retired by NVIDIA on 2026-08-26) |
 | json | resume analysis, roadmaps, Career DNA | `nvidia/nemotron-3.5-super-vl-120b-a12b` |
 
 Change them in Admin → AI providers → Task routing (saved in the database), or set `AI_ROUTE_CODE`, `AI_ROUTE_WRITE`, `AI_ROUTE_JSON`. Use "Find working models" on the NVIDIA card first: not every listed model is callable on every account.

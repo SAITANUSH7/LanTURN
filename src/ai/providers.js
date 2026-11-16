@@ -116,7 +116,7 @@ async function chatLogged(p, args, purpose) {
     record(p, purpose, true, Date.now() - t0);
     return out;
   } catch (e) {
-    record(p, purpose, false, Date.now() - t0, tidy(/abort/i.test(e.message) ? `timed out after ${config.aiTimeoutMs / 1000}s` : e.message));
+    record(p, purpose, false, Date.now() - t0, tidy(/abort/i.test(e.message) ? `timed out after ${(p.timeoutMs || config.aiTimeoutMs) / 1000}s` : e.message));
     throw e;
   }
 }
