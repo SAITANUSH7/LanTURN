@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { enqueue } from '../queue.js';
 import { notify } from '../notify.js';
 import { z } from 'zod';
 import { db, tx, parseJson } from '../db.js';
@@ -70,6 +71,7 @@ employerRouter.post('/employer/jobs', ...employer, requireVerifiedEmployer, wrap
     saveSkills(jid, b.skills);
     return jid;
   });
+  enqueue('job.match_notify', { jobId: id }, { userId: req.user.id, dedupeKey: `match:${id}` }); // heavy fan-out runs in the background
   const row = ownJob(req.user.id, id);
   res.status(201).json(serializeJob(row, loadJobSkills([id]).get(id)));
 }));

@@ -21,6 +21,9 @@ import { compatRouter } from './routes/compat.js';
 import { drivesRouter } from './routes/drives.js';
 import { realtimeRouter } from './realtime.js';
 import { apiHeaders, sameOriginGuard } from './security.js';
+import { requestMetrics } from './metrics.js';
+import { opsRouter } from './routes/ops.js';
+import './tasks.js';
 
 export function createApp() {
   const app = express();
@@ -32,6 +35,7 @@ export function createApp() {
     res.setHeader('X-Request-Id', req.id);
     next();
   });
+  app.use(requestMetrics);
 
   app.use(helmet({
     contentSecurityPolicy: {
@@ -94,7 +98,7 @@ export function createApp() {
 
   app.use('/api/auth', authRouter);
   app.use('/api/me', meRouter);
-  app.use('/api', studentRouter, jobsRouter, employerRouter, aiRouter, adminRouter, networkingRouter, careerRoadmapsRouter, careerMapRouter, compatRouter, drivesRouter, realtimeRouter);
+  app.use('/api', studentRouter, jobsRouter, employerRouter, aiRouter, adminRouter, opsRouter, networkingRouter, careerRoadmapsRouter, careerMapRouter, compatRouter, drivesRouter, realtimeRouter);
   app.use('/api', (_req, _res, next) => next(new HttpError(404, 'NOT_FOUND', 'Unknown API route')));
 
   const frontendDist = path.join(ROOT, 'frontend', 'dist');

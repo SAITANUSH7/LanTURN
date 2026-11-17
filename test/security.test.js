@@ -48,7 +48,7 @@ test('API responses are not cacheable and set hardening headers', async () => {
 });
 
 test('every API route except the public allowlist requires a token', async () => {
-  const PUBLIC = new Set(['GET /api/health', 'GET /api/platform/stats', 'POST /api/auth/register', 'POST /api/auth/login', 'POST /api/auth/session', 'POST /api/auth/logout', 'POST /api/auth/refresh']);
+  const PUBLIC = new Set(['GET /api/health', 'GET /api/platform/stats', 'GET /api/health/live', 'GET /api/health/ready', 'POST /api/auth/register', 'POST /api/auth/login', 'POST /api/auth/session', 'POST /api/auth/logout', 'POST /api/auth/refresh']);
   const { createApp } = await import('../src/app.js');
   const routes = [];
   const walk = (stack, prefix = '') => {

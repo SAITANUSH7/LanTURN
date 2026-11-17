@@ -3,6 +3,7 @@
 // is overridable from the environment because vendors rename models often.
 import { routeChain, paramsForModel } from './routing.js';
 import crypto from 'node:crypto';
+import { allow, success, failure } from './breaker.js';
 import { config } from '../config.js';
 import { db } from '../db.js';
 
@@ -111,11 +112,15 @@ async function httpError(p, res) {
 /** chatOnce with timing + logging. `purpose` is a short label such as "chat" or "dna". */
 async function chatLogged(p, args, purpose) {
   const t0 = Date.now();
+  const key = `${p.name}|${p.model}`;
+  if (purpose !== 'test') allow(key); // fail fast while a provider is known to be down (the admin Test button always tries)
   try {
     const out = await chatOnce(p, args);
     record(p, purpose, true, Date.now() - t0);
+    success(key);
     return out;
   } catch (e) {
+    failure(key);
     record(p, purpose, false, Date.now() - t0, tidy(/abort/i.test(e.message) ? `timed out after ${(p.timeoutMs || config.aiTimeoutMs) / 1000}s` : e.message));
     throw e;
   }

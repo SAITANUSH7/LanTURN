@@ -3,7 +3,13 @@ import { config } from './config.js';
 
 const file = config.isTest ? ':memory:' : config.dbFile;
 export const db = new DatabaseSync(file);
-db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
+db.exec(`PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;
+PRAGMA synchronous = NORMAL;      -- safe with WAL, far fewer fsyncs
+PRAGMA busy_timeout = 5000;       -- wait for a writer instead of failing with SQLITE_BUSY
+PRAGMA cache_size = -32000;       -- 32 MB page cache
+PRAGMA temp_store = MEMORY;
+PRAGMA mmap_size = 134217728;     -- 128 MB memory-mapped reads
+PRAGMA journal_size_limit = 67108864;`);
 
 db.exec(`
 CREATE TABLE IF NOT EXISTS users (

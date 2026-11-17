@@ -1,0 +1,52 @@
+import fs from 'node:fs';
+import { Router } from 'express';
+import { db } from '../db.js';
+import { config } from '../config.js';
+import { authenticate, requireRole } from '../auth.js';
+import { wrap, notFound } from '../util.js';
+import { snapshot, prometheus } from '../metrics.js';
+import { queueStats } from '../queue.js';
+import { breakerStates } from '../ai/breaker.js';
+import { backend } from '../match.js';
+import { nlpStatus } from '../nlp.js';
+
+export const opsRouter = Router();
+let draining = false;
+export const setDraining = (v) => { draining = v; };
+
+// Liveness: the process is up. No dependencies, so a slow database never gets the container killed.
+opsRouter.get('/health/live', (_req, res) => res.json({ status: 'live' }));
+
+// Readiness: can this instance take traffic right now? 503 while draining or if the database or queue is unhealthy.
+opsRouter.get('/health/ready', (_req, res) => {
+  const checks = {};
+  try { db.prepare('SELECT 1').get(); checks.db = 'ok'; } catch (e) { checks.db = `fail: ${e.message}`; }
+  try { fs.accessSync(config.uploadDir, fs.constants.W_OK); checks.uploads = 'ok'; } catch { checks.uploads = 'fail: not writable'; }
+  try { const q = queueStats(); checks.queue = q.oldestQueuedSec > 300 ? `stalled (${q.oldestQueuedSec}s behind)` : 'ok'; } catch (e) { checks.queue = `fail: ${e.message}`; }
+  if (draining) checks.draining = 'yes';
+  const ok = Object.entries(checks).every(([k, v]) => k === 'draining' ? false : v === 'ok');
+  res.status(ok ? 200 : 503).json({ status: ok ? 'ready' : 'not_ready', checks });
+});
+
+const admin = [authenticate, requireRole('ADMIN')];
+opsRouter.get('/admin/metrics', ...admin, wrap(async (_req, res) => {
+  res.json({ ...snapshot(), queue: queueStats(), breakers: breakerStates(), matchBackend: backend, nlp: nlpStatus() });
+}));
+opsRouter.get('/admin/metrics.prom', ...admin, wrap(async (_req, res) => {
+  const q = queueStats();
+  res.type('text/plain; version=0.0.4').send(prometheus({ queue_depth: q.queued, queue_running: q.running, queue_dead_letters: q.deadLetters, queue_oldest_seconds: q.oldestQueuedSec }));
+}));
+opsRouter.get('/admin/tasks', ...admin, wrap(async (_req, res) => {
+  res.json({ stats: queueStats(), items: db.prepare('SELECT id, type, status, attempts, max_attempts, error, created_at, finished_at FROM tasks ORDER BY id DESC LIMIT 50').all() });
+}));
+opsRouter.post('/admin/tasks/:id/retry', ...admin, wrap(async (req, res) => {
+  const r = db.prepare("UPDATE tasks SET status = 'QUEUED', attempts = 0, run_at = datetime('now'), error = NULL WHERE id = ? AND status = 'FAILED'").run(Number(req.params.id));
+  if (!r.changes) throw notFound('No failed task with that id');
+  res.json({ ok: true });
+}));
+// A user can poll their own background tasks.
+opsRouter.get('/tasks/:id', authenticate, wrap(async (req, res) => {
+  const t = db.prepare('SELECT id, type, status, attempts, result, error, created_at, finished_at FROM tasks WHERE id = ? AND user_id = ?').get(Number(req.params.id), req.user.id);
+  if (!t) throw notFound('Task not found');
+  res.json({ ...t, result: t.result ? JSON.parse(t.result) : null });
+}));
