@@ -92,7 +92,7 @@ A routing row can name `provider:model` instead of an NVIDIA model, for example 
 Set a routing row to `z-ai/glm-5.3-flash` (confirm the exact ID in Browse models). It is sent with `reasoning_effort: low` and `clear_thinking: true` from its model card, because GLM 5.x thinks at "max" by default, which is slow.
 
 ## GLM 5.3 Flash: endpoint and process
-Default model for the **code and reasoning** group (skill tests and grading, interview prep, job descriptions). It runs on the same NVIDIA key as the other models; there is no separate key.
+Optional model for the **code and reasoning** group (default is Nemotron because GLM timed out in testing: set the row to `z-ai/glm-5.3-flash` once Test passes on your key) (skill tests and grading, interview prep, job descriptions). It runs on the same NVIDIA key as the other models; there is no separate key.
 
 - **Endpoint:** `POST https://integrate.api.nvidia.com/v1/chat/completions`
 - **Auth:** `Authorization: Bearer <NVIDIA key>`
