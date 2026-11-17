@@ -11,7 +11,7 @@ export const hashPassword = (pw) => bcrypt.hashSync(pw, 11);
 export const checkPassword = (pw, hash) => bcrypt.compareSync(pw, hash);
 
 export function signAccess(user) {
-  return jwt.sign({ sub: user.id, role: user.role }, config.accessSecret, { expiresIn: `${config.accessTtlMin}m` });
+  return jwt.sign({ sub: user.id, role: user.role }, config.accessSecret, { algorithm: 'HS256', expiresIn: `${config.accessTtlMin}m` });
 }
 
 const COOKIE = 'lt_refresh';
@@ -62,7 +62,7 @@ export function authenticate(req, _res, next) {
   const h = req.headers.authorization || '';
   if (!h.startsWith('Bearer ')) return next(new HttpError(401, 'UNAUTHENTICATED', 'Sign in required'));
   try {
-    const p = jwt.verify(h.slice(7), config.accessSecret);
+    const p = jwt.verify(h.slice(7), config.accessSecret, { algorithms: ['HS256'] });
     const user = db.prepare('SELECT id, email, role, verification, consent_at FROM users WHERE id = ?').get(p.sub);
     if (!user) throw new Error('gone');
     req.user = user;

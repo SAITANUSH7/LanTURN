@@ -20,6 +20,7 @@ import { careerMapRouter } from './routes/careerMap.js';
 import { compatRouter } from './routes/compat.js';
 import { drivesRouter } from './routes/drives.js';
 import { realtimeRouter } from './realtime.js';
+import { apiHeaders, sameOriginGuard } from './security.js';
 
 export function createApp() {
   const app = express();
@@ -51,6 +52,8 @@ export function createApp() {
     },
   }));
   app.use(express.json({ limit: '100kb' }));
+  app.use('/api', apiHeaders);
+  app.use('/api/auth', sameOriginGuard);
 
   if (!config.isTest) {
     const limiter = (max, windowMs = 60_000) => rateLimit({ windowMs, max, standardHeaders: true, legacyHeaders: false, message: { error: { code: 'RATE_LIMITED', message: 'Too many requests, slow down.' } } });

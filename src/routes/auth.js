@@ -3,9 +3,11 @@ import { z } from 'zod';
 import { db, tx } from '../db.js';
 import { config } from '../config.js';
 import { HttpError, conflict, parse, wrap, bad } from '../util.js';
+import { assertNotLocked, recordFailure, clearFailures, passwordProblem } from '../security.js';
 import { authenticate, hashPassword, checkPassword, signAccess, issueRefresh, rotateRefresh, revokeRefresh, clearRefresh } from '../auth.js';
 
 export const authRouter = Router();
+const DUMMY_HASH = hashPassword('not-a-real-password-0');
 
 const RegisterSchema = z.object({
   email: z.string().trim().toLowerCase().email().max(200),
@@ -39,6 +41,8 @@ authRouter.post('/register', wrap(async (req, res) => {
       throw bad(`Students must register with a college email (${config.studentDomains.join(', ')})`);
     }
   }
+  const weak = passwordProblem(b.password);
+  if (weak) throw bad(`password: ${weak}`);
   if (db.prepare('SELECT 1 FROM users WHERE email = ?').get(b.email)) throw conflict('An account with this email already exists');
   const user = tx(() => {
     const verification = b.role === 'STUDENT' ? 'VERIFIED' : 'PENDING';
@@ -53,8 +57,12 @@ authRouter.post('/register', wrap(async (req, res) => {
 
 authRouter.post('/login', wrap(async (req, res) => {
   const b = parse(LoginSchema, req.body);
+  assertNotLocked(b.email);
   const user = db.prepare('SELECT * FROM users WHERE email = ?').get(b.email);
-  if (!user || !checkPassword(b.password, user.password_hash)) throw new HttpError(401, 'INVALID_CREDENTIALS', 'Email or password is incorrect');
+  // Always run one bcrypt compare so unknown emails cost the same time as wrong passwords.
+  const ok = checkPassword(b.password, user ? user.password_hash : DUMMY_HASH);
+  if (!user || !ok) { recordFailure(b.email, req.ip); throw new HttpError(401, 'INVALID_CREDENTIALS', 'Email or password is incorrect'); }
+  clearFailures(b.email);
   issueRefresh(res, user.id);
   res.json({ accessToken: signAccess(user), user: publicUser(user) });
 }));
