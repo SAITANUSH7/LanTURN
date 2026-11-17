@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { config } from '../config.js';
 import { db, tx, parseJson } from '../db.js';
 import { HttpError, bad, notFound, parse, wrap } from '../util.js';
 import { authenticate, requireRole } from '../auth.js';
@@ -324,7 +325,10 @@ aiRouter.put('/admin/ai/routes', ...admin, wrap(async (req, res) => {
 }));
 aiRouter.delete('/admin/ai/routes', ...admin, wrap(async (_req, res) => { resetRoutes(); res.json({ ok: true, routes: currentRoutes() }); }));
 aiRouter.get('/admin/ai', ...admin, wrap(async (_req, res) => {
-  res.json({ providers: Object.keys(PRESETS).map(providerRow), active: providerSummary() });
+  const onRailway = Boolean(process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_PROJECT_ID);
+  const vol = process.env.RAILWAY_VOLUME_MOUNT_PATH || '';
+  const storage = { persistent: !onRailway || Boolean(vol && config.dbFile.startsWith(vol)), db: config.dbFile, hint: 'Saved keys live in the database. On Railway, attach a Volume mounted at /data and set DB_FILE=/data/lanturn.db, or the keys are lost on every redeploy. As a permanent backup, also set NVIDIA_API_KEY in Variables: it is used whenever no saved key exists.' };
+  res.json({ providers: Object.keys(PRESETS).map(providerRow), active: providerSummary(), storage });
 }));
 aiRouter.put('/admin/ai/:name', ...admin, wrap(async (req, res) => {
   const name = String(req.params.name);

@@ -90,3 +90,19 @@ A routing row can name `provider:model` instead of an NVIDIA model, for example 
 
 ### GLM 5.3 Flash on NIM
 Set a routing row to `z-ai/glm-5.3-flash` (confirm the exact ID in Browse models). It is sent with `reasoning_effort: low` and `clear_thinking: true` from its model card, because GLM 5.x thinks at "max" by default, which is slow.
+
+## GLM 5.3 Flash: endpoint and process
+Default model for the **code and reasoning** group (skill tests and grading, interview prep, job descriptions). It runs on the same NVIDIA key as the other models; there is no separate key.
+
+- **Endpoint:** `POST https://integrate.api.nvidia.com/v1/chat/completions`
+- **Auth:** `Authorization: Bearer <NVIDIA key>`
+- **Model:** `z-ai/glm-5.3-flash`
+- **Body LanTURN sends:** `messages` (system + user), `temperature 0.5`, `top_p 1`, `max_tokens` (per feature), `reasoning_effort: "low"`, `chat_template_kwargs: { clear_thinking: true, ... }`. JSON features add a schema instruction and are validated with zod.
+- **Response:** `choices[0].message.content` is the answer; `reasoning_content` (if present) is ignored.
+
+Process for one request: the feature asks for a task (for example `interview-prep`) → routing maps it to the code group → GLM is called → the JSON is validated → on timeout, error or invalid JSON the request moves to Nemotron, then other providers, then the built-in rules engine. Every attempt is written to the Recent AI calls table and the terminal.
+
+## Keeping keys across redeploys
+Keys saved in Admin are encrypted in the database file (`DB_FILE`). They survive a redeploy only if that file is on a persistent disk.
+1. **Railway:** add a Volume mounted at `/data` and set `DB_FILE=/data/lanturn.db`, `UPLOAD_DIR=/data/uploads`. Admin shows a warning banner if the database is not on a volume.
+2. **Permanent backup:** also set `NVIDIA_API_KEY` (and optionally `AI_ROUTE_CODE`, `AI_ROUTE_WRITE`, `AI_ROUTE_JSON`, `AI_ROUTE_VISION`) under Variables. These are used whenever no key or route is saved in Admin, so a wiped database never leaves the site without AI.

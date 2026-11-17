@@ -34,7 +34,7 @@ export async function aiSettings() {
   async function load() {
     const d = await get('/admin/ai');
     clear(summary).append(icon('info'), h('span', null, d.active.length ? `Active order: ${[...new Set(d.active.map((p) => p.label))].join(' → ')}, then the rules engine.` : 'No provider is active. The site is running on the built-in rules engine.'));
-    clear(host).append(await routingCard(), ...d.providers.map(card));
+    clear(host).append(...(d.storage && !d.storage.persistent ? [h('div', { class: 'alert alert--warn', role: 'alert' }, icon('info'), h('span', null, `Storage warning: keys saved here are lost on redeploy. ${d.storage.hint}`))] : []), await routingCard(), ...d.providers.map(card));
   }
   async function routingCard() {
     const r = await get('/admin/ai/routes');

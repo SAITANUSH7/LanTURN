@@ -7,7 +7,7 @@ import { db } from '../db.js';
 
 const env = process.env;
 export const GROUPS = {
-  code: { label: 'Code and reasoning', hint: 'Skill tests, grading, interview prep, job descriptions', purposes: ['arena-questions', 'arena-grade', 'interview-prep', 'job-description'], fallback: env.AI_ROUTE_CODE || 'nvidia/nemotron-3.5-super-vl-120b-a12b', params: { temperature: 0.3, top_p: 0.9, chat_template_kwargs: { thinking: false, enable_thinking: false } } },
+  code: { label: 'Code and reasoning', hint: 'Skill tests, grading, interview prep, job descriptions', purposes: ['arena-questions', 'arena-grade', 'interview-prep', 'job-description'], fallback: env.AI_ROUTE_CODE || 'z-ai/glm-5.3-flash', params: { temperature: 0.5, top_p: 1, chat_template_kwargs: { thinking: false, enable_thinking: false } } },
   write: { label: 'Chat and writing', hint: 'Career Coach, hiring assistant, cover letters, Company DNA, map summary', purposes: ['chat', 'cover-letter', 'company-dna', 'career-map'], fallback: env.AI_ROUTE_WRITE || 'nvidia/nemotron-3.5-super-vl-120b-a12b', params: { temperature: 0.4, top_p: 0.9, chat_template_kwargs: { enable_thinking: false } } },
   json: { label: 'Strict JSON extraction', hint: 'Resume analysis, roadmaps, Career DNA', purposes: ['resume', 'roadmap', 'dna', 'json'], fallback: env.AI_ROUTE_JSON || 'nvidia/nemotron-3.5-super-vl-120b-a12b', params: { temperature: 0.2, top_p: 0.95, chat_template_kwargs: { enable_thinking: false } } },
 };
