@@ -35,3 +35,6 @@ Data resets on every deploy and the service sleeps when idle. Switch back to Sta
 - Set `SEED_DEMO=true` only for a demo deployment; demo accounts use a known password.
 - Cookies are `Secure` in production, so use the HTTPS URL the host gives you.
 - Back up the volume (`lanturn.db` and `uploads/`) before changing plans or regions.
+
+## Railway: demo logins not working?
+The demo student and employer accounts (`student.one@example.test`, `hr@examplecorp.test`, password `Demo@12345`) only exist when the variable `SEED_DEMO=true` is set. Without it only the admin account exists and those logins return "incorrect". Add `SEED_DEMO=true` under Variables, let Railway redeploy, then sign in. Remove it again (or set `false`) before real users arrive, because the demo password is public. Real users can always create accounts with Create an account.

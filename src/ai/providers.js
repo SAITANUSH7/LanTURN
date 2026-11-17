@@ -11,7 +11,7 @@ const env = process.env;
 export const PRESETS = {
   deepseek:   { label: 'DeepSeek',            baseUrl: 'https://api.deepseek.com',                              keyEnv: 'DEEPSEEK_API_KEY',   model: 'deepseek-flash',                  jsonMode: false },
   kimi:       { label: 'Kimi (Moonshot AI)',  baseUrl: 'https://api.moonshot.ai/v1',                            keyEnv: 'MOONSHOT_API_KEY',   model: 'kimi-k2-turbo-preview',           jsonMode: true },
-  nvidia:     { label: 'NVIDIA NIM',          baseUrl: 'https://integrate.api.nvidia.com/v1',                   keyEnv: 'NVIDIA_API_KEY',     model: 'meta/llama-3.3-70b-instruct',     jsonMode: false },
+  nvidia:     { label: 'NVIDIA NIM',          baseUrl: 'https://integrate.api.nvidia.com/v1',                   keyEnv: 'NVIDIA_API_KEY',     model: 'nvidia/nemotron-3.5-super-vl-120b-a12b',     jsonMode: false },
   opencode:   { label: 'OpenCode Zen',        baseUrl: 'https://opencode.ai/zen/v1',                            keyEnv: 'OPENCODE_API_KEY',   model: 'deepseek-v4-flash-free',          jsonMode: false },
   gemini:     { label: 'Google Gemini',       baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai', keyEnv: 'GEMINI_API_KEY',   model: 'gemini-2.5-flash',                jsonMode: true },
   groq:       { label: 'Groq',                baseUrl: 'https://api.groq.com/openai/v1',                        keyEnv: 'GROQ_API_KEY',       model: 'llama-3.3-70b-versatile',         jsonMode: true },
