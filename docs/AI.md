@@ -87,3 +87,6 @@ Resume uploads accept PDF, PNG, JPG and WebP. Photos, and PDFs with no selectabl
 
 ### Using another provider for a task (e.g. free DeepSeek via OpenCode Zen)
 A routing row can name `provider:model` instead of an NVIDIA model, for example `opencode:deepseek-v4-flash-free`. Add that provider's key in its own card first. The task then uses it first, with the NVIDIA models and the rules engine as fallbacks. The row's Test button tests that provider.
+
+### GLM 5.3 Flash on NIM
+Set a routing row to `z-ai/glm-5.3-flash` (confirm the exact ID in Browse models). It is sent with `reasoning_effort: low` and `clear_thinking: true` from its model card, because GLM 5.x thinks at "max" by default, which is slow.

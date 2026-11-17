@@ -14,6 +14,17 @@ export const GROUPS = {
 GROUPS.vision = { label: 'Image reading (OCR)', hint: 'Resume photos, screenshots and scanned PDFs', purposes: ['ocr'], fallback: env.AI_ROUTE_VISION || 'nvidia/nemotron-3.5-super-vl-120b-a12b', params: { temperature: 0.1, top_p: 0.9, chat_template_kwargs: { enable_thinking: false } } };
 const ORDER = ['json', 'code', 'write'];
 
+// Settings that belong to a specific model family, merged over the task's sampling settings.
+const MODEL_PARAMS = [
+  // GLM 5.x thinks at "max" by default: ask for low effort and drop old thinking from the chat template (NVIDIA model card).
+  [/glm-5/i, { reasoning_effort: 'low', chat_template_kwargs: { clear_thinking: true } }],
+];
+export const paramsFor = (group, model) => {
+  const base = GROUPS[group].params;
+  const extra = MODEL_PARAMS.find(([re]) => re.test(model))?.[1];
+  return extra ? { ...base, ...extra, chat_template_kwargs: { ...base.chat_template_kwargs, ...extra.chat_template_kwargs } } : base;
+};
+
 db.exec('CREATE TABLE IF NOT EXISTS ai_routes (group_key TEXT PRIMARY KEY, model TEXT NOT NULL)');
 
 export const groupOf = (purpose) => Object.keys(GROUPS).find((g) => GROUPS[g].purposes.includes(purpose)) || 'json';
@@ -43,7 +54,7 @@ export function routeChain(chain, purpose, resolve) {
   const routed = [...new Set(models)].flatMap((value) => {
     const [prov, model] = splitRoute(value, (n) => Boolean(resolve) && n !== 'nvidia' && resolve(n) !== null);
     if (prov) return [{ ...resolve(prov), model }];
-    return [{ ...nv, model, params: GROUPS[groupOfModel[value]].params }];
+    return [{ ...nv, model, params: paramsFor(groupOfModel[value], model) }];
   });
   const seen = new Set(routed.filter((p) => p.name === 'nvidia').map((p) => p.model));
   const extra = chain.filter((p) => p.name === 'nvidia' && !seen.has(p.model));
@@ -55,5 +66,5 @@ export function routeChain(chain, purpose, resolve) {
 export function paramsForModel(model) {
   const routes = currentRoutes();
   const g = Object.keys(GROUPS).find((k) => routes[k] === model);
-  return g ? GROUPS[g].params : undefined;
+  return g ? paramsFor(g, model) : undefined;
 }
