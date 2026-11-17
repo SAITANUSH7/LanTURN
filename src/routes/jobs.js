@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { notify } from '../notify.js';
+import { nlpEnabled, semanticRank } from '../nlp.js';
 import { z } from 'zod';
 import { db, tx } from '../db.js';
 import { conflict, notFound, forbidden, parse, wrap, page } from '../util.js';
@@ -54,12 +55,20 @@ jobsRouter.get('/jobs', authenticate, wrap(async (req, res) => {
 
 jobsRouter.get('/jobs/recommended', authenticate, requireRole('STUDENT'), wrap(async (req, res) => {
   // Score every open job (cheap, from the cached bundle), then serialize only the 20 that will be returned.
-  const { rows, skills } = openJobsBundle();
+  const b = openJobsBundle();
+  const { rows, skills } = b;
   const ctx = studentContext(req.user.id);
   const applied = new Set(db.prepare('SELECT job_id FROM applications WHERE student_id = ?').all(req.user.id).map((r) => r.job_id));
-  const ranked = rows.filter((r) => !applied.has(r.id)).map((r) => ({ r, m: matchFor(r, skills.get(r.id), ctx) })).sort((a, b) => b.m.score - a.m.score).slice(0, 20);
+  let ranked = rows.filter((r) => !applied.has(r.id)).map((r) => ({ r, m: matchFor(r, skills.get(r.id), ctx), sem: null }));
+  // Optional Python sidecar: blend in how much the resume's wording resembles each posting (75% skills / 25% text).
+  if (nlpEnabled()) {
+    const resume = db.prepare('SELECT extracted_text t FROM resumes WHERE student_id = ? ORDER BY id DESC LIMIT 1').get(req.user.id)?.t;
+    const sem = await semanticRank(resume, ranked.map(({ r }) => ({ id: r.id, text: `${r.title}\n${r.description}\n${(skills.get(r.id) || []).map((s) => s.name).join(' ')}` })), String(b.v));
+    if (sem) for (const x of ranked) { x.sem = sem.get(x.r.id) || null; if (x.sem) x.m = { ...x.m, score: Math.round(0.75 * x.m.score + 0.25 * x.sem.score) }; }
+  }
+  ranked = ranked.sort((a, b2) => b2.m.score - a.m.score).slice(0, 20);
   const saved = new Set(db.prepare('SELECT job_id FROM saved_jobs WHERE user_id = ?').all(req.user.id).map((r) => r.job_id));
-  res.json({ items: ranked.map(({ r, m }) => ({ ...serializeJob(r, skills.get(r.id)), match: { score: m.score, skillMatch: m.skillMatch, matchedCount: m.matched.length, missingCount: m.missing.length }, applied: false, isSaved: saved.has(r.id) })) });
+  res.json({ items: ranked.map(({ r, m, sem }) => ({ ...serializeJob(r, skills.get(r.id)), match: { score: m.score, skillMatch: m.skillMatch, matchedCount: m.matched.length, missingCount: m.missing.length, ...(sem ? { semantic: sem } : {}) }, applied: false, isSaved: saved.has(r.id) })) });
 }));
 
 jobsRouter.get('/jobs/saved', authenticate, requireRole('STUDENT'), wrap(async (req, res) => {
