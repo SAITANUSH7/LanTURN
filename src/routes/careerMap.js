@@ -5,15 +5,17 @@ import { bad, notFound, parse, wrap } from '../util.js';
 import { authenticate, requireRole } from '../auth.js';
 import { CAREER_DOMAINS } from '../data/careerRoadmaps.js';
 import { extractSkills } from '../ai/skills.js';
-import { buildCareerMap } from '../ai/careerMap.js';
+import { buildCareerMap, topicCovered as topicCoveredByResume } from '../ai/careerMap.js';
 import { checkQuota } from '../ai/index.js';
 import { callJson, llmEnabled } from '../ai/providers.js';
 import { studentSkills } from './common.js';
+import { autoSetup } from '../ai/autoSetup.js';
+import { guideFor } from '../ai/prep.js';
 
 export const careerMapRouter = Router();
 const student = [authenticate, requireRole('STUDENT')];
 
-function compute(userId, focus) {
+export function computeCareerMap(userId, focus) {
   const p = db.prepare('SELECT full_name FROM student_profiles WHERE user_id = ?').get(userId);
   const resume = db.prepare('SELECT id, extracted_text FROM resumes WHERE student_id = ? ORDER BY id DESC LIMIT 1').get(userId);
   const text = resume?.extracted_text || '';
@@ -33,7 +35,7 @@ function compute(userId, focus) {
 // GET /career/map?domain=backend: deterministic graph from the latest resume + profile skills. Free, no AI quota.
 careerMapRouter.get('/career/map', ...student, wrap(async (req, res) => {
   const q = parse(z.object({ domain: z.string().trim().max(40).optional() }), req.query);
-  const { map, resumeId } = compute(req.user.id, q.domain);
+  const { map, resumeId } = computeCareerMap(req.user.id, q.domain);
   res.json({ ...map, resumeId });
 }));
 
@@ -42,7 +44,7 @@ const InsightSchema = z.object({ headline: z.string().max(120), summary: z.strin
 // POST /career/map/insight: optional AI narrative over the computed map (counts toward the daily AI quota).
 careerMapRouter.post('/career/map/insight', ...student, wrap(async (req, res) => {
   const b = parse(z.object({ domain: z.string().trim().max(40).optional() }).strict(), req.body ?? {});
-  const { map } = compute(req.user.id, b.domain);
+  const { map } = computeCareerMap(req.user.id, b.domain);
   if (map.needsInput) throw bad('Upload a resume or add skills first');
   checkQuota(req.user.id, 'map');
   const f = map.focus;
@@ -59,4 +61,59 @@ careerMapRouter.post('/career/map/insight', ...student, wrap(async (req, res) =>
     } catch { /* fall back */ }
   }
   res.json({ ...fallback(), source: 'rules' });
+}));
+
+// ---- Auto-setup (profile, skills, direction, roadmap, jobs) ----
+careerMapRouter.get('/career/setup', ...student, wrap(async (req, res) => {
+  const row = db.prepare('SELECT auto_setup FROM student_profiles WHERE user_id = ?').get(req.user.id);
+  res.json({ setup: row?.auto_setup ? JSON.parse(row.auto_setup) : null });
+}));
+careerMapRouter.post('/career/auto-setup', ...student, wrap(async (req, res) => {
+  const setup = autoSetup(req.user.id);
+  if (!setup) throw bad('Upload a resume first');
+  res.json({ setup });
+}));
+
+// ---- Detailed roadmap for the flowchart: every stage with topics, coverage and prep guides ----
+careerMapRouter.get('/career/roadmap', ...student, wrap(async (req, res) => {
+  const q = parse(z.object({ domain: z.string().trim().max(40).optional() }), req.query);
+  const { map } = computeCareerMap(req.user.id, q.domain);
+  if (!map.focus) throw notFound('No direction yet');
+  const dom = CAREER_DOMAINS.find((d) => d.id === map.focus.id);
+  const done = new Set(db.prepare('SELECT p.stage_index, p.topic_index FROM roadmap_progress p JOIN career_roadmaps r ON r.id = p.roadmap_id WHERE r.student_id = ? AND r.domain_id = ?').all(req.user.id, dom.id).map((p) => `${p.stage_index}-${p.topic_index}`));
+  const lower = String(db.prepare('SELECT extracted_text t FROM resumes WHERE student_id = ? ORDER BY id DESC LIMIT 1').get(req.user.id)?.t || '').toLowerCase();
+  const mine = studentSkills(req.user.id).map((s) => s.name.toLowerCase());
+  const covered = new Map(map.focus.stages.map((s) => [s.index, s]));
+  res.json({
+    domain: { id: dom.id, title: dom.title, icon: dom.icon, estimatedMonths: dom.estimatedMonths, description: dom.description },
+    directions: map.domains.map((d) => ({ id: d.id, title: d.title, fit: d.fit })),
+    stages: dom.stages.map((st, si) => {
+      const info = covered.get(si);
+      return {
+        index: si, title: st.title, description: st.description, durationWeeks: st.durationWeeks, difficulty: st.difficulty, project: st.project || null,
+        status: info?.status || 'upcoming', pct: info?.pct || 0, resources: st.resources || [],
+        topics: st.topics.map((t, ti) => {
+          const key = `${si}-${ti}`;
+          const manual = done.has(key);
+          const auto = !manual && topicCoveredByResume(t, lower, mine);
+          return { key, index: ti, title: t, done: manual || auto, source: manual ? 'manual' : auto ? 'resume' : null, guide: guideFor(t, st.resources) };
+        }),
+      };
+    }),
+  });
+}));
+careerMapRouter.post('/career/topic', ...student, wrap(async (req, res) => {
+  const b = parse(z.object({ domain: z.string().max(40), stage: z.number().int().min(0).max(20), topic: z.number().int().min(0).max(40), done: z.boolean() }).strict(), req.body ?? {});
+  const dom = CAREER_DOMAINS.find((d) => d.id === b.domain);
+  if (!dom || !dom.stages[b.stage]?.topics[b.topic]) throw notFound('Unknown topic');
+  db.prepare('INSERT OR IGNORE INTO career_roadmaps (student_id, domain_id, domain_title) VALUES (?,?,?)').run(req.user.id, dom.id, dom.title);
+  const rm = db.prepare('SELECT id FROM career_roadmaps WHERE student_id = ? AND domain_id = ?').get(req.user.id, dom.id);
+  if (b.done) db.prepare('INSERT OR IGNORE INTO roadmap_progress (roadmap_id, student_id, stage_index, topic_index) VALUES (?,?,?,?)').run(rm.id, req.user.id, b.stage, b.topic);
+  else db.prepare('DELETE FROM roadmap_progress WHERE roadmap_id = ? AND stage_index = ? AND topic_index = ?').run(rm.id, b.stage, b.topic);
+  res.json({ ok: true });
+}));
+// Prep guide for any skill or topic name (used for gaps shown outside the roadmap).
+careerMapRouter.get('/career/guide', ...student, wrap(async (req, res) => {
+  const q = parse(z.object({ topic: z.string().trim().min(1).max(80) }), req.query);
+  res.json(guideFor(q.topic));
 }));

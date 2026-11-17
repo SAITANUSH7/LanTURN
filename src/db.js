@@ -367,6 +367,11 @@ try {
   // column already exists
 }
 
+for (const col of ['headline TEXT NOT NULL DEFAULT \'\'', 'target_domain TEXT', 'auto_setup TEXT', 'auto_filled_at TEXT']) {
+  try { db.exec(`ALTER TABLE student_profiles ADD COLUMN ${col}`); } catch { /* column already exists */ }
+}
+db.exec('CREATE TABLE IF NOT EXISTS app_flags (key TEXT PRIMARY KEY, value TEXT NOT NULL)');
+
 /** Run fn inside a transaction; rolls back on throw. */
 export function tx(fn) {
   db.exec('BEGIN');

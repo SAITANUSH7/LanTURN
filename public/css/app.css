@@ -234,3 +234,32 @@ code { background: var(--glass-2); border: 1px solid var(--glass-line); padding:
 .cmap-dir__bar i { display: block; height: 100%; background: var(--ice); }
 .cmap-actions { padding-left: 1.2em; }
 [hidden] { display: none !important; }
+
+/* ---- Roadmap flowchart ---- */
+.flow { display: grid; gap: 0; max-width: 760px; margin-inline: auto; }
+.flow__line { width: 2px; height: 26px; background: var(--ice); margin: 0 auto; opacity: .7; }
+.flow__node { display: flex; gap: 12px; align-items: center; padding: 14px 16px; border: 1px solid var(--glass-line); border-radius: 16px; background: rgba(255,255,255,.04); color: var(--text); text-decoration: none; }
+.flow__node small { display: block; }
+.flow__node--start, .flow__node--goal { justify-self: center; border-color: #fff; background: rgba(255,255,255,.1); }
+.flow__node--goal { border-color: var(--ice); }
+.flow__node--stage { display: grid; gap: 8px; }
+.flow__node--done { border-color: rgba(110,200,150,.6); background: rgba(110,200,150,.08); }
+.flow__node--current { border-color: var(--ice); background: rgba(110,168,255,.12); box-shadow: 0 0 0 3px rgba(110,168,255,.15); }
+.flow__meter { height: 6px; border-radius: 3px; background: var(--glass-line); overflow: hidden; }
+.flow__meter i { display: block; height: 100%; background: var(--ice); }
+.flow__toggle { justify-self: start; background: none; border: 0; color: var(--ice); cursor: pointer; font: inherit; padding: 4px 0; }
+.flow__body { display: grid; gap: 10px; }
+.flow__topic { display: grid; gap: 8px; padding: 10px; border: 1px solid var(--glass-line); border-radius: 12px; }
+.flow__topic .is-done { text-decoration: line-through; opacity: .7; }
+.flow__project { display: flex; gap: 10px; padding: 10px; border: 1px dashed rgba(255,190,90,.65); border-radius: 12px; }
+.flow__decision { display: flex; gap: 12px; align-items: center; justify-self: center; padding: 10px 14px; border: 1px dashed var(--glass-line); border-radius: 16px; }
+.flow__diamond { width: 38px; height: 38px; flex: none; display: grid; place-items: center; transform: rotate(45deg); border: 2px solid var(--ice); border-radius: 6px; font-weight: 700; }
+.flow__diamond { writing-mode: horizontal-tb; }
+.guide { display: grid; gap: 10px; padding-left: 1.2em; }
+.guide__head { display: grid; gap: 2px; }
+.guide__links { display: grid; gap: 4px; padding-left: 1em; list-style: disc; }
+.chip--btn { cursor: pointer; background: transparent; font: inherit; color: var(--text); }
+.chip--btn.is-on { border-color: var(--ice); background: rgba(110,168,255,.15); }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; }
+.kv dt { color: var(--text-2); }
+.kv dd { margin: 0; font-weight: 600; }

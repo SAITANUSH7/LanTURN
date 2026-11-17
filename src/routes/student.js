@@ -11,6 +11,7 @@ import { HttpError, bad, notFound, parse, wrap } from '../util.js';
 import { authenticate, requireRole } from '../auth.js';
 import { analyzeResume, buildRoadmap, checkQuota } from '../ai/index.js';
 import { tailorResume } from '../ai/features.js';
+import { autoSetup } from '../ai/autoSetup.js';
 import { imageMime, ocrAvailable, textFromImage, textFromScannedPdf } from '../ai/ocr.js';
 import { skillGap } from '../ai/scoring.js';
 import { idParam, studentSkills, studentContext, loadJobSkills, latestAnalysis } from './common.js';
@@ -196,7 +197,9 @@ studentRouter.post('/resumes', ...student, upload.single('file'), wrap(async (re
   const filename = path.basename(req.file.originalname || 'resume.pdf').slice(0, 120);
   const id = Number(db.prepare('INSERT INTO resumes (student_id, filename, file_key, size_bytes, page_count, extracted_text) VALUES (?,?,?,?,?,?)').run(req.user.id, filename, key, buf.length, pages, text).lastInsertRowid);
   await runAnalysis(req.user.id, db.prepare('SELECT * FROM resumes WHERE id = ?').get(id));
-  res.status(201).json(resumeOut(db.prepare('SELECT * FROM resumes WHERE id = ?').get(id)));
+  let setup = null;
+  try { setup = autoSetup(req.user.id); } catch (e) { console.warn('auto-setup failed:', e.message); }
+  res.status(201).json({ ...resumeOut(db.prepare('SELECT * FROM resumes WHERE id = ?').get(id)), setup });
 }));
 
 studentRouter.get('/resumes', ...student, wrap(async (req, res) => {

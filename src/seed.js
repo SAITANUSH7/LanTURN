@@ -43,7 +43,23 @@ export function seedAdmin() {
 const skillId = (slug) => db.prepare('SELECT id FROM skills WHERE slug = ?').get(slug)?.id;
 
 /** Synthetic demo data. Names and emails are obviously fake. */
+/** One-time: make student.three a clean, real-feeling account (no demo skills, applications or profile). */
+function blankStudentThree() {
+  if (db.prepare("SELECT 1 FROM app_flags WHERE key = 'student3_blank_v1'").get()) return;
+  const u = db.prepare("SELECT id FROM users WHERE email = 'student.three@example.test'").get();
+  if (u) {
+    tx(() => {
+      for (const [table, col] of [['student_skills', 'user_id'], ['applications', 'student_id'], ['drive_registrations', 'student_id'], ['skill_tests', 'student_id'], ['skill_medals', 'student_id'], ['career_dna', 'student_id'], ['saved_jobs', 'student_id'], ['mock_interviews', 'student_id'], ['career_roadmaps', 'student_id'], ['resumes', 'student_id'], ['notifications', 'user_id'], ['chat_threads', 'user_id']]) {
+        try { db.prepare(`DELETE FROM ${table} WHERE ${col} = ?`).run(u.id); } catch { /* table or column not present */ }
+      }
+      db.prepare("UPDATE student_profiles SET college = '', degree = '', branch = '', graduation_year = NULL, location = '', headline = '', target_domain = NULL, auto_setup = NULL, auto_filled_at = NULL WHERE user_id = ?").run(u.id);
+    });
+  }
+  db.prepare("INSERT OR IGNORE INTO app_flags (key, value) VALUES ('student3_blank_v1', '1')").run();
+}
+
 export function seedDemo() {
+  blankStudentThree();
   const usersExist = db.prepare("SELECT 1 FROM users WHERE email = 'hr@examplecorp.test'").get();
   if (usersExist) {
     const drivesCount = db.prepare('SELECT count(*) as c FROM placement_drives').get()?.c || 0;
@@ -123,7 +139,6 @@ export function seedDemo() {
           const insDriveReg = db.prepare(`INSERT OR IGNORE INTO drive_registrations (drive_id, student_id, status) VALUES (?, ?, 'REGISTERED')`);
           insDriveReg.run(d1, studentIds[0]);
           if (studentIds[1]) insDriveReg.run(d1, studentIds[1]);
-          if (studentIds[2]) insDriveReg.run(d2, studentIds[2]);
         });
       }
     }
@@ -165,7 +180,7 @@ export function seedDemo() {
     const students = [
       ['student.one@example.test', 'Student One', 'Example Institute of Technology', 'B.Tech', 'CSE (AI)', 2027, 'Hyderabad', ['kotlin', 'android', 'git', 'rest-apis', 'oop']],
       ['student.two@example.test', 'Student Two', 'Example Institute of Technology', 'B.Tech', 'CSE', 2026, 'Bengaluru', ['python', 'machine-learning', 'pandas', 'sql', 'git']],
-      ['student.three@example.test', 'Student Three', 'Sample College of Engineering', 'B.Tech', 'IT', 2026, 'Remote', ['javascript', 'react', 'nodejs', 'html', 'css']],
+      ['student.three@example.test', 'Student Three', '', '', '', null, '', []], // blank on purpose: fills itself from the resume you upload
     ];
     const insP = db.prepare('INSERT INTO student_profiles (user_id, full_name, college, degree, branch, graduation_year, location) VALUES (?,?,?,?,?,?,?)');
     const insSS = db.prepare("INSERT INTO student_skills (user_id, skill_id, source) VALUES (?,?,'MANUAL')");
@@ -188,8 +203,8 @@ export function seedDemo() {
       const insApp = db.prepare(`INSERT INTO applications (job_id, student_id, match_score, status, cover_note, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, datetime('now', '-2 days'), datetime('now', '-1 day'))`);
       insApp.run(createdJobIds[0], studentIds[0], 92, 'SHORTLISTED', 'Excited about the Android role! I have built several Kotlin Compose applications.');
+      insApp.run(createdJobIds[3], studentIds[1], 81, 'APPLIED', 'Keen to apply my Python and SQL work on a real data team.');
       insApp.run(createdJobIds[4], studentIds[1], 88, 'INTERVIEW', 'Passionate about deep learning pipelines and production model training.');
-      insApp.run(createdJobIds[2], studentIds[2], 82, 'APPLIED', 'Experienced in building fullstack React and Node applications.');
     }
 
     // 2. Career DNA

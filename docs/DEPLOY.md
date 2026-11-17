@@ -38,3 +38,19 @@ Data resets on every deploy and the service sleeps when idle. Switch back to Sta
 
 ## Railway: demo logins not working?
 The demo student and employer accounts (`student.one@example.test`, `hr@examplecorp.test`, password `Demo@12345`) only exist when the variable `SEED_DEMO=true` is set. Without it only the admin account exists and those logins return "incorrect". Add `SEED_DEMO=true` under Variables, let Railway redeploy, then sign in. Remove it again (or set `false`) before real users arrive, because the demo password is public. Real users can always create accounts with Create an account.
+
+## Live jobs (optional)
+
+The student Jobs page can also show real postings from a job board. Add these Railway variables (get free keys from adzuna.com/developer or jooble.org/api/about):
+
+| Variable | Value |
+|---|---|
+| `ADZUNA_APP_ID` / `ADZUNA_APP_KEY` | Adzuna credentials |
+| `ADZUNA_COUNTRY` | `in` (default) |
+| `JOOBLE_API_KEY` | Jooble key |
+
+Without them, the live search falls back to jobs posted by employers on LanTURN. Jobs posted by a verified HR account appear for every student straight away.
+
+## Auto-setup
+
+After a student uploads a resume, LanTURN fills the profile, adds skills, picks a direction, builds the roadmap and matches jobs. No AI quota is used. `student.three@example.test` is seeded blank on purpose (needs `SEED_DEMO=true`).

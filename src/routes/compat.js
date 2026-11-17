@@ -11,6 +11,7 @@ import { HttpError, bad, notFound, parse, wrap } from '../util.js';
 import { authenticate, requireRole, signAccess } from '../auth.js';
 import { publicUser } from './auth.js';
 import { skillByName } from '../ai/skills.js';
+import { searchLive, liveSources } from '../jobsExternal.js';
 
 export const compatRouter = Router();
 const admin = [authenticate, requireRole('ADMIN')];
@@ -57,14 +58,17 @@ compatRouter.patch('/notifications/:id/read', authenticate, wrap(async (req, res
   res.json({ ok: true });
 }));
 
-// POST /jobs/external-search: no external job-board key is configured, so search campus postings with the same response shape.
+// POST /jobs/external-search: live job board (Adzuna or Jooble) when a key is set, else campus postings in the same shape.
+compatRouter.get('/jobs/external-status', authenticate, wrap(async (_req, res) => res.json({ live: liveSources().length > 0, sources: liveSources() })));
 compatRouter.post('/jobs/external-search', authenticate, wrap(async (req, res) => {
   const b = parse(z.object({ keywords: z.string().trim().min(1).max(100), location: z.string().trim().max(80).optional().default(''), page: z.number().int().min(1).max(50).optional().default(1) }), req.body ?? {});
+  const live = await searchLive(b);
+  if (live) return res.json(live);
   const like = `%${b.keywords.toLowerCase()}%`;
   const loc = `%${b.location.toLowerCase()}%`;
   const rows = db.prepare(`SELECT j.*, e.company_name FROM jobs j LEFT JOIN employer_profiles e ON e.user_id = j.employer_id
     WHERE j.status = 'OPEN' AND (lower(j.title) LIKE ? OR lower(j.description) LIKE ?) AND lower(j.location) LIKE ? ORDER BY j.id DESC LIMIT 20 OFFSET ?`).all(like, like, loc, (b.page - 1) * 20);
-  res.json({ totalCount: rows.length, jobs: rows.map((j) => ({ id: `lt-${j.id}`, title: j.title, company: j.company_name || '', location: j.location || (j.remote ? 'Remote' : ''), snippet: j.description.slice(0, 220), salary: j.compensation, type: j.type, updated: j.created_at, link: `/#/jobs/${j.id}` })) });
+  res.json({ source: 'campus', totalCount: rows.length, jobs: rows.map((j) => ({ id: `lt-${j.id}`, title: j.title, company: j.company_name || '', location: j.location || (j.remote ? 'Remote' : ''), snippet: j.description.slice(0, 220), salary: j.compensation, type: j.type, updated: j.created_at, link: `#/student/jobs/${j.id}` })) });
 }));
 
 // Platform config (key/value)

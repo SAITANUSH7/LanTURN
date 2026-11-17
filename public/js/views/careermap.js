@@ -48,7 +48,7 @@ export function drawGraph(graph, onPick) {
   return svg;
 }
 
-function uploader(onDone) {
+export function uploader(onDone) {
   const needsConsent = !session.user.consentAt;
   const file = h('input', { type: 'file', accept: 'application/pdf,.pdf,image/png,image/jpeg,image/webp' });
   const name = h('span', { class: 'strong' }, 'Choose your resume (PDF or photo, max 4 MB)');
@@ -58,7 +58,7 @@ function uploader(onDone) {
   btn.onclick = () => busy(btn, async () => {
     if (needsConsent && !consent.checked) { toast('Please tick the consent box first.', 'error'); return; }
     const fd = new FormData(); fd.append('file', file.files[0]); if (consent.checked) fd.append('consent', 'true');
-    try { await api('POST', '/resumes', { form: fd }); await reloadUser(); toast('Resume read. Building your map…', 'success'); await onDone(); } catch (e) { toast(e.message, 'error'); }
+    try { await api('POST', '/resumes', { form: fd }); await reloadUser(); toast('Resume read. Setting everything up…', 'success'); await onDone(); } catch (e) { toast(e.message, 'error'); }
   }, 'Reading resume…');
   return h('div', { class: 'card stack' }, h('h3', null, 'Start from your resume'),
     h('label', { class: 'dropzone' }, icon('upload'), name, h('p', { class: 'muted' }, 'PDF, or a PNG, JPG or WebP photo.'), file),
@@ -76,7 +76,7 @@ export async function careerMap() {
   };
   const draw = (d) => {
     clear(host);
-    if (d.needsInput) { host.append(empty('route', 'No map yet', 'Upload your resume and LanTURN will chart every direction you can take, how far along each one you are, and what to do next.'), uploader(() => load())); return; }
+    if (d.needsInput) { host.append(empty('route', 'No map yet', 'Upload your resume and LanTURN will chart every direction you can take, how far along each one you are, and what to do next.'), uploader(() => { location.hash = '/student/setup'; })); return; }
     const insight = h('div', { class: 'card stack', hidden: true });
     const insightBtn = h('button', { class: 'btn btn--secondary', type: 'button' }, icon('sparkle'), 'Explain my map');
     insightBtn.onclick = () => busy(insightBtn, async () => {

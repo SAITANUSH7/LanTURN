@@ -65,7 +65,7 @@ export async function jobs({ query }) {
       h('div', { class: 'field' }, h('span', { class: 'label' }, 'Work mode'), h('label', { class: 'check', style: { minHeight: '46px', alignItems: 'center' } }, remoteEl, 'Remote only'))),
     h('div', { class: 'form-actions', style: { marginTop: '16px' } }, h('button', { class: 'btn', type: 'submit' }, icon('search'), 'Search')));
   load();
-  return wrapPage(pageHead('Jobs', 'Every card shows how well your skills match.'), form, results);
+  return wrapPage(pageHead('Jobs', 'Every card shows how well your skills match.'), form, results, liveJobs(() => qEl.value.trim() || f.q, () => locEl.value.trim()));
 }
 
 export async function jobDetail({ params }) {
@@ -157,10 +157,11 @@ export async function resume() {
     fd.append('file', file.files[0]);
     if (consent.checked) fd.append('consent', 'true');
     try {
-      await api('POST', '/resumes', { form: fd });
-      toast('Resume analysed', 'success');
+      const res = await api('POST', '/resumes', { form: fd });
+      toast('Resume analysed. Setting up your profile…', 'success');
       await reloadUser();
       file.value = ''; fileName.textContent = 'Choose a PDF or photo (max 4 MB)';
+      if (res?.setup) { location.hash = '/student/setup'; return; }
       await refresh();
     } catch (e) { toast(e.message, 'error'); }
   });
@@ -290,4 +291,25 @@ export async function profile() {
   skillBtn.onclick = () => busy(skillBtn, async () => { try { await put('/students/me/skills', { skillIds: [...mine.keys()] }); toast('Skills saved', 'success'); } catch (e) { toast(e.message, 'error'); } });
   const skillCard = h('div', { class: 'card stack' }, h('h3', null, 'Your skills'), chips, h('div', { class: 'picker' }, search, list), h('div', null, skillBtn));
   return wrapPage(pageHead('Profile', 'Employers and the matching engine use this to find your best fit.'), h('div', { class: 'grid grid--2', style: { alignItems: 'start' } }, profileForm, skillCard));
+}
+
+// Live job boards (Adzuna / Jooble when the administrator set a key); otherwise campus postings.
+function liveJobs(getQ, getLoc) {
+  const out = h('div', { class: 'stack' });
+  const q = input({ type: 'search', placeholder: 'e.g. react developer', 'aria-label': 'Live job search keywords' });
+  const btn = h('button', { class: 'btn btn--secondary', type: 'button' }, icon('search'), 'Search live job boards');
+  btn.onclick = () => busy(btn, async () => {
+    const keywords = (q.value || getQ()).trim();
+    if (!keywords) { toast('Type a keyword first.', 'error'); return; }
+    clear(out).append(loadingBlock(2));
+    try {
+      const d = await post('/jobs/external-search', { keywords, location: getLoc() });
+      clear(out);
+      out.append(h('p', { class: 'muted', 'aria-live': 'polite' }, d.source === 'campus' ? 'No live job board is connected yet, so these are campus postings.' : `${d.totalCount} result${d.totalCount === 1 ? '' : 's'} from ${d.source === 'adzuna' ? 'Adzuna' : 'Jooble'}. Opens on the employer site.`));
+      if (!d.jobs.length) out.append(empty('search', 'Nothing found', 'Try a broader keyword.'));
+      for (const j of d.jobs) out.append(h('a', { class: 'card card--link stack stack--sm', href: j.link, ...(j.link.startsWith('http') ? { target: '_blank', rel: 'noopener noreferrer' } : {}) },
+        h('strong', null, j.title), h('span', { class: 'muted' }, [j.company, j.location, j.salary].filter(Boolean).join(' · ')), h('p', { class: 'muted' }, j.snippet)));
+    } catch (e) { clear(out).append(errorBox(e, () => btn.click())); }
+  });
+  return h('section', { class: 'card stack' }, h('h3', null, 'Search beyond campus'), h('p', { class: 'muted' }, 'Look up live openings on public job boards.'), h('div', { class: 'row' }, q, btn), out);
 }
