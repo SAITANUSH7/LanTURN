@@ -1,4 +1,4 @@
-import { db, parseJson } from '../db.js';
+import { db, parseJson, dataVersion } from '../db.js';
 import { skillGap, preferenceMatch, freshness, matchScore } from '../ai/scoring.js';
 
 export const idParam = (v) => {
@@ -94,4 +94,16 @@ export function serializeAnalysis(a) {
     error: a.error,
     createdAt: a.created_at,
   };
+}
+
+// ---- Open-jobs bundle: every student's job list needs the same rows + skills, so load them once per change. ----
+let bundle = { v: -1, rows: [], skills: new Map(), byId: new Map() };
+/** All jobs that match `where`'s open filter, with their required skills. Re-read only when the jobs data version moves. */
+export function openJobsBundle() {
+  const v = dataVersion('jobs');
+  if (bundle.v === v && Date.now() - (bundle.at || 0) < 60_000) return bundle; // 60 s backstop for the date-based deadline filter
+  const rows = db.prepare(`${JOB_SELECT} WHERE j.status = 'OPEN' AND (j.deadline IS NULL OR j.deadline >= date('now')) ORDER BY j.created_at DESC, j.id DESC`).all();
+  const skills = loadJobSkills(rows.map((r) => r.id));
+  bundle = { v, at: Date.now(), rows, skills, byId: new Map(rows.map((r) => [r.id, r])) };
+  return bundle;
 }

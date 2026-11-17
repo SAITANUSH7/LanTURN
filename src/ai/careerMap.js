@@ -5,7 +5,15 @@ const STOP = new Set(['and', 'the', 'for', 'with', 'using', 'into', 'from', 'you
 const KEEP_SHORT = new Set(['ui', 'ux', 'ci', 'cd', 'ml', 'ai', 'qa', 'db', 'c#', 'c++', 'go', 'js', 'ts', 'os', 'ar', 'vr', 'css', 'sql', 'api', 'git', 'aws', 'gcp', 'xss', 'jwt', 'seo', 'rag', 'llm', 'nlp', 'cnn', 'rnn', 'gan', 'etl']);
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
 
+const tokCache = new Map();
 export const tokens = (text) => {
+  const hit = tokCache.get(text);
+  if (hit) return hit;
+  const out = tokensRaw(text);
+  if (tokCache.size < 5000) tokCache.set(text, out);
+  return out;
+};
+const tokensRaw = (text) => {
   const raw = String(text).toLowerCase().match(/[a-z0-9+#.]+/g) || [];
   const clean = raw.map((t) => t.replace(/^\.+|\.+$/g, '')).filter(Boolean);
   const sig = [...new Set(clean.filter((t) => !STOP.has(t) && (t.length >= 3 || KEEP_SHORT.has(t))))];

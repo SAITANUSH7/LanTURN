@@ -378,6 +378,29 @@ for (const col of ['headline TEXT NOT NULL DEFAULT \'\'', 'target_domain TEXT', 
 }
 db.exec('CREATE TABLE IF NOT EXISTS app_flags (key TEXT PRIMARY KEY, value TEXT NOT NULL)');
 
+// Change counters: triggers bump these on ANY write (routes, seed, scripts), so in-process caches can validate
+// themselves with one primary-key lookup instead of relying on every call site to remember to invalidate.
+db.exec(`
+CREATE TABLE IF NOT EXISTS data_versions (name TEXT PRIMARY KEY, v INTEGER NOT NULL DEFAULT 0);
+INSERT OR IGNORE INTO data_versions (name, v) VALUES ('jobs', 0);
+CREATE TRIGGER IF NOT EXISTS trg_jobs_ins AFTER INSERT ON jobs BEGIN UPDATE data_versions SET v = v + 1 WHERE name = 'jobs'; END;
+CREATE TRIGGER IF NOT EXISTS trg_jobs_upd AFTER UPDATE ON jobs BEGIN UPDATE data_versions SET v = v + 1 WHERE name = 'jobs'; END;
+CREATE TRIGGER IF NOT EXISTS trg_jobs_del AFTER DELETE ON jobs BEGIN UPDATE data_versions SET v = v + 1 WHERE name = 'jobs'; END;
+CREATE TRIGGER IF NOT EXISTS trg_jskills_ins AFTER INSERT ON job_skills BEGIN UPDATE data_versions SET v = v + 1 WHERE name = 'jobs'; END;
+CREATE TRIGGER IF NOT EXISTS trg_jskills_upd AFTER UPDATE ON job_skills BEGIN UPDATE data_versions SET v = v + 1 WHERE name = 'jobs'; END;
+CREATE TRIGGER IF NOT EXISTS trg_jskills_del AFTER DELETE ON job_skills BEGIN UPDATE data_versions SET v = v + 1 WHERE name = 'jobs'; END;
+CREATE TRIGGER IF NOT EXISTS trg_empprof_upd AFTER UPDATE ON employer_profiles BEGIN UPDATE data_versions SET v = v + 1 WHERE name = 'jobs'; END;
+CREATE TRIGGER IF NOT EXISTS trg_skills_upd AFTER UPDATE ON skills BEGIN UPDATE data_versions SET v = v + 1 WHERE name = 'jobs'; END;
+
+CREATE INDEX IF NOT EXISTS idx_student_skills_skill ON student_skills(skill_id);
+CREATE INDEX IF NOT EXISTS idx_job_skills_skill ON job_skills(skill_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_type_link ON notifications(type, link);
+CREATE INDEX IF NOT EXISTS idx_apps_job_status ON applications(job_id, status);
+CREATE INDEX IF NOT EXISTS idx_refresh_user ON refresh_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
+`);
+export const dataVersion = (name) => db.prepare('SELECT v FROM data_versions WHERE name = ?').get(name)?.v ?? 0;
+
 /** Run fn inside a transaction; rolls back on throw. */
 export function tx(fn) {
   db.exec('BEGIN');

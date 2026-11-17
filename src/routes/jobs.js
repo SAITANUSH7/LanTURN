@@ -4,13 +4,13 @@ import { z } from 'zod';
 import { db, tx } from '../db.js';
 import { conflict, notFound, forbidden, parse, wrap, page } from '../util.js';
 import { authenticate, requireRole } from '../auth.js';
-import { idParam, studentContext, loadJobSkills, serializeJob, JOB_SELECT, matchFor, recordEvent, eventsFor } from './common.js';
+import { idParam, studentContext, loadJobSkills, serializeJob, JOB_SELECT, matchFor, recordEvent, eventsFor, openJobsBundle } from './common.js';
 
 export const jobsRouter = Router();
 const open = "j.status = 'OPEN' AND (j.deadline IS NULL OR j.deadline >= date('now'))";
 
-function withMatches(rows, req) {
-  const skills = loadJobSkills(rows.map((r) => r.id));
+function withMatches(rows, req, preloaded) {
+  const skills = preloaded || loadJobSkills(rows.map((r) => r.id));
   const ctx = req.user.role === 'STUDENT' ? studentContext(req.user.id) : null;
   const applied = ctx
     ? new Set(db.prepare('SELECT job_id FROM applications WHERE student_id = ?').all(req.user.id).map((r) => r.job_id))
@@ -41,6 +41,11 @@ jobsRouter.get('/jobs', authenticate, wrap(async (req, res) => {
   if (req.query.remote === 'true') where.push('j.remote = 1');
   const skillId = idParam(req.query.skillId);
   if (skillId > 0) { where.push('EXISTS (SELECT 1 FROM job_skills js WHERE js.job_id = j.id AND js.skill_id = ?)'); args.push(skillId); }
+  if (!args.length && where.length === 1 && req.query.remote !== 'true') {
+    // Unfiltered first-page browsing is the hottest read: serve it from the cached bundle.
+    const b = openJobsBundle();
+    return res.json({ items: withMatches(b.rows.slice(offset, offset + pageSize), req, b.skills), page: p, pageSize, total: b.rows.length });
+  }
   const clause = where.join(' AND ');
   const total = db.prepare(`SELECT COUNT(*) AS n FROM jobs j LEFT JOIN employer_profiles e ON e.user_id = j.employer_id WHERE ${clause}`).get(...args).n;
   const rows = db.prepare(`${JOB_SELECT} WHERE ${clause} ORDER BY j.created_at DESC, j.id DESC LIMIT ? OFFSET ?`).all(...args, pageSize, offset);
@@ -48,9 +53,13 @@ jobsRouter.get('/jobs', authenticate, wrap(async (req, res) => {
 }));
 
 jobsRouter.get('/jobs/recommended', authenticate, requireRole('STUDENT'), wrap(async (req, res) => {
-  const rows = db.prepare(`${JOB_SELECT} WHERE ${open}`).all();
-  const items = withMatches(rows, req).filter((j) => !j.applied).sort((a, b) => b.match.score - a.match.score).slice(0, 20);
-  res.json({ items });
+  // Score every open job (cheap, from the cached bundle), then serialize only the 20 that will be returned.
+  const { rows, skills } = openJobsBundle();
+  const ctx = studentContext(req.user.id);
+  const applied = new Set(db.prepare('SELECT job_id FROM applications WHERE student_id = ?').all(req.user.id).map((r) => r.job_id));
+  const ranked = rows.filter((r) => !applied.has(r.id)).map((r) => ({ r, m: matchFor(r, skills.get(r.id), ctx) })).sort((a, b) => b.m.score - a.m.score).slice(0, 20);
+  const saved = new Set(db.prepare('SELECT job_id FROM saved_jobs WHERE user_id = ?').all(req.user.id).map((r) => r.job_id));
+  res.json({ items: ranked.map(({ r, m }) => ({ ...serializeJob(r, skills.get(r.id)), match: { score: m.score, skillMatch: m.skillMatch, matchedCount: m.matched.length, missingCount: m.missing.length }, applied: false, isSaved: saved.has(r.id) })) });
 }));
 
 jobsRouter.get('/jobs/saved', authenticate, requireRole('STUDENT'), wrap(async (req, res) => {

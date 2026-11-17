@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { Router } from 'express';
 import { z } from 'zod';
 import { db } from '../db.js';
@@ -29,8 +30,18 @@ export function computeCareerMap(userId, focus) {
     manual.get(r.domain_id).add(`${r.stage_index}-${r.topic_index}`);
   }
   if (focus && !CAREER_DOMAINS.some((d) => d.id === focus)) throw notFound('Unknown career domain');
-  return { map: buildCareerMap({ name: p?.full_name, text, skills: [...merged.values()], domains: CAREER_DOMAINS, jobs, manual, focus }), resumeId: resume?.id ?? null };
+  // Memoised on the exact inputs (hash), so it is always correct and a repeat view costs about a millisecond.
+  const skillList = [...merged.values()];
+  const key = crypto.createHash('sha1').update(JSON.stringify([p?.full_name, text, skillList, jobs, [...manual].map(([k, v]) => [k, [...v].sort()]), focus || ''])).digest('hex');
+  let map = MAP_CACHE.get(key);
+  if (!map) {
+    map = buildCareerMap({ name: p?.full_name, text, skills: skillList, domains: CAREER_DOMAINS, jobs, manual, focus });
+    MAP_CACHE.set(key, map);
+    if (MAP_CACHE.size > 400) MAP_CACHE.delete(MAP_CACHE.keys().next().value);
+  }
+  return { map, resumeId: resume?.id ?? null };
 }
+const MAP_CACHE = new Map();
 
 // GET /career/map?domain=backend: deterministic graph from the latest resume + profile skills. Free, no AI quota.
 careerMapRouter.get('/career/map', ...student, wrap(async (req, res) => {

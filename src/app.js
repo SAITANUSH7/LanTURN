@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import express from 'express';
 import helmet from 'helmet';
+import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import multer from 'multer';
 import { ROOT, config } from './config.js';
@@ -36,6 +37,7 @@ export function createApp() {
     next();
   });
   app.use(requestMetrics);
+  app.use(compression({ threshold: 1024, filter: (req, res) => (req.path.endsWith('/realtime/stream') ? false : compression.filter(req, res)) }));
 
   app.use(helmet({
     contentSecurityPolicy: {
@@ -59,7 +61,7 @@ export function createApp() {
   app.use('/api', apiHeaders);
   app.use('/api/auth', sameOriginGuard);
 
-  if (!config.isTest) {
+  if (!config.isTest && process.env.DISABLE_RATE_LIMIT !== '1') { // DISABLE_RATE_LIMIT is for load tests only
     const limiter = (max, windowMs = 60_000) => rateLimit({ windowMs, max, standardHeaders: true, legacyHeaders: false, message: { error: { code: 'RATE_LIMITED', message: 'Too many requests, slow down.' } } });
     app.use('/api', limiter(240));
     app.use('/api/auth/login', limiter(10));
@@ -75,7 +77,9 @@ export function createApp() {
     res.json({ status: 'ok', ai: llmEnabled() ? 'llm+rules' : 'rules', providers: providerSummary().map((p) => p.name), time: new Date().toISOString() });
   });
 
+  let statsCache = { at: 0, body: null };
   app.get('/api/platform/stats', (_req, res) => {
+    if (statsCache.body && Date.now() - statsCache.at < 10_000) return res.json(statsCache.body);
     const one = (sql) => (db.prepare(sql).get()?.n || 0);
 
     const studentsCount = one("SELECT COUNT(*) AS n FROM users WHERE role = 'STUDENT'");
@@ -85,7 +89,7 @@ export function createApp() {
     const verifiedSkillsCount = one("SELECT COUNT(*) AS n FROM skill_medals");
     const upcomingDrivesCount = one("SELECT COUNT(*) AS n FROM placement_drives WHERE status = 'UPCOMING'");
 
-    res.json({
+    const body = {
       studentsCount,
       employersCount,
       openJobsCount,
@@ -93,7 +97,9 @@ export function createApp() {
       verifiedSkillsCount,
       upcomingDrivesCount,
       college: config.collegeName,
-    });
+    };
+    statsCache = { at: Date.now(), body };
+    res.json(body);
   });
 
   app.use('/api/auth', authRouter);
