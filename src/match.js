@@ -14,7 +14,7 @@ export function matchManyJs(skillIds, offsets, reqIds, reqWeights) {
   for (let s = 0; s < n; s++) {
     let have = 0;
     for (let k = offsets[s]; k < offsets[s + 1]; k++) { const w = want.get(skillIds[k]); if (w) have += w; }
-    out[s] = Math.round((have / total) * 100);
+    out[s] = Math.floor((200 * have + total) / (2 * total)); // integer round-half-up: no float drift, identical in C++
   }
   return out;
 }
