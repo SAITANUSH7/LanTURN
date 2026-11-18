@@ -1,41 +1,63 @@
-name: LanTURN 3.0 CI
-
+name: LanTURN CI
 on:
-  push:
-    branches: [ main, master, feature/** ]
+  push: { branches: [main] }
   pull_request:
-    branches: [ main, master ]
 
 jobs:
-  test:
-    name: Build & Test (Node ${{ matrix.node-version }})
+  node:
     runs-on: ubuntu-latest
+    name: Node ${{ matrix.node-version }} (${{ matrix.native }})
     strategy:
       matrix:
-        node-version: [ 22.x, 24.x ]
-
+        node-version: [22.x, 24.x]
+        native: ['with C++ core', 'JS only']
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'npm'
-
-      - name: Install Backend Dependencies
-        run: npm ci
-
-      - name: Install Frontend Dependencies
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '${{ matrix.node-version }}', cache: npm }
+      - run: npm ci
+      - name: Build React SPA (experimental frontend)
         working-directory: ./frontend
-        run: npm ci
-
-      - name: Build React SPA Frontend
-        run: npm run build:frontend
-
-      - name: Run Automated Test Suite (All 5 Suites, 27 Tests)
+        run: npm ci && npm run build
+      - name: Build C++ core
+        if: matrix.native == 'with C++ core'
+        run: npm run build:native
+      - name: Tests
         run: npm test
-
-      - name: Verify Full Demo Seeder
+        env:
+          DISABLE_NATIVE: ${{ matrix.native == 'JS only' && '1' || '' }}
+      - name: Verify demo seeder
         run: npm run seed
+
+  python:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: services/nlp } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12', cache: pip, cache-dependency-path: services/nlp/requirements-dev.txt }
+      - run: pip install -r requirements-dev.txt
+      - run: python -m pytest -q tests
+
+  load-smoke:
+    runs-on: ubuntu-latest
+    needs: node
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm run build:native
+      - name: Load test (fails if any endpoint errors)
+        run: BENCH_JSON=bench.json node scripts/bench.mjs 1500 200 3 16
+      - name: Fail on errors
+        run: node -e "const r=require('./bench.json');const bad=r.filter(x=>x.errors>0);if(bad.length){console.error(bad);process.exit(1)}"
+      - uses: actions/upload-artifact@v4
+        with: { name: bench, path: bench.json }
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t lanturn .
+      - run: docker build -t lanturn-nlp services/nlp
