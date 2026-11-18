@@ -1,0 +1,1684 @@
+[
+ {
+  "id": "frontend",
+  "title": "Frontend Development",
+  "category": "Software Engineering",
+  "description": "Build stunning, interactive web interfaces using modern HTML, CSS, JavaScript, React, and Next.js.",
+  "topics": [
+   "HTML5 Semantic Elements",
+   "CSS Box Model & Sizing",
+   "Flexbox Alignment & Layouts",
+   "CSS Grid Systems",
+   "Responsive Media Queries",
+   "CSS Variables & Custom Properties",
+   "Forms & ARIA Accessibility",
+   "Variables, Scope & Hoisting",
+   "Functions, Closures & Lexical Scope",
+   "DOM Manipulation & Event Bubbling",
+   "Promises, Async/Await & Fetch API",
+   "ES6+ Destructuring & Modules",
+   "Error Handling & Try/Catch",
+   "Browser LocalStorage & SessionStorage",
+   "JSX & Virtual DOM",
+   "Props, State & Component Lifecycle",
+   "Hooks (useState, useEffect, useRef, useMemo)",
+   "Custom React Hooks",
+   "React Router v6 Navigation",
+   "Context API State Management",
+   "React Performance Optimization",
+   "Vite Build Tool & Dev Server",
+   "ESLint & Prettier Setup",
+   "Git Branching & Pull Request Workflows",
+   "Unit Testing with Vitest",
+   "Component Testing with React Testing Library",
+   "npm / pnpm Package Management",
+   "TypeScript Generics & Interfaces",
+   "Next.js App Router & SSR/SSG/ISR",
+   "Core Web Vitals & Lazy Loading",
+   "TailwindCSS Styling Architecture",
+   "PWA & Service Worker Caching",
+   "WCAG Accessibility Compliance"
+  ],
+  "stages": [
+   {
+    "title": "Web Foundations",
+    "description": "Master HTML5 semantic markup, CSS layout systems, Flexbox, CSS Grid, and responsive design."
+   },
+   {
+    "title": "JavaScript Deep Dive",
+    "description": "Master core JavaScript — execution context, closures, async/await, DOM events, and ES6+ features."
+   },
+   {
+    "title": "React & Component Architecture",
+    "description": "Construct scalable UIs with React, custom hooks, context, and modern state management."
+   },
+   {
+    "title": "Frontend Tooling & Testing",
+    "description": "Master Vite build tools, package managers, ESLint, Git workflows, and component testing."
+   },
+   {
+    "title": "Advanced Next.js & Performance",
+    "description": "Server-side rendering, App Router, TypeScript, Web Vitals, and PWA capabilities."
+   }
+  ],
+  "projects": [
+   "Personal Portfolio Website. Build a responsive personal portfolio with theme toggles, smooth scroll, and accessible forms.",
+   "Live Weather Dashboard. Build a weather app using OpenWeather API with geolocation, search, and dynamic forecast cards.",
+   "Collaborative Kanban Task Board. Build a full-featured task board with column drag-and-drop, category filters, and local persistence.",
+   "Design System Component Library. Build a reusable UI library documented with Storybook and 100% test coverage.",
+   "Full-Stack SaaS Platform. Build a production SaaS application with Next.js App Router, SSR dashboard, and payment checkout."
+  ]
+ },
+ {
+  "id": "backend",
+  "title": "Backend Development",
+  "category": "Software Engineering",
+  "description": "Design and build scalable APIs, database schemas, server architectures, and background services.",
+  "topics": [
+   "Node.js Event Loop & Architecture",
+   "CommonJS vs ESM Modules",
+   "Buffer & Stream Manipulation",
+   "File System Operations",
+   "Working with JSON & Environment Variables",
+   "Command Line Shell Automation",
+   "HTTP Methods & Status Codes",
+   "Express Routing & Middleware Architecture",
+   "Request Input Validation with Zod",
+   "Centralized Error Handling Patterns",
+   "CORS & Security Headers (Helmet)",
+   "API Rate Limiting & Versioning",
+   "SQL Queries (JOINs, Aggregations, Subqueries)",
+   "PostgreSQL Database Administration",
+   "Database Schema Normalization",
+   "Prisma ORM & Drizzle ORM",
+   "Database Indexes & Query Tuning",
+   "MongoDB Document Modeling & Aggregations",
+   "JWT & Session Authentication",
+   "OAuth 2.0 & Google Social Login",
+   "Password Hashing (bcrypt / argon2)",
+   "Role-Based Access Control (RBAC)",
+   "OWASP Top 10 Security Protection",
+   "HTTPS & SSL/TLS Encryption",
+   "Redis In-Memory Caching",
+   "BullMQ Background Job Queues",
+   "Docker Containerization",
+   "CI/CD Pipelines (GitHub Actions)",
+   "Centralized Logging & Monitoring",
+   "Load Balancing Concepts"
+  ],
+  "stages": [
+   {
+    "title": "Node.js & Server Fundamentals",
+    "description": "Master Node.js runtime, asynchronous event loop, modules, and file system operations."
+   },
+   {
+    "title": "RESTful APIs & Express.js",
+    "description": "Build secure, structured REST APIs with Express, validation, and error handling."
+   },
+   {
+    "title": "Relational & NoSQL Databases",
+    "description": "Design schemas, query data with SQL, and use PostgreSQL, MongoDB, and Prisma ORM."
+   },
+   {
+    "title": "Authentication & Security",
+    "description": "Implement JWT tokens, OAuth 2.0, password hashing, and security best practices."
+   },
+   {
+    "title": "Caching, Queues & Deployment",
+    "description": "Scale backend applications with Redis caching, BullMQ queues, Docker, and CI/CD."
+   }
+  ],
+  "projects": [
+   "CLI File Processor & Task Manager. Build a command-line tool that parses JSON/CSV files and manages tasks via terminal arguments.",
+   "Multi-User Blog REST API. Build a REST API featuring user registration, post management, comments, and pagination.",
+   "E-Commerce Backend Engine. Build a backend with product catalogs, shopping carts, checkout orders, and complex relational queries.",
+   "Standalone Authentication Service. Build an auth microservice supporting access/refresh tokens, password resets, and 2FA.",
+   "Scalable Microservice Platform. Deploy an Express backend with Redis caching, BullMQ worker queues, Docker, and CI/CD."
+  ]
+ },
+ {
+  "id": "fullstack",
+  "title": "Full Stack Development",
+  "category": "Software Engineering",
+  "description": "Master both frontend and backend to build complete, production-ready web applications end-to-end.",
+  "topics": [
+   "HTML5 Semantic Markup",
+   "CSS Layouts (Flexbox + Grid)",
+   "Responsive Mobile Design",
+   "JavaScript ES6+ Syntax",
+   "DOM Manipulation & Fetch API",
+   "Git & Version Control",
+   "React JSX & Component Architecture",
+   "useState & useEffect Hooks",
+   "React Router Navigation",
+   "Global State Management",
+   "TanStack Query for Data Fetching",
+   "Node.js Runtime & Express.js",
+   "REST API Architecture",
+   "Middleware & Zod Validation",
+   "JWT Authentication & Cookies",
+   "Error Handling Standards",
+   "PostgreSQL Database Schemas",
+   "Database Normalization",
+   "Prisma ORM & Migrations",
+   "Complex SQL JOINs",
+   "Data Indexing",
+   "TypeScript (Frontend + Backend)",
+   "Next.js App Router Full Stack",
+   "Docker Containerization",
+   "CI/CD Pipelines (GitHub Actions)",
+   "WebSockets Realtime Engine",
+   "Testing (Vitest + Supertest)"
+  ],
+  "stages": [
+   {
+    "title": "Full Stack Web Foundations",
+    "description": "HTML, CSS, JavaScript ES6+, DOM manipulation, and Git basics."
+   },
+   {
+    "title": "React Frontend Applications",
+    "description": "Build component-driven single page applications in React."
+   },
+   {
+    "title": "Node.js & Express APIs",
+    "description": "Create backend REST APIs, authentication, and validation middleware."
+   },
+   {
+    "title": "Database & Data Modeling",
+    "description": "Relational data modeling, PostgreSQL, Prisma ORM, and migrations."
+   },
+   {
+    "title": "Production Deployment & DevOps",
+    "description": "Deploy full-stack applications with TypeScript, Next.js, Docker, and CI/CD."
+   }
+  ],
+  "projects": [
+   "Interactive Multi-page Site. Build a responsive multi-page web app with backend contact form handling.",
+   "Social Media Feed App. Build a frontend social media application with real-time post creation, likes, and filters.",
+   "Secure API with JWT Auth. Build a secure REST API handling user accounts, roles, and resource management.",
+   "Full-Stack Blog & Forum Platform. Build a blog platform with accounts, posts, nested comments, and PostgreSQL database.",
+   "Production SaaS Starter Kit. Ship a full SaaS web app with authentication, user dashboard, payments, Docker, and CI/CD."
+  ]
+ },
+ {
+  "id": "sysarch",
+  "title": "Software & System Architect",
+  "category": "Software Engineering",
+  "description": "Design highly scalable, resilient, and fault-tolerant distributed systems and microservices.",
+  "topics": [
+   "CAP & PACELC Theorem",
+   "Latency, Throughput & Bandwidth",
+   "Load Balancing Algorithms (Round Robin, Least Conn)",
+   "Forward & Reverse Proxies (Nginx)",
+   "Distributed Caching (Redis/Memcached)",
+   "CDN Architecture & Edge Caching",
+   "Domain-Driven Design (DDD)",
+   "API Gateways & Service Mesh (Istio)",
+   "Event Sourcing & CQRS Pattern",
+   "Message Brokers (Apache Kafka & RabbitMQ)",
+   "Saga Pattern for Distributed Transactions",
+   "gRPC vs REST vs GraphQL",
+   "Database Sharding & Horizontal Partitioning",
+   "Consistent Hashing Algorithms",
+   "Replication Topologies (Primary-Replica, Multi-Master)",
+   "Consensus Protocols (Raft / Paxos)",
+   "NoSQL vs Relational Storage Tradeoffs",
+   "Distributed Transactions (2PC)",
+   "Circuit Breakers & Bulkheads",
+   "Rate Limiting Algorithms (Leaky Bucket, Token Bucket)",
+   "Disaster Recovery (RTO/RPO)",
+   "Multi-Region High Availability Deployment",
+   "Chaos Engineering Principles",
+   "Architecture Decision Records (ADRs)",
+   "Strangler Fig Monolith Migration Pattern",
+   "Evaluating Tech Debt & Cost Optimization",
+   "System Observability Strategy",
+   "Technical Leadership & Governance"
+  ],
+  "stages": [
+   {
+    "title": "System Design Fundamentals",
+    "description": "Master distributed system concepts, CAP theorem, and performance tradeoffs."
+   },
+   {
+    "title": "Microservices & Event-Driven Architecture",
+    "description": "Decompose monolithic systems into decoupled microservices with event streaming."
+   },
+   {
+    "title": "Distributed Storage & Scaling",
+    "description": "Scale database architectures for massive write/read throughput."
+   },
+   {
+    "title": "High Availability & Fault Tolerance",
+    "description": "Ensure 99.999% system uptime and resilience against failures."
+   },
+   {
+    "title": "Architectural Governance & Refactoring",
+    "description": "Guide technical debt reduction, ADRs, and monolith refactoring."
+   }
+  ],
+  "projects": [
+   "Global URL Shortener System Design. Draft an architectural spec for a global URL shortener handling 1 billion links/day.",
+   "Event-Driven E-Commerce Architecture. Design an event-driven order processing engine using Kafka streams and Saga transactions.",
+   "Distributed Key-Value Store Architecture. Design a distributed key-value store with consistent hashing and leaderless replication.",
+   "Multi-Region Failover Architecture Spec. Design an automated multi-region active-active disaster recovery architecture.",
+   "Monolith to Microservices Refactoring Spec. Write an ADR and migration roadmap for refactoring a legacy monolith into microservices."
+  ]
+ },
+ {
+  "id": "qa",
+  "title": "QA & Test Automation",
+  "category": "Software Engineering",
+  "description": "Ensure software quality by building robust automated testing frameworks and CI pipelines.",
+  "topics": [
+   "Test Pyramid & Testing Strategies",
+   "Manual vs Automated Testing",
+   "Writing Effective Test Cases & Scripts",
+   "Bug Reporting Lifecycles & Jira",
+   "Exploratory & Edge Case Testing",
+   "Agile QA Integration",
+   "JavaScript / TypeScript Fundamentals",
+   "DOM Locators (CSS Selectors, XPath)",
+   "Async/Await in Automation",
+   "Jest & Vitest Unit Test Frameworks",
+   "Test Assertions & Mocking",
+   "REST API Verification Principles",
+   "Postman Automated Test Collections",
+   "Newman CLI Runner",
+   "Supertest for Node.js API Testing",
+   "Mocking API Responses & Contracts",
+   "Playwright & Cypress Setup",
+   "Page Object Model (POM) Architecture",
+   "Handling Dynamic Elements & Waits",
+   "Network Request Interception",
+   "Cross-Browser Testing",
+   "Visual Regression Testing",
+   "GitHub Actions Pipeline Integration",
+   "Running Tests inside Docker Containers",
+   "Parallel Test Execution at Scale",
+   "Test Reporting (Allure HTML Reports)",
+   "Flaky Test Detection & Management"
+  ],
+  "stages": [
+   {
+    "title": "Software Testing Fundamentals",
+    "description": "Learn core QA principles, manual testing, test plans, and bug lifecycle."
+   },
+   {
+    "title": "Programming & Unit Testing",
+    "description": "Learn JavaScript/TypeScript programming for test automation."
+   },
+   {
+    "title": "API Test Automation",
+    "description": "Automate backend API testing without a user interface."
+   },
+   {
+    "title": "End-to-End Web Automation",
+    "description": "Automate real browser user journeys using Playwright and Cypress."
+   },
+   {
+    "title": "CI/CD & DevOps for QA",
+    "description": "Integrate automated test execution into CI pipelines."
+   }
+  ],
+  "projects": [
+   "Comprehensive Test Suite Plan. Draft a full test plan and 20 manual test cases for an e-commerce checkout flow.",
+   "Unit Testing Framework Suite. Write a unit test suite testing utility libraries using Vitest and Jest.",
+   "Automated REST API Test Suite. Build an automated API test suite verifying user login, CRUD operations, and security headers.",
+   "Playwright E2E Testing Framework. Build a Page Object Model test suite in Playwright testing user registration and payment flows.",
+   "CI/CD Automated Testing Pipeline. Configure GitHub Actions to execute Playwright E2E tests on pull requests and generate reports."
+  ]
+ },
+ {
+  "id": "gamedev",
+  "title": "Game Development",
+  "category": "Software Engineering",
+  "description": "Design and program interactive 2D and 3D video games using C# and engines like Unity or Unreal.",
+  "topics": [
+   "C# / C++ Syntax & OOP Principles",
+   "Vector Math (2D & 3D Vectors, Dot/Cross Product)",
+   "Memory Allocation & Pointers",
+   "Data Structures (Lists, Dictionaries)",
+   "Events & Delegates",
+   "Unity Engine Interface & Scene View",
+   "GameObjects, Components & Prefabs",
+   "Rigidbody Physics & Colliders",
+   "Input System Configuration",
+   "Canvas UI & Menus",
+   "Finite State Machines for Animation",
+   "Custom Character Controllers",
+   "Enemy AI & NavMesh Pathfinding",
+   "Raycasting & Hit Detection",
+   "Object Pooling Optimization",
+   "Materials & Shader Graph",
+   "Lighting Setup & Lightmaps",
+   "Particle VFX Systems",
+   "Audio Mixers & Sound Effects",
+   "Camera Shake & Post-Processing",
+   "Unity Profiler Tools",
+   "Draw Call Reduction & Batching",
+   "Memory & Garbage Collection Optimization",
+   "Build Settings for PC/Mobile",
+   "Publishing on Steam & Itch.io"
+  ],
+  "stages": [
+   {
+    "title": "Programming Basics (C# / C++)",
+    "description": "Learn object-oriented programming and vector math for game engines."
+   },
+   {
+    "title": "Game Engine Fundamentals",
+    "description": "Master Unity or Unreal Engine UI, game objects, physics, and input systems."
+   },
+   {
+    "title": "Gameplay Programming & AI",
+    "description": "Build state machines, player controllers, and enemy AI."
+   },
+   {
+    "title": "Graphics, VFX & Audio Polish",
+    "description": "Enhance visual aesthetics with shaders, lighting, particles, and sound."
+   },
+   {
+    "title": "Optimization & Publishing",
+    "description": "Profile performance, batch draw calls, and ship to stores."
+   }
+  ],
+  "projects": [
+   "Text-Based RPG Game. Build a console-based RPG text adventure game using OOP principles in C#.",
+   "2D/3D Physics Platformer. Build a platformer game with player movement, jumping, collision detection, and coin collection.",
+   "Top-Down Arena Shooter. Build a top-down arena shooter with enemy AI pathfinding, weapon firing, and wave spawning.",
+   "Game Polish & Juice Pass. Take a game prototype and add particle explosions, camera shake, lighting, and sound effects.",
+   "Published Game Release. Optimize your game project to run at a solid 60FPS and publish it on Itch.io."
+  ]
+ },
+ {
+  "id": "compilers",
+  "title": "Compiler & Systems Programmer",
+  "category": "Software Engineering",
+  "description": "Build programming languages, lexers, parsers, ASTs, LLVM IR, and low-level system runtimes.",
+  "topics": [
+   "Pointers, References & Addresses",
+   "Manual Allocation (malloc/free)",
+   "x86/ARM Assembly Basics",
+   "Compilers, Linkers & Makefiles",
+   "GDB Debugging & Valgrind",
+   "Lexical Analysis & Tokenizers",
+   "Context-Free Grammars & EBNF",
+   "Recursive Descent Parsers",
+   "Abstract Syntax Tree (AST) Nodes",
+   "Operator Precedence Parsing",
+   "Symbol Tables & Scope Stack",
+   "Static Type Systems & Checking",
+   "Type Inference (Hindley-Milner)",
+   "AST Transformations & Optimizations",
+   "LLVM Infrastructure & API",
+   "Generating LLVM IR",
+   "Register Allocation Algorithms",
+   "Control Flow Graphs (CFG)",
+   "Target Machine Code Emission",
+   "Mark-and-Sweep Garbage Collection",
+   "Reference Counting Runtimes",
+   "Foreign Function Interfaces (FFI)",
+   "JIT Compilation Concepts",
+   "Runtime Error Handling"
+  ],
+  "stages": [
+   {
+    "title": "C/C++ & Low-Level Memory",
+    "description": "Pointers, stack vs heap, manual memory management, and assembly code."
+   },
+   {
+    "title": "Lexing, Parsing & AST",
+    "description": "Tokenizers, recursive descent parsers, and abstract syntax trees."
+   },
+   {
+    "title": "Semantic Analysis & Type Checking",
+    "description": "Symbol tables, scope resolution, and static type checking."
+   },
+   {
+    "title": "Code Generation & LLVM IR",
+    "description": "Translate AST into intermediate representation and native machine code."
+   },
+   {
+    "title": "Language Runtimes & Garbage Collection",
+    "description": "Design runtimes, foreign function interfaces (FFI), and garbage collectors."
+   }
+  ],
+  "projects": [
+   "Custom Thread-Safe Memory Allocator. Write a custom thread-safe `malloc` and `free` implementation in C.",
+   "Scripting Language Interpreter. Build an interpreter for a custom programming language supporting variables and loops.",
+   "Type Checker Engine. Implement static type checking and scope resolution for your custom programming language.",
+   "LLVM Language Compiler Backend. Build a compiler backend that compiles custom language source code to LLVM IR and executable binaries.",
+   "Custom Runtime Engine with GC. Build a runtime engine with a mark-and-sweep garbage collector for your language."
+  ]
+ },
+ {
+  "id": "microservices",
+  "title": "Microservices Platform Engineer",
+  "category": "Software Engineering",
+  "description": "Architect modular microservices, API gateways, gRPC contracts, and distributed service meshes.",
+  "topics": [
+   "Monolith vs Microservices Tradeoffs",
+   "Domain-Driven Design (DDD) Bounded Contexts",
+   "OpenAPI / Swagger Specs",
+   "Versioning & Breaking Changes",
+   "Protocol Buffer Schemas",
+   "gRPC Unary & Streaming Calls",
+   "gRPC Gateways for HTTP JSON",
+   "Protobuf Code Generation",
+   "API Gateway Routing (Kong/Envoy)",
+   "Service Mesh (Istio / Linkerd)",
+   "mTLS Inter-Service Security",
+   "Traffic Shifting & Canary Releases",
+   "Dual Write Problem",
+   "Outbox Pattern",
+   "Saga Orchestration vs Choreography",
+   "Compensating Transactions",
+   "Distributed Tracing Concepts",
+   "OpenTelemetry Instrumentation",
+   "Jaeger / Zipkin Trace Visualization",
+   "Correlation IDs"
+  ],
+  "stages": [
+   {
+    "title": "Monolith Deconstruction & Contracts",
+    "description": "Domain-Driven Design, API contracts, and service boundaries."
+   },
+   {
+    "title": "gRPC & Protocol Buffers",
+    "description": "High-performance inter-service communication with gRPC."
+   },
+   {
+    "title": "API Gateways & Service Mesh",
+    "description": "Manage routing, security, rate limiting, and mTLS using Service Mesh."
+   },
+   {
+    "title": "Distributed Transactions & Saga Pattern",
+    "description": "Manage data consistency across microservices."
+   },
+   {
+    "title": "Distributed Observability & Telemetry",
+    "description": "Track requests across microservices using distributed tracing."
+   }
+  ],
+  "projects": [
+   "Service Boundary Design Spec. Decompose a monolithic e-commerce app into 4 decoupled microservices specs.",
+   "gRPC Microservice Communication Suite. Build order and user authentication microservices communicating over gRPC.",
+   "API Gateway & Service Mesh Cluster. Deploy an Envoy API Gateway routing traffic to microservices inside an Istio service mesh.",
+   "Saga Transaction Payment Engine. Implement an Outbox and Saga pattern managing payment, stock reserve, and order confirmation.",
+   "End-to-End Tracing Telemetry Stack. Instrument 3 microservices with OpenTelemetry to trace end-to-end user request paths in Jaeger."
+  ]
+ },
+ {
+  "id": "android",
+  "title": "Android Development",
+  "category": "Mobile Development",
+  "description": "Build native Android apps using Kotlin, Jetpack Compose, Room, Coroutines, and MVVM.",
+  "topics": [
+   "Kotlin Syntax & Null Safety",
+   "Data Classes & Objects",
+   "Coroutines Basics & Dispatchers",
+   "Lambdas & Higher-Order Functions",
+   "Collections & Generics",
+   "Android Studio Setup",
+   "Composable Functions & Recomposition",
+   "State in Compose (@Remember, State)",
+   "Navigation Component",
+   "Material 3 UI Components",
+   "Room Database & DAOs",
+   "DataStore Preferences",
+   "Retrofit & REST API Integration",
+   "Kotlin Flows & StateFlow",
+   "Dependency Injection with Hilt",
+   "MVVM Architecture Pattern",
+   "ViewModel & State Handling",
+   "Clean Architecture Layers",
+   "Unit Testing with JUnit & Mockk",
+   "UI Testing with Espresso",
+   "App Signing & Release Builds",
+   "Google Play Console Publishing",
+   "Push Notifications (FCM)",
+   "Deep Links & App Links",
+   "Performance Profiling & ProGuard"
+  ],
+  "stages": [
+   {
+    "title": "Kotlin Fundamentals",
+    "description": "Syntax, null safety, coroutines, data classes, and extension functions."
+   },
+   {
+    "title": "Android Basics & Jetpack Compose",
+    "description": "Build modern Android UIs declaratively with Compose."
+   },
+   {
+    "title": "Data & Networking",
+    "description": "Persist data with Room and fetch APIs with Retrofit."
+   },
+   {
+    "title": "Architecture & Unit Testing",
+    "description": "Structure apps for scalability using Clean Architecture and MVVM."
+   },
+   {
+    "title": "Publishing & Performance",
+    "description": "Ship your application to the Google Play Store."
+   }
+  ],
+  "projects": [
+   "Kotlin Quiz CLI App. Build a command-line quiz game using Kotlin Coroutines and data classes.",
+   "Compose Notes App. Build a note-taking app with Jetpack Compose UI, local storage, and Material 3 theme.",
+   "Weather & Forecast App. Build a weather app using REST API, Room caching, and Hilt dependency injection.",
+   "Task Manager App with MVVM. Build a task manager using MVVM, Clean Architecture, and unit tests.",
+   "Published Android App. Optimize, sign, and submit a complete Android application to Google Play Store."
+  ]
+ },
+ {
+  "id": "ios",
+  "title": "iOS App Development",
+  "category": "Mobile Development",
+  "description": "Build native iOS applications for iPhone and iPad using Swift, SwiftUI, and Xcode.",
+  "topics": [
+   "Variables & Optionals",
+   "Structs vs Classes vs Enums",
+   "Protocols & Extensions",
+   "Closures & High-Order Functions",
+   "Async/Await & Structured Concurrency",
+   "SwiftUI View Hierarchy",
+   "@State, @Binding, @Observable",
+   "NavigationStack & Sheet Modifiers",
+   "VStack, HStack, LazyVGrid",
+   "SF Symbols & Typography",
+   "URLSession & Codable API Fetching",
+   "SwiftData & CoreData Modeling",
+   "UserDefaults & Keychain Security",
+   "Repository Pattern in Swift",
+   "MVVM Architecture Pattern",
+   "CoreLocation & MapKit",
+   "Push Notifications (UNUserNotification)",
+   "WidgetKit Integration",
+   "XCTest Unit & UI Testing",
+   "Certificates & Provisioning Profiles",
+   "App Store Connect & TestFlight",
+   "Fastlane Automation",
+   "App Thinning & Performance",
+   "App Store Review Guidelines"
+  ],
+  "stages": [
+   {
+    "title": "Swift Language Foundations",
+    "description": "Master Swift language syntax, optionals, and type safety."
+   },
+   {
+    "title": "SwiftUI & Modern UI Layouts",
+    "description": "Construct modern declarative layouts with SwiftUI."
+   },
+   {
+    "title": "Data Persistence & SwiftData",
+    "description": "Fetch REST APIs and save local data using SwiftData."
+   },
+   {
+    "title": "iOS Architecture & Testing",
+    "description": "Scale applications cleanly using MVVM and native frameworks."
+   },
+   {
+    "title": "App Store Shipping & TestFlight",
+    "description": "Deploy and distribute your iOS app globally."
+   }
+  ],
+  "projects": [
+   "Flashcard Quiz iOS App. Build a command-line and simple GUI flashcard quiz game in Swift.",
+   "Habit Tracker iOS App. Build a sleek habit tracker with dark mode, animations, and custom streak metrics.",
+   "Crypto Portfolio Tracker. Fetch live market prices via REST API and persist user watchlist in SwiftData.",
+   "Location Notes iOS App. Build a map-integrated note app with home screen widgets and unit tests.",
+   "Shipped TestFlight Release. Prepare a production build, record App Store screenshots, and submit to TestFlight."
+  ]
+ },
+ {
+  "id": "flutter",
+  "title": "Flutter Cross-Platform",
+  "category": "Mobile Development",
+  "description": "Build high-performance cross-platform mobile apps for iOS & Android with Dart and Flutter.",
+  "topics": [
+   "Dart Syntax & Null Safety",
+   "Object-Oriented Dart Classes",
+   "Futures & Streams",
+   "Async/Await Patterns",
+   "Stateless & Stateful Widgets",
+   "Container, Column, Row Layouts",
+   "Material 3 Themes",
+   "Custom Animations",
+   "BLoC Architecture Pattern",
+   "Riverpod State Providers",
+   "Repository Pattern",
+   "Event-Driven State",
+   "Dio REST Client",
+   "Hive & Isar Local Databases",
+   "JSON Serialization",
+   "Error Handling",
+   "App Icons & Launch Screens",
+   "Android App Bundle (AAB)",
+   "iOS Xcode Signing",
+   "CI/CD with Codemagic"
+  ],
+  "stages": [
+   {
+    "title": "Dart Language & OOP",
+    "description": "Master Dart syntax, classes, futures, streams, and async programming."
+   },
+   {
+    "title": "Flutter Widgets & UI",
+    "description": "Build responsive mobile UIs with Flutter layout widgets."
+   },
+   {
+    "title": "State Management (BLoC & Riverpod)",
+    "description": "Manage global app state cleanly using BLoC and Riverpod."
+   },
+   {
+    "title": "Networking & Local Databases",
+    "description": "Connect REST APIs with Dio and persist state with Hive."
+   },
+   {
+    "title": "Cross-Platform Shipping",
+    "description": "Build and release Flutter apps to App Store and Google Play."
+   }
+  ],
+  "projects": [
+   "Dart Expense Calculator. Build a command-line expense tracker in pure Dart.",
+   "Fitness Tracker UI App. Build a fitness tracking app UI with dynamic charts and custom themes.",
+   "E-Commerce App with BLoC. Build an e-commerce app with cart state management, checkout flows, and BLoC.",
+   "News & Media App. Build a live news reader app fetching headlines with offline Hive caching.",
+   "Multi-Platform App Release. Build, sign, and prepare release binaries for both iOS and Android."
+  ]
+ },
+ {
+  "id": "reactnative",
+  "title": "React Native Mobile App",
+  "category": "Mobile Development",
+  "description": "Build native iOS and Android apps using JavaScript, React, and Expo.",
+  "topics": [
+   "React Native View, Text & Image",
+   "Flexbox Mobile Layouts",
+   "Expo CLI Workflow",
+   "StyleSheet Objects",
+   "Stack & Tab Navigation",
+   "Redux Toolkit Mobile State",
+   "AsyncStorage Data Persistence",
+   "Native Touchables",
+   "Expo Camera & Media Library",
+   "Location & Geofencing",
+   "Push Notifications (Expo Notifications)",
+   "Reanimated & Gesture Handler",
+   "React Native Bridge / JSI",
+   "TurboModules & Fabric Renderer",
+   "FlatList Optimization",
+   "Hermes JS Engine",
+   "EAS Build Configuration",
+   "EAS Submit to App Stores",
+   "Over-The-Air (OTA) Updates with EAS Update",
+   "App Store Guidelines"
+  ],
+  "stages": [
+   {
+    "title": "React Native & Expo Basics",
+    "description": "Core components, styling, Flexbox layout, and Expo SDK."
+   },
+   {
+    "title": "Mobile Navigation & State",
+    "description": "React Navigation v6, stacks, tabs, and Redux Toolkit."
+   },
+   {
+    "title": "Native Device Hardware APIs",
+    "description": "Interact with camera, location, push notifications, and gestures."
+   },
+   {
+    "title": "Native Modules & Performance",
+    "description": "Bridge custom Swift/Kotlin code and optimize React Native performance."
+   },
+   {
+    "title": "App Publishing (EAS Build)",
+    "description": "Ship React Native apps using Expo Application Services (EAS)."
+   }
+  ],
+  "projects": [
+   "Mobile Fitness Tracker. Build a mobile workout tracker with screen navigation and AsyncStorage.",
+   "Food Delivery App UI. Build a food delivery app with multi-screen navigation, cart state, and custom tabs.",
+   "Photo Journal & Location App. Build a photo journal app capturing photos, tagging GPS locations, and notifying users.",
+   "High-Performance Video Feed App. Build a fast video scrolling feed app optimized for 60FPS using Hermes.",
+   "Shipped Expo App Release. Build and deploy a React Native app to iOS TestFlight and Google Play Beta."
+  ]
+ },
+ {
+  "id": "mobileqa",
+  "title": "Mobile QA & App Testing",
+  "category": "Mobile Development",
+  "description": "Automate mobile application testing on real devices and emulators using Appium and XCUITest.",
+  "topics": [
+   "iOS vs Android Testing Nuances",
+   "Android ADB Commands",
+   "Xcode iOS Simulator Setup",
+   "Network Interception (Charles Proxy)",
+   "Appium Architecture",
+   "Locating Mobile Elements (Accessibility ID, XPath)",
+   "Touch Actions & Gestures",
+   "Driver Configurations",
+   "Android Espresso Setup",
+   "iOS XCUITest Framework",
+   "Page Object Pattern for Mobile",
+   "Fast UI Assertion",
+   "BrowserStack Real Device Cloud",
+   "SauceLabs Mobile Grid",
+   "Parallel Test Execution",
+   "Handling Device Fragmentation",
+   "GitHub Actions for Mobile QA",
+   "Bitrise & Fastlane Integration",
+   "Automated Test Reports",
+   "Flaky Test Detection"
+  ],
+  "stages": [
+   {
+    "title": "Mobile Testing Fundamentals",
+    "description": "Mobile OS differences, manual testing, emulators, and bug reporting."
+   },
+   {
+    "title": "Appium & Element Locators",
+    "description": "Appium server setup, element locators, and automated test scripts."
+   },
+   {
+    "title": "Native Frameworks (Espresso & XCUITest)",
+    "description": "Native Android Espresso and iOS XCUITest test frameworks."
+   },
+   {
+    "title": "Device Cloud Grid (BrowserStack)",
+    "description": "Execute tests across fleets of real mobile devices."
+   },
+   {
+    "title": "Mobile CI/CD Pipeline Integration",
+    "description": "Trigger mobile test automation on every build PR."
+   }
+  ],
+  "projects": [
+   "Mobile Test Plan Creation. Draft a comprehensive mobile test plan covering 30 device test cases.",
+   "Appium Mobile Test Suite. Write an automated test suite verifying login and payment flows on Android emulators.",
+   "Native XCUITest & Espresso Suite. Write native UI tests in Espresso for Android and XCUITest for iOS.",
+   "Parallel Cloud Device Execution. Configure an Appium test suite to run in parallel on 10 real devices in BrowserStack.",
+   "Automated Mobile Test Pipeline. Configure Bitrise/GitHub Actions to trigger Appium tests on every mobile pull request."
+  ]
+ },
+ {
+  "id": "aiml",
+  "title": "AI / Machine Learning",
+  "category": "AI & Data Science",
+  "description": "Build intelligent systems with machine learning, deep learning, PyTorch, and GenAI LLM models.",
+  "topics": [
+   "Python Data Syntax",
+   "NumPy Array Operations",
+   "Pandas Data Cleaning",
+   "Matplotlib & Seaborn Visualization",
+   "Jupyter Notebook Workflows",
+   "Linear Algebra (Vectors, Matrices)",
+   "Probability & Statistics",
+   "Calculus (Derivatives & Gradients)",
+   "Eigenvalues & PCA Dimensionality",
+   "Linear & Logistic Regression",
+   "Decision Trees & Random Forests",
+   "Support Vector Machines (SVM)",
+   "Feature Engineering & Selection",
+   "Model Evaluation (F1, AUC, CV)",
+   "Neural Network Architectures",
+   "Backpropagation & Optimizers",
+   "CNNs for Computer Vision",
+   "RNNs & Transformers",
+   "PyTorch Framework",
+   "Prompt Engineering Patterns",
+   "LangChain & LlamaIndex",
+   "RAG (Retrieval-Augmented Generation)",
+   "Vector Databases (Pinecone)",
+   "Fine-tuning LLMs",
+   "Autonomous AI Agents"
+  ],
+  "stages": [
+   {
+    "title": "Python for Data Science",
+    "description": "NumPy arrays, Pandas dataframes, Matplotlib, and data cleaning techniques."
+   },
+   {
+    "title": "Math for Machine Learning",
+    "description": "Linear algebra, probability, statistics, and calculus for ML intuition."
+   },
+   {
+    "title": "Classical Machine Learning",
+    "description": "Linear regression, decision trees, random forests, and scikit-learn."
+   },
+   {
+    "title": "Deep Learning & PyTorch",
+    "description": "Neural networks, CNNs, RNNs, and PyTorch deep learning framework."
+   },
+   {
+    "title": "LLMs & GenAI Engineering",
+    "description": "Work with Large Language Models, RAG, vector databases, and AI agents."
+   }
+  ],
+  "projects": [
+   "Exploratory Data Analysis Report. Perform EDA on a dataset and generate statistical visualization reports.",
+   "Monte Carlo Probability Simulator. Simulate probability distributions and visualize Monte Carlo experiment results.",
+   "Loan Default Prediction Engine. Train and compare multiple ML models to predict loan default risks.",
+   "Image Classifier Web App. Train a CNN image classifier in PyTorch and deploy as a web application.",
+   "Document AI Research Assistant. Build an AI chatbot that ingests PDFs and answers questions using RAG."
+  ]
+ },
+ {
+  "id": "datasci",
+  "title": "Data Science",
+  "category": "AI & Data Science",
+  "description": "Extract insights from data using statistics, visualization, hypothesis testing, and predictive modeling.",
+  "topics": [
+   "Python Data Manipulation",
+   "NumPy Matrix Math",
+   "Pandas DataFrames",
+   "Handling Missing Values",
+   "Data Cleaning Best Practices",
+   "Probability Distributions",
+   "Central Limit Theorem",
+   "Hypothesis Testing & p-values",
+   "Confidence Intervals",
+   "A/B Testing Evaluation",
+   "Matplotlib & Seaborn Custom Charts",
+   "Plotly Interactive Visuals",
+   "Dashboard Design Principles",
+   "Data Storytelling",
+   "scikit-learn Pipelines",
+   "Regression & Classification Models",
+   "Feature Engineering & Selection",
+   "Time Series Forecasting (ARIMA)",
+   "Advanced SQL Analytics",
+   "Apache Spark & PySpark",
+   "dbt (Data Build Tool)",
+   "Airflow Data Pipelines",
+   "BigQuery / Snowflake Warehouses"
+  ],
+  "stages": [
+   {
+    "title": "Python & Data Wrangling",
+    "description": "Python basics, NumPy, Pandas, data cleaning, and EDA."
+   },
+   {
+    "title": "Statistics & Hypothesis Testing",
+    "description": "Descriptive stats, probability distributions, p-values, and A/B testing."
+   },
+   {
+    "title": "Data Visualization & Dashboards",
+    "description": "Matplotlib, Seaborn, Plotly, and storytelling with data."
+   },
+   {
+    "title": "Machine Learning for Data Science",
+    "description": "Regression, classification, feature selection, and time series."
+   },
+   {
+    "title": "Big Data & Data Pipelines",
+    "description": "SQL analytics, PySpark, Airflow pipelines, and BigQuery data warehouses."
+   }
+  ],
+  "projects": [
+   "Dataset Insights Analysis. Clean a 100k-row retail dataset and produce actionable insights.",
+   "A/B Testing Statistical Analyzer. Evaluate user behavior data from an A/B test and calculate statistical confidence.",
+   "Interactive Sales Dashboard. Build a live interactive sales metrics dashboard using Plotly Dash.",
+   "Monthly Sales Forecasting Engine. Forecast monthly retail sales using gradient boosting models.",
+   "End-to-End Data Pipeline Stack. Build an ETL pipeline from data ingestion to dashboard using Airflow, dbt, and BigQuery."
+  ]
+ },
+ {
+  "id": "dataanalytics",
+  "title": "Data & BI Analytics",
+  "category": "AI & Data Science",
+  "description": "Transform raw data into business intelligence dashboards using SQL, Power BI, Tableau, and Excel.",
+  "topics": [
+   "Advanced Excel Formulas (XLOOKUP, INDEX/MATCH)",
+   "Pivot Tables & Pivot Charts",
+   "Data Validation & Conditional Formatting",
+   "Power Query Automated Imports",
+   "SELECT, WHERE, GROUP BY Aggregations",
+   "INNER, LEFT, RIGHT & FULL JOINs",
+   "Subqueries & CTEs",
+   "Window Functions (RANK, DENSE_RANK, LAG, LEAD)",
+   "Star Schema Data Modeling",
+   "DAX Measures & Calculated Columns",
+   "Tableau Calculated Fields",
+   "Interactive Filter Dashboards",
+   "Scheduled Cloud Refresh",
+   "Pandas DataFrame Operations",
+   "Seaborn & Plotly Visualizations",
+   "Automated Email PDF Reports",
+   "REST API Data Fetching",
+   "Hypothesis Formulation",
+   "Cohort Analysis & Retention Metrics",
+   "Executive Deck Storytelling",
+   "Translating Data into ROI Recommendations"
+  ],
+  "stages": [
+   {
+    "title": "Advanced Excel Data Modeling",
+    "description": "XLOOKUP, INDEX/MATCH, Pivot Tables, Power Query, and data cleaning."
+   },
+   {
+    "title": "SQL for Business Intelligence",
+    "description": "Complex SQL JOINs, CTEs, window functions, and data transformations."
+   },
+   {
+    "title": "Power BI & Tableau Dashboards",
+    "description": "Data modeling, DAX measures, parameters, and interactive visual reports."
+   },
+   {
+    "title": "Python for Business Analytics",
+    "description": "Automate reporting, Pandas data manipulation, and REST API data extraction."
+   },
+   {
+    "title": "Business Metrics & Executive Storytelling",
+    "description": "Cohort analysis, slide deck presentation, and translating data into ROI."
+   }
+  ],
+  "projects": [
+   "Financial KPI Excel Model. Clean a multi-year ledger and produce a dynamic Excel financial KPI dashboard.",
+   "Customer Churn SQL Queries. Write SQL scripts calculating monthly recurring revenue (MRR) and churn rates.",
+   "Executive BI Dashboard Suite. Build an interactive 3-page Power BI dashboard tracking revenue, margins, and regional sales.",
+   "Automated Pricing Scraper & Report. Write a Python script scraping public pricing data and sending an automated PDF report.",
+   "E-Commerce Executive Presentation. Present a data storytelling deck with strategic growth recommendations."
+  ]
+ },
+ {
+  "id": "dataeng",
+  "title": "Data Engineering",
+  "category": "AI & Data Science",
+  "description": "Design and build scalable data pipelines, data warehouses, and lakes with Airflow and Spark.",
+  "topics": [
+   "Advanced SQL (CTEs, Window Functions)",
+   "Database Normalization",
+   "Kimball Dimensional Modeling (Star Schema)",
+   "Indexing & Query Plans",
+   "Python Data Extraction",
+   "Pandas & PyArrow",
+   "API Pagination Scraping",
+   "Parquet Columnar Storage",
+   "ETL vs ELT Architecture",
+   "Apache Airflow DAG Writing",
+   "dbt Data Transformations",
+   "Data Lineage & Retries",
+   "Hadoop & HDFS Concepts",
+   "Apache Spark Architecture",
+   "PySpark DataFrames & SQL",
+   "Spark Data Partitioning",
+   "Snowflake Architecture",
+   "AWS S3 & Athena Queries",
+   "Data Lakes vs Warehouses",
+   "Cost Optimization"
+  ],
+  "stages": [
+   {
+    "title": "SQL & Database Architecture",
+    "description": "Advanced SQL, indexing, database normalization, and dimensional modeling."
+   },
+   {
+    "title": "Python & Data Extraction",
+    "description": "Pandas, PyArrow, API data extraction, JSON, and Parquet file formats."
+   },
+   {
+    "title": "Data Pipelines & Airflow Orchestration",
+    "description": "ETL vs ELT pipelines, dbt data modeling, and Apache Airflow DAGs."
+   },
+   {
+    "title": "Big Data Processing with Spark",
+    "description": "Distributed data processing using PySpark and HDFS concepts."
+   },
+   {
+    "title": "Cloud Data Platforms (Snowflake/BigQuery)",
+    "description": "Cloud data warehousing, S3 data lakes, and governance."
+   }
+  ],
+  "projects": [
+   "Data Warehouse Schema Design. Design a Star Schema data warehouse model for a retail business.",
+   "API Data Extractor Tool. Write a Python script extracting API data and saving optimized Parquet files.",
+   "Automated ELT Pipeline Engine. Build an Airflow DAG triggering dbt models in Snowflake with failure alerts.",
+   "PySpark Large-Scale Aggregation. Process a 10GB dataset using PySpark calculating user retention metrics.",
+   "Cloud Data Lake Infrastructure. Build an S3 Data Lake queried with Athena and visualized in QuickSight."
+  ]
+ },
+ {
+  "id": "prompteng",
+  "title": "AI / Prompt Engineering",
+  "category": "AI & Data Science",
+  "description": "Optimize prompts, RAG architectures, vector search, and AI agent workflows for Large Language Models.",
+  "topics": [
+   "Transformers & Tokenization",
+   "Context Windows & Temperature",
+   "OpenAI API & Parameters",
+   "Avoiding Hallucinations",
+   "Zero-Shot & Few-Shot Prompting",
+   "Chain of Thought (CoT)",
+   "Tree of Thoughts Prompting",
+   "Structured JSON Output",
+   "Text Embeddings & Cosine Similarity",
+   "Vector Search Databases (Pinecone)",
+   "Document Chunking Strategies",
+   "Evaluating RAG Precision",
+   "LangChain & LangGraph",
+   "OpenAI Function Calling",
+   "ReAct Agent Workflows",
+   "Multi-Agent Orchestration",
+   "Dataset Curation for Fine-Tuning",
+   "OpenAI / Llama 3 Fine-Tuning",
+   "Ragas RAG Evaluation Framework",
+   "Prompt Security & Defense"
+  ],
+  "stages": [
+   {
+    "title": "LLM Fundamentals & Parameters",
+    "description": "Transformers, tokens, temperature, context windows, and OpenAI API."
+   },
+   {
+    "title": "Advanced Prompt Design Patterns",
+    "description": "Zero-shot, few-shot, Chain of Thought (CoT), and structured JSON output."
+   },
+   {
+    "title": "RAG Architecture & Vector DBs",
+    "description": "Text embeddings, vector search, Pinecone, chunking strategies, and RAG."
+   },
+   {
+    "title": "AI Agents & Function Calling",
+    "description": "LangChain, LangGraph, tool use, and multi-agent coordination."
+   },
+   {
+    "title": "Fine-Tuning & Model Evaluation",
+    "description": "Fine-tuning open-source LLMs, dataset preparation, and evaluation benchmarks."
+   }
+  ],
+  "projects": [
+   "AI Text Summarizer App. Build a web UI calling OpenAI API to summarize long text with custom sliders.",
+   "Production Prompt Library. Build a repository of tested, optimized prompts for 5 business workflows.",
+   "PDF Knowledge Base Chatbot. Build a chatbot that ingests uploaded PDFs and answers questions using RAG.",
+   "Autonomous Market Research Agent. Build an AI agent searching the web and compiling autonomous research reports.",
+   "Fine-Tuned Customer Support LLM. Prepare training data and fine-tune a model specialized in customer support."
+  ]
+ },
+ {
+  "id": "devops",
+  "title": "DevOps Engineer",
+  "category": "Cloud & Security",
+  "description": "Bridge development and operations with Docker, Kubernetes, CI/CD, Terraform, and cloud automation.",
+  "topics": [
+   "Linux Filesystem & Permissions",
+   "Bash Automation Scripting",
+   "Process & Service Control (systemd)",
+   "SSH & Networking Tools",
+   "Cron Job Schedules",
+   "Docker Architecture",
+   "Dockerfiles & Layer Caching",
+   "Multi-Stage Docker Builds",
+   "Docker Compose Stacks",
+   "Container Storage Volumes",
+   "GitHub Actions Pipeline Syntax",
+   "Automated Testing Stages",
+   "Docker Registry Push",
+   "Secrets Management",
+   "Blue-Green Deployments",
+   "Terraform HCL Language Syntax",
+   "AWS Provider Setup",
+   "Terraform State Management",
+   "Reusable Infrastructure Modules",
+   "GitOps Workflows",
+   "Kubernetes Pods, Deployments & Services",
+   "Helm Charts",
+   "Ingress Controller Setup",
+   "Prometheus Metrics & Grafana Dashboards"
+  ],
+  "stages": [
+   {
+    "title": "Linux & Shell Scripting",
+    "description": "Command line mastery, Linux permissions, Bash scripting, and process management."
+   },
+   {
+    "title": "Containerization with Docker",
+    "description": "Dockerfiles, multi-stage builds, Docker Compose, and registry management."
+   },
+   {
+    "title": "CI/CD Automation Pipelines",
+    "description": "Automate building, testing, and deployment using GitHub Actions."
+   },
+   {
+    "title": "Infrastructure as Code (Terraform)",
+    "description": "Define and provision cloud infrastructure programmatically using Terraform."
+   },
+   {
+    "title": "Kubernetes Orchestration & Monitoring",
+    "description": "Manage container clusters with Kubernetes, Helm, Prometheus, and Grafana."
+   }
+  ],
+  "projects": [
+   "Server Health Automation Scripts. Write Bash scripts to automate server setup, log rotation, and disk monitoring.",
+   "Dockerized Full-Stack App. Containerize a web app with frontend, Express API, Redis, and PostgreSQL in Docker Compose.",
+   "Automated Release CI/CD Pipeline. Build a GitHub Actions pipeline building Docker images and deploying on main merge.",
+   "Terraform Cloud Infrastructure. Provision a complete AWS production VPC, EC2 instance, and RDS database using Terraform.",
+   "Production Kubernetes Cluster. Deploy a microservice application to a Kubernetes cluster with Helm and Prometheus monitoring."
+  ]
+ },
+ {
+  "id": "cybersec",
+  "title": "Cyber Security & Ethical Hacking",
+  "category": "Cloud & Security",
+  "description": "Protect systems, networks, and data using penetration testing, OWASP web security, and ethical hacking.",
+  "topics": [
+   "OSI & TCP/IP Network Models",
+   "IP Subnetting & Addressing",
+   "DNS, HTTP, FTP, SSH Protocols",
+   "Wireshark Packet Captures",
+   "Firewall Rules",
+   "Linux Security Permissions",
+   "SSH Key Hardening",
+   "UFW / iptables Configuration",
+   "Fail2ban Intrusion Prevention",
+   "Audit Logs (var/log)",
+   "OWASP Top 10 Vulnerabilities",
+   "SQL Injection (SQLi) Exploitation",
+   "Cross-Site Scripting (XSS)",
+   "CSRF & IDOR Vulnerabilities",
+   "Burp Suite Interception Proxy",
+   "Penetration Testing Methodology",
+   "Nmap Network Reconnaissance",
+   "Metasploit Exploitation Framework",
+   "Linux & Windows Privilege Escalation",
+   "Writing Penetration Reports",
+   "SIEM Logging (Splunk / ELK)",
+   "Incident Response Playbooks",
+   "Threat Intelligence Feeds",
+   "Digital Forensics Basics",
+   "CompTIA Security+ Exam Prep"
+  ],
+  "stages": [
+   {
+    "title": "Networking & Protocols",
+    "description": "OSI 7-layer model, TCP/IP, DNS, HTTP/HTTPS, firewalls, and Wireshark."
+   },
+   {
+    "title": "Linux Administration & Hardening",
+    "description": "Linux user permissions, SSH hardening, iptables, fail2ban, and audit logs."
+   },
+   {
+    "title": "Web Application Security (OWASP)",
+    "description": "SQL Injection, XSS, CSRF, Burp Suite proxy, and authentication flaws."
+   },
+   {
+    "title": "Penetration Testing & Exploitation",
+    "description": "Ethical hacking methodologies, Nmap, Metasploit, and privilege escalation."
+   },
+   {
+    "title": "SOC Operations & Defense",
+    "description": "SIEM tools, incident response playbooks, digital forensics, and Security+ prep."
+   }
+  ],
+  "projects": [
+   "Network Traffic Analysis Report. Capture network traffic in Wireshark and identify malicious packet signatures.",
+   "Hardened Linux Server Setup. Configure a Linux server with strict firewall rules, fail2ban, and automated security auditing.",
+   "CTF Web Vulnerability Audit. Audit and exploit web vulnerabilities in a CTF lab and write remediation patches.",
+   "Full Environment Penetration Test. Perform an end-to-end pentest on a vulnerable target lab environment and deliver a report.",
+   "SOC Incident Response Simulation. Simulate a security breach event, triage SIEM alerts, and compile an incident report."
+  ]
+ },
+ {
+  "id": "cloudsec",
+  "title": "Cloud Security Engineer",
+  "category": "Cloud & Security",
+  "description": "Secure cloud infrastructure, manage IAM policies, audit threats, and enforce Zero Trust across AWS and Azure.",
+  "topics": [
+   "Shared Responsibility Model",
+   "IAM Least Privilege Policies",
+   "Zero Trust Architecture",
+   "Data Encryption at Rest/Transit",
+   "SOC2 & ISO 27001 Compliance",
+   "VPC Security Groups & Network ACLs",
+   "AWS WAF & Shield (DDoS)",
+   "Perimeter Firewalls",
+   "TLS/SSL Certificate Management",
+   "Container Image Scanning (Trivy)",
+   "HashiCorp Vault Secrets",
+   "IaC Security Scanning (Checkov)",
+   "Kubernetes RBAC Policies",
+   "AWS GuardDuty & CloudTrail Analysis",
+   "SIEM Integration (Datadog/Splunk)",
+   "Automated Remediation via Lambda",
+   "Cloud Incident Response",
+   "AWS Security Hub Configuration",
+   "CIS AWS Foundations Benchmarks",
+   "Automated Compliance Reporting",
+   "Cloud Penetration Testing Rules"
+  ],
+  "stages": [
+   {
+    "title": "Cloud Security Fundamentals",
+    "description": "Shared responsibility model, IAM least privilege, encryption, and compliance."
+   },
+   {
+    "title": "Network & Perimeter Defense",
+    "description": "VPC security groups, AWS WAF, Shield, TLS certificates, and transit security."
+   },
+   {
+    "title": "DevSecOps & Container Security",
+    "description": "Container vulnerability scanning, HashiCorp Vault, and IaC security."
+   },
+   {
+    "title": "Threat Detection & Response",
+    "description": "AWS GuardDuty, CloudTrail audit logs, SIEM integration, and automated remediation."
+   },
+   {
+    "title": "Cloud Compliance & Auditing",
+    "description": "Automated cloud compliance scanning, Security Hub, and hardening."
+   }
+  ],
+  "projects": [
+   "IAM Policy Audit Script. Write an automated script scanning an AWS account for over-privileged IAM roles.",
+   "Multi-Tier Secure VPC Setup. Build an AWS network infrastructure with private subnets, NAT gateways, and WAF rules.",
+   "DevSecOps GitHub Actions Pipeline. Build a GitHub Actions pipeline with automated container scanning and secret checks.",
+   "Automated Threat Remediation Engine. Configure AWS GuardDuty to trigger Lambda functions revoking compromised API keys.",
+   "Automated Cloud Compliance Audit. Perform a full CIS benchmark security audit on an AWS cloud account and remediate findings."
+  ]
+ },
+ {
+  "id": "uiux",
+  "title": "UI / UX Design",
+  "category": "Product & Design",
+  "description": "Design beautiful, user-centered digital products, wireframes, component libraries, and prototypes in Figma.",
+  "topics": [
+   "Color Theory & Palette Creation",
+   "Typography Hierarchy & Scales",
+   "Spacing Systems & Grid Layouts",
+   "Visual Balance & Contrast",
+   "Gestalt Design Principles",
+   "User Interviews & Surveys",
+   "Personas & Empathy Maps",
+   "User Journey Mapping",
+   "Information Architecture & Card Sorting",
+   "Competitive Analysis",
+   "Figma Auto Layout Architecture",
+   "Component Libraries & Variants",
+   "Interactive Screen Prototyping",
+   "Design Handoff to Developers",
+   "Usability Test Planning & Scripts",
+   "Think-Aloud Protocol Testing",
+   "Analyzing Test Insights",
+   "WCAG Accessibility Standards",
+   "Writing Effective UX Case Studies",
+   "Portfolio Website Design",
+   "Micro-Animations & Motion Design",
+   "Design Systems at Scale"
+  ],
+  "stages": [
+   {
+    "title": "Visual Design Fundamentals",
+    "description": "Color theory, typography hierarchy, spacing grids, and Gestalt principles."
+   },
+   {
+    "title": "UX Research & Strategy",
+    "description": "User interviews, personas, empathy mapping, user journeys, and card sorting."
+   },
+   {
+    "title": "Figma Mastery & Prototyping",
+    "description": "Lo-fi wireframes, hi-fi mockups, auto layout, component variants, and interactive prototypes."
+   },
+   {
+    "title": "Usability Testing & Accessibility",
+    "description": "Usability test planning, moderated testing, heatmaps, and WCAG accessibility."
+   },
+   {
+    "title": "Portfolio & Product Strategy",
+    "description": "Write UX case studies, build a portfolio site, and learn motion design basics."
+   }
+  ],
+  "projects": [
+   "Design Tokens & Style System. Create a mini design system with color palettes, typography scale, and spacing tokens.",
+   "UX Research Report Case Study. Conduct user research on an existing mobile app and deliver a findings deck.",
+   "Interactive Mobile App Prototype. Design a fully interactive high-fidelity prototype of a mobile banking application.",
+   "Usability Testing Iteration Report. Run 5 usability tests on your prototype, analyze feedback, and publish redesigned screens.",
+   "Professional UX Design Portfolio. Publish a professional design portfolio featuring 3 comprehensive end-to-end case studies."
+  ]
+ },
+ {
+  "id": "product",
+  "title": "Product Management",
+  "category": "Product & Design",
+  "description": "Lead product strategy, write PRDs, manage roadmaps, prioritize backlogs, and guide cross-functional teams.",
+  "topics": [
+   "Role of a PM",
+   "Product Life Cycle Stages",
+   "Problem vs Solution Space",
+   "User Pain Point Identification",
+   "Product-Market Fit Metrics",
+   "User Discovery Interviews",
+   "Jobs To Be Done (JTBD) Framework",
+   "Prototyping & Testing Hypotheses",
+   "Defining Minimum Viable Products (MVP)",
+   "Product Roadmap Construction",
+   "RICE Scoring & Impact/Effort Matrix",
+   "Writing Product Requirements Docs (PRD)",
+   "Defining Product OKRs",
+   "Writing User Stories & Acceptance Criteria",
+   "Agile & Scrum Sprint Ceremonies",
+   "Technical Debt Prioritization",
+   "QA & Release Management",
+   "Go-To-Market (GTM) Execution",
+   "SaaS Pricing & Packaging",
+   "Product Analytics (Amplitude/Mixpanel)",
+   "Post-Launch Retrospectives"
+  ],
+  "stages": [
+   {
+    "title": "Product Management Foundations",
+    "description": "Role of a PM, product lifecycle, problem vs solution space, and Product-Market Fit."
+   },
+   {
+    "title": "User Discovery & Validation",
+    "description": "User interviews, Jobs To Be Done (JTBD) framework, competitive teardowns, and MVPs."
+   },
+   {
+    "title": "Roadmapping & Prioritization",
+    "description": "RICE scoring, MoSCoW, product roadmaps, writing PRDs, and OKRs."
+   },
+   {
+    "title": "Agile Delivery & Sprint Execution",
+    "description": "User stories, acceptance criteria, sprint planning, and working with engineering."
+   },
+   {
+    "title": "Go-To-Market & Product Analytics",
+    "description": "GTM strategy, pricing, product analytics (Mixpanel/Amplitude), and post-launch retros."
+   }
+  ],
+  "projects": [
+   "Product Teardown Analysis. Analyze a popular mobile app, identify core value propositions, and suggest 3 feature improvements.",
+   "Discovery Plan & Interview Script. Write a discovery plan and candidate interview script for a proposed new feature.",
+   "Product Requirements Doc (PRD). Author a comprehensive PRD for launching an AI recommendation engine.",
+   "Prioritized Sprint Backlog. Break down your PRD into a prioritized backlog of user stories with acceptance criteria.",
+   "Product Go-To-Market Launch Plan. Create a GTM strategy and launch plan for a major new product release."
+  ]
+ },
+ {
+  "id": "engmgmt",
+  "title": "Engineering Manager",
+  "category": "Management & Business",
+  "description": "Lead engineering teams, coach developers, manage tech roadmaps, measure velocity, and scale culture.",
+  "topics": [
+   "Conducting Effective 1-on-1 Meetings",
+   "Engineering Career Matrices",
+   "Performance Reviews & PIPs",
+   "Constructive Feedback Frameworks (SBI)",
+   "DORA Metrics (Deployment Frequency, Lead Time)",
+   "Sprint Velocity & Capacity Planning",
+   "Technical Debt Prioritization",
+   "Blameless Postmortems",
+   "Technical Interview Rubrics",
+   "Diverse Sourcing Pipelines",
+   "Evaluating System Architecture Proposals",
+   "Engineering Onboarding Plans",
+   "Build vs Buy Decision Frameworks",
+   "Technical Roadmap Alignment",
+   "Communicating Tech Debt to Executives",
+   "Engineering Budgeting",
+   "Conway's Law & Team Topologies",
+   "Scaling Team Structures",
+   "Engineering Culture Building",
+   "Change Management"
+  ],
+  "stages": [
+   {
+    "title": "People Leadership & 1-on-1s",
+    "description": "Active listening, 1-on-1 frameworks, performance reviews, and career ladders."
+   },
+   {
+    "title": "Engineering Operations & DORA",
+    "description": "DORA metrics, sprint capacity planning, tech debt prioritization, and postmortems."
+   },
+   {
+    "title": "Technical Hiring & Team Scaling",
+    "description": "System design interview rubrics, diverse candidate sourcing, and onboarding."
+   },
+   {
+    "title": "Technical Strategy & Architecture",
+    "description": "Build vs buy evaluation, tech roadmap planning, and cross-functional alignment."
+   },
+   {
+    "title": "Organizational Scaling & Culture",
+    "description": "Conway's Law, scaling engineering team structures, change management, and retention."
+   }
+  ],
+  "projects": [
+   "Engineering Career Progression Matrix. Build an engineering career progression matrix for Junior to Principal Engineer roles.",
+   "Engineering Metrics Dashboard Spec. Design a dashboard strategy for tracking team velocity, lead time, and failure rates.",
+   "Engineering Hiring & Onboarding Playbook. Draft an engineering hiring rubric and 30-60-90 day onboarding roadmap.",
+   "Executive Engineering Strategy Pitch. Deliver an executive strategy pitch for refactoring core backend services.",
+   "Engineering Org Restructuring Plan. Propose a team topology restructuring plan for an engineering organization scaling from 20 to 100 engineers."
+  ]
+ },
+ {
+  "id": "finance",
+  "title": "Financial Analyst",
+  "category": "Management & Business",
+  "description": "Analyze financial statements, build 3-statement models, DCF valuations, and drive corporate strategy.",
+  "topics": [
+   "Income Statement Analysis",
+   "Balance Sheet Mechanics",
+   "Cash Flow Statement Analysis",
+   "Double-Entry Accounting",
+   "Working Capital",
+   "Advanced Formulas (XLOOKUP, INDEX/MATCH)",
+   "Pivot Tables & Data Tables",
+   "Scenario Analysis Modeling",
+   "Excel Keyboard Shortcuts",
+   "3-Statement Model Linking",
+   "Revenue & Expense Forecasting",
+   "Capital Expenditure Schedules",
+   "Debt & Interest Modeling",
+   "Discounted Cash Flow (DCF) Modeling",
+   "Cost of Capital (WACC) Calculation",
+   "Comparable Company Analysis (Comps)",
+   "Precedent Transactions",
+   "Net Present Value (NPV) & IRR",
+   "Capital Budgeting Decisions",
+   "M&A Deal Structures Basics",
+   "LBO Model Mechanics"
+  ],
+  "stages": [
+   {
+    "title": "Accounting Fundamentals",
+    "description": "Income statement, balance sheet, cash flow statement, and double-entry accounting."
+   },
+   {
+    "title": "Excel Data Modeling",
+    "description": "Advanced Excel formulas (XLOOKUP, INDEX/MATCH), pivot tables, and scenario analysis."
+   },
+   {
+    "title": "3-Statement Financial Modeling",
+    "description": "Build fully linked 3-statement financial forecast models from scratch."
+   },
+   {
+    "title": "Valuation & DCF Modeling",
+    "description": "Discounted Cash Flow (DCF), WACC calculation, comps analysis, and precedent transactions."
+   },
+   {
+    "title": "Corporate Strategy & M&A Basics",
+    "description": "Capital budgeting, NPV/IRR analysis, M&A deal structures, and LBO modeling."
+   }
+  ],
+  "projects": [
+   "10-K Financial Statement Analysis. Analyze the 10-K annual report of a public company and summarize its financial health.",
+   "Dynamic Retail KPI Dashboard. Build a dynamic Excel dashboard tracking revenues, margins, and sales KPIs.",
+   "Linked 3-Statement Startup Model. Build a fully linked 3-statement financial model from scratch for a tech company.",
+   "Public Company Valuation Deck. Perform a comprehensive valuation of a public tech company using DCF and Comps.",
+   "M&A Acquisition Feasibility Report. Build an acquisition feasibility model analyzing target synergy potential."
+  ]
+ },
+ {
+  "id": "blockchain",
+  "title": "Blockchain & Smart Contracts",
+  "category": "Emerging & Hardware",
+  "description": "Build decentralized applications and Solidity smart contracts on Ethereum, Web3, and layer 2 networks.",
+  "topics": [
+   "Distributed Ledger Technology",
+   "Public/Private Keys & Cryptography",
+   "Consensus Mechanisms (PoW vs PoS)",
+   "Ethereum Architecture & Gas",
+   "Solidity Syntax & Data Types",
+   "Events, Modifiers & Payable Functions",
+   "ERC-20 Token Standard",
+   "ERC-721 NFT Standard",
+   "Hardhat Framework & Tasks",
+   "Writing Contract Unit Tests with Ethers.js",
+   "Deployment Scripts",
+   "Gas Optimization Techniques",
+   "Ethers.js & Viem Libraries",
+   "Wagmi React Hooks",
+   "MetaMask Wallet Integration",
+   "IPFS Decentralized Storage",
+   "Automated Market Makers (AMM)",
+   "Chainlink Decentralized Oracles",
+   "Smart Contract Security Auditing",
+   "Reentrancy Attack Prevention"
+  ],
+  "stages": [
+   {
+    "title": "Blockchain Fundamentals",
+    "description": "Distributed ledger technology, cryptography, consensus mechanisms (PoW/PoS), and wallets."
+   },
+   {
+    "title": "Solidity Smart Contracts",
+    "description": "Solidity language syntax, ERC-20, ERC-721 token standards, and OpenZeppelin."
+   },
+   {
+    "title": "Hardhat & Testing Workflows",
+    "description": "Hardhat development environment, testing smart contracts with Ethers.js, and gas optimization."
+   },
+   {
+    "title": "Web3 DApp Frontend",
+    "description": "Connect React web frontends to smart contracts using Ethers.js and Wagmi hooks."
+   },
+   {
+    "title": "DeFi Protocols & Contract Auditing",
+    "description": "Automated market makers (AMM), flash loans, Chainlink oracles, and auditing tools."
+   }
+  ],
+  "projects": [
+   "Blockchain Technical Architecture Paper. Write a technical comparison paper evaluating Ethereum vs Solana architectures.",
+   "Custom ERC-20 Token Contract. Deploy a fully functional ERC-20 token contract with minting and burning features on testnet.",
+   "NFT Marketplace Smart Contracts. Build and deploy smart contracts for an NFT marketplace with royalties on testnet.",
+   "Web3 DApp Marketplace Frontend. Build a React web frontend connecting to your NFT marketplace smart contracts via MetaMask.",
+   "Audit-Ready DeFi Liquidity Protocol. Build a mini DeFi lending protocol with comprehensive security audit coverage."
+  ]
+ },
+ {
+  "id": "arvr",
+  "title": "AR/VR Spatial Computing",
+  "category": "Emerging & Hardware",
+  "description": "Create augmented and virtual reality experiences using Unity, OpenXR, Meta Quest, and Apple visionOS.",
+  "topics": [
+   "3D Vector Math & Quaternions",
+   "Unity OpenXR / Meta Quest SDK Setup",
+   "VR Camera Rigs & Controllers",
+   "Spatial Audio Principles",
+   "Hand Tracking & Gesture Recognition",
+   "Spatial 3D UI Panels",
+   "Haptic Controller Feedback",
+   "Apple visionOS Spatial Design",
+   "AR Foundation in Unity",
+   "Plane Detection & Raycasting",
+   "Image Target Tracking",
+   "Spatial Anchors",
+   "Photon Fusion VR Networking",
+   "Avatar Synchronization",
+   "Voice Chat Integration",
+   "Spatial Occlusion Audio",
+   "Single-Pass Stereo Rendering",
+   "Occlusion Culling & Draw Call Batching",
+   "Mobile VR Performance Profiling",
+   "Targeting 90+ FPS"
+  ],
+  "stages": [
+   {
+    "title": "3D Graphics & VR Setup",
+    "description": "3D vector math, Unity OpenXR rig setup, Meta Quest SDK, and spatial audio."
+   },
+   {
+    "title": "Hand Tracking & Spatial UI",
+    "description": "Implement natural hand gestures, spatial UI panels, and Apple visionOS basics."
+   },
+   {
+    "title": "Augmented Reality (ARKit & ARCore)",
+    "description": "Superimpose 3D content onto the physical world with plane detection."
+   },
+   {
+    "title": "Multiplayer VR & Spatial Audio",
+    "description": "Networked VR avatars using Photon Fusion and voice chat."
+   },
+   {
+    "title": "VR Optimization & Performance",
+    "description": "Single-pass stereo rendering, draw call batching, and 90+ FPS profiling."
+   }
+  ],
+  "projects": [
+   "VR Interactive Environment. Build a 3D VR room in Unity where users can pick up, inspect, and throw objects.",
+   "3D Floating Spatial Dashboard. Build a 3D spatial dashboard controlled via hand pinch gestures.",
+   "Mobile AR Furniture Placement App. Build a mobile AR app letting users place 3D furniture models onto physical floor planes.",
+   "Multiplayer VR Art Gallery. Build a multi-user VR gallery where users can see each other's avatars and voice chat.",
+   "Optimized 90 FPS VR Experience. Optimize a heavy VR scene to run at a consistent 90+ FPS on standalone headsets."
+  ]
+ },
+ {
+  "id": "embedded",
+  "title": "Embedded Systems & IoT",
+  "category": "Emerging & Hardware",
+  "description": "Program microcontrollers, C/C++ hardware drivers, I2C/SPI sensors, FreeRTOS, and AWS IoT.",
+  "topics": [
+   "Pointers & Struct Memory",
+   "Bitwise Operations & Masks",
+   "Interrupt Service Routines (ISR)",
+   "Reading Hardware Schematics",
+   "I2C Sensor Interfacing",
+   "SPI High-Speed Communication",
+   "UART Serial Debugging",
+   "Analog-to-Digital Converters (ADC)",
+   "FreeRTOS Task Priorities",
+   "Semaphores & Mutex Concurrency",
+   "Inter-Task Message Queues",
+   "Software Timers",
+   "MQTT Protocol Architecture",
+   "AWS IoT Core Integration",
+   "Bluetooth Low Energy (BLE) GATT",
+   "Over-The-Air (OTA) Updates",
+   "Hardware Secure Elements (ATECC608)",
+   "Low Power Deep Sleep Modes",
+   "Secure Boot & Encrypted Firmware",
+   "Hardware Watchdog Timers"
+  ],
+  "stages": [
+   {
+    "title": "C/C++ for Hardware",
+    "description": "Memory pointers, bitwise operations, registers, makefiles, and schematics."
+   },
+   {
+    "title": "Microcontroller Peripherals",
+    "description": "Interfacing I2C, SPI, UART serial, and ADC/DAC converters."
+   },
+   {
+    "title": "FreeRTOS Multi-Tasking",
+    "description": "Task scheduling, semaphores, mutexes, queues, and task communication."
+   },
+   {
+    "title": "IoT Connectivity & Protocols",
+    "description": "MQTT protocol, Mosquitto, BLE GATT services, and AWS IoT Core."
+   },
+   {
+    "title": "Hardware Security & Power",
+    "description": "Hardware secure elements, low power sleep modes, and firmware encryption."
+   }
+  ],
+  "projects": [
+   "Bare-Metal GPIO Timer Driver. Write C drivers controlling hardware LEDs and timer interrupts on STM32 / ESP32.",
+   "OLED Weather Station Hardware. Build an embedded system reading temperature via I2C and rendering to an SPI OLED.",
+   "Multi-Tasking Environmental Monitor. Build a FreeRTOS app running separate tasks for sampling sensors and display updates.",
+   "Connected AWS IoT Smart Sensor Node. Build an ESP32 IoT node publishing encrypted MQTT telemetry to AWS IoT Core.",
+   "Ultra-Low Power Battery IoT Sensor. Design a battery-powered IoT sensor utilizing deep sleep modes and secure boot."
+  ]
+ }
+]

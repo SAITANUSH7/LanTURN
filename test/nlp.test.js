@@ -14,6 +14,7 @@ before(async () => {
       hits += 1;
       if (mode === 'fail') { res.writeHead(500); return res.end('{}'); }
       if (mode === 'slow') return; // never answers
+      if (req.url.endsWith('/v1/classify')) return res.end(JSON.stringify({ model_version: 1, results: [{ id: 'backend', prob: 0.5 }] }));
       const { jobs } = JSON.parse(b);
       // pretend the *last* job reads like the resume
       res.end(JSON.stringify({ results: jobs.map((j, i) => ({ id: j.id, score: i === jobs.length - 1 ? 100 : 0, cosine: 0.4, shared: ['kotlin'], missing: ['docker'] })) }));
@@ -70,4 +71,34 @@ test('recommended jobs blend the semantic score and survive the sidecar being do
   assert.equal(down.status, 200);
   assert.ok(down.body.items.length >= 2);
   assert.ok(down.body.items.every((j) => !j.match.semantic));
+});
+
+test('auto-setup stores the ML second opinion when the sidecar answers, and works without it', async () => {
+  const realFetch = globalThis.fetch;
+  const { __setNlpFetch, __resetNlpCaches } = await import('../src/nlp.js');
+  __reset(); __resetNlpCaches();
+  __setNlpFetch(async (url, opts) => {
+    if (String(url).endsWith('/v1/classify')) return new Response(JSON.stringify({ model_version: 7, results: [{ id: 'frontend', prob: 0.61 }, { id: 'fullstack', prob: 0.2 }] }), { status: 200 });
+    return realFetch(url, opts);
+  });
+  const st = await register('STUDENT');
+  const up = await api('POST', '/resumes', { token: st.accessToken, form: pdfForm(undefined, { consent: 'true' }) });
+  assert.equal(up.status, 201);
+  assert.equal(up.body.setup.ml.modelVersion, 7);
+  assert.equal(up.body.setup.ml.top[0].id, 'frontend');
+  assert.equal((await api('GET', '/career/setup', { token: st.accessToken })).body.setup.ml.top[0].prob, 0.61, 'persisted');
+  __setNlpFetch(async () => { throw new Error('down'); });
+  __reset();
+  const again = await api('POST', '/career/auto-setup', { token: st.accessToken });
+  assert.equal(again.status, 200);
+  assert.ok(again.body.setup.direction, 'rules result is unaffected by the sidecar being down');
+  __setNlpFetch(null);
+});
+
+test('the Python training corpus is in sync with the Career AIsle domains', async () => {
+  const fs = await import('node:fs');
+  const { CAREER_DOMAINS } = await import('../src/data/careerRoadmaps.js');
+  const exported = JSON.parse(fs.readFileSync(new URL('../services/nlp/data/domains.json', import.meta.url), 'utf8'));
+  assert.deepEqual(exported.map((d) => d.id), CAREER_DOMAINS.map((d) => d.id), 'run: node scripts/export-domains.mjs');
+  assert.equal(exported.reduce((a, d) => a + d.topics.length, 0), CAREER_DOMAINS.reduce((a, d) => a + d.stages.reduce((b, s) => b + s.topics.length, 0), 0), 'run: node scripts/export-domains.mjs');
 });

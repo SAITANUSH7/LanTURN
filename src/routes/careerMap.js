@@ -10,7 +10,7 @@ import { buildCareerMap, topicCovered as topicCoveredByResume } from '../ai/care
 import { checkQuota } from '../ai/index.js';
 import { callJson, llmEnabled } from '../ai/providers.js';
 import { studentSkills } from './common.js';
-import { autoSetup } from '../ai/autoSetup.js';
+import { autoSetup, attachMl } from '../ai/autoSetup.js';
 import { guideFor } from '../ai/prep.js';
 
 export const careerMapRouter = Router();
@@ -80,7 +80,7 @@ careerMapRouter.get('/career/setup', ...student, wrap(async (req, res) => {
   res.json({ setup: row?.auto_setup ? JSON.parse(row.auto_setup) : null });
 }));
 careerMapRouter.post('/career/auto-setup', ...student, wrap(async (req, res) => {
-  const setup = autoSetup(req.user.id);
+  const setup = await attachMl(req.user.id, autoSetup(req.user.id));
   if (!setup) throw bad('Upload a resume first');
   res.json({ setup });
 }));

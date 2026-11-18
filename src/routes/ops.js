@@ -8,7 +8,7 @@ import { snapshot, prometheus } from '../metrics.js';
 import { queueStats } from '../queue.js';
 import { breakerStates } from '../ai/breaker.js';
 import { backend } from '../match.js';
-import { nlpStatus } from '../nlp.js';
+import { nlpStatus, modelInfo, retrainModel } from '../nlp.js';
 import { searchStatus } from '../searchEngine.js';
 
 export const opsRouter = Router();
@@ -50,4 +50,11 @@ opsRouter.get('/tasks/:id', authenticate, wrap(async (req, res) => {
   const t = db.prepare('SELECT id, type, status, attempts, result, error, created_at, finished_at FROM tasks WHERE id = ? AND user_id = ?').get(Number(req.params.id), req.user.id);
   if (!t) throw notFound('Task not found');
   res.json({ ...t, result: t.result ? JSON.parse(t.result) : null });
+}));
+
+opsRouter.get('/admin/ml', ...admin, wrap(async (_req, res) => {
+  res.json({ nlp: nlpStatus(), model: await modelInfo() });
+}));
+opsRouter.post('/admin/ml/retrain', ...admin, wrap(async (_req, res) => {
+  try { res.json(await retrainModel()); } catch (e) { res.status(502).json({ error: { code: 'NLP_UNAVAILABLE', message: e.message } }); }
 }));

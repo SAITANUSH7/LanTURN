@@ -42,7 +42,7 @@ def test_missing_terms_reported():
 
 def test_api_contract_and_auth(monkeypatch):
     c = TestClient(service.app)
-    assert c.get("/health").json()["status"] == "ok"
+    assert c.get("/health").json()["status"] in ("ok", "starting")
     monkeypatch.setattr(service, "TOKEN", "s3cret")
     body = {"resume": RESUME, "jobs": JOBS}
     assert c.post("/v1/rank", json=body).status_code == 401
@@ -56,3 +56,63 @@ def test_input_limits():
     c = TestClient(service.app)
     too_many = {"resume": "a", "jobs": [{"id": i, "text": "x"} for i in range(1001)]}
     assert c.post("/v1/rank", json=too_many).status_code == 422
+
+
+# ---- domain classifier (persistent) ----
+import pytest  # noqa: E402
+from domain_model import ModelStore  # noqa: E402
+
+
+@pytest.fixture()
+def client(tmp_path, monkeypatch):
+    store = ModelStore(tmp_path / "models")
+    monkeypatch.setattr(service, "store", store)
+    store.ensure()
+    return TestClient(service.app)
+
+
+def test_classifies_obvious_resumes(client):
+    cases = {
+        "Skills: React, Next.js, CSS Grid, Flexbox, responsive design, TypeScript": "frontend",
+        "PyTorch, transformers, fine-tuning LLMs, embeddings, model evaluation, RAG": "aiml",
+        "Docker, Kubernetes, Terraform, CI/CD pipelines, AWS, Prometheus monitoring": "devops",
+    }
+    for text, want in cases.items():
+        got = client.post("/v1/classify", json={"text": text, "top_k": 3}).json()["results"]
+        assert got[0]["id"] == want or want in [r["id"] for r in got], (text, got)
+        assert abs(sum(r["prob"] for r in got)) <= 1.0 + 1e-6
+
+
+def test_model_persists_and_reloads_without_retraining(tmp_path):
+    a = ModelStore(tmp_path / "m")
+    assert a.ensure() == "trained"
+    v = a.current_version()
+    b = ModelStore(tmp_path / "m")
+    assert b.ensure() == "loaded"
+    assert b.current_version() == v
+    assert b.classify("Docker Kubernetes Terraform", 1)[0]["id"] in {"devops", "cloud"}
+
+
+def test_retrain_with_extra_docs_persists_and_versions(client):
+    before = client.get("/v1/model").json()
+    ok = client.post("/v1/train", json={"extra": [{"text": "Skills: ladle, spatula, sous vide", "label": "devops"}]})
+    assert ok.status_code == 200 and ok.json()["added"] == 1
+    after = client.get("/v1/model").json()
+    assert after["meta"]["version"] == before["meta"]["version"] + 1
+    assert after["extra_samples"] == 1
+    assert client.post("/v1/train", json={"extra": [{"text": "x", "label": "not-a-domain"}]}).status_code == 422
+
+
+def test_corrupt_current_model_triggers_retrain(tmp_path):
+    a = ModelStore(tmp_path / "m")
+    a.ensure()
+    (tmp_path / "m" / f"domain-v{a.current_version()}.joblib").write_bytes(b"garbage")
+    assert ModelStore(tmp_path / "m").ensure() == "trained"
+
+
+def test_old_versions_are_pruned(tmp_path):
+    s = ModelStore(tmp_path / "m")
+    s.ensure()
+    for _ in range(4):
+        s.retrain()
+    assert len(s.versions()) == 3

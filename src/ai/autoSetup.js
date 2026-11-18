@@ -2,6 +2,7 @@
 // Everything here is rules-based, so it works with no AI key and costs no quota. Existing user edits are never overwritten.
 import { db, tx } from '../db.js';
 import { extractSkills } from './skills.js';
+import { classifyDomains, nlpEnabled } from '../nlp.js';
 import { extractProfile } from './profileExtract.js';
 import { CAREER_DOMAINS } from '../data/careerRoadmaps.js';
 import { computeCareerMap } from '../routes/careerMap.js';
@@ -67,3 +68,21 @@ export function autoSetup(userId) {
   return summary;
 }
 export const domainCount = CAREER_DOMAINS.length;
+
+/**
+ * Optional ML second opinion (Python sidecar): which Career AIsle directions does this resume read like?
+ * Merged into the stored auto-setup JSON. Never throws; returns the setup unchanged if the model is unavailable.
+ */
+export async function attachMl(userId, setup) {
+  if (!setup || !nlpEnabled()) return setup;
+  try {
+    const resume = db.prepare('SELECT extracted_text FROM resumes WHERE student_id = ? ORDER BY id DESC LIMIT 1').get(userId);
+    const text = `${resume?.extracted_text || ''}\nSkills: ${(setup.skills || []).join(', ')}`;
+    const out = await classifyDomains(text, 3);
+    if (!out) return setup;
+    const title = (id) => CAREER_DOMAINS.find((d) => d.id === id)?.title || id;
+    setup.ml = { modelVersion: out.version, top: out.top.map((t) => ({ id: t.id, title: title(t.id), prob: t.prob })) };
+    db.prepare('UPDATE student_profiles SET auto_setup = ? WHERE user_id = ?').run(JSON.stringify(setup), userId);
+  } catch (e) { console.warn('ml classification failed:', e.message); }
+  return setup;
+}
