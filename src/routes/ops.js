@@ -9,6 +9,7 @@ import { queueStats } from '../queue.js';
 import { breakerStates } from '../ai/breaker.js';
 import { backend } from '../match.js';
 import { nlpStatus } from '../nlp.js';
+import { searchStatus } from '../searchEngine.js';
 
 export const opsRouter = Router();
 let draining = false;
@@ -30,7 +31,7 @@ opsRouter.get('/health/ready', (_req, res) => {
 
 const admin = [authenticate, requireRole('ADMIN')];
 opsRouter.get('/admin/metrics', ...admin, wrap(async (_req, res) => {
-  res.json({ ...snapshot(), queue: queueStats(), breakers: breakerStates(), matchBackend: backend, nlp: nlpStatus() });
+  res.json({ ...snapshot(), queue: queueStats(), breakers: breakerStates(), matchBackend: backend, nlp: nlpStatus(), search: searchStatus() });
 }));
 opsRouter.get('/admin/metrics.prom', ...admin, wrap(async (_req, res) => {
   const q = queueStats();

@@ -34,6 +34,7 @@ flowchart LR
   W[Queue worker<br/>retry, backoff, dead letters] --> Q
   W --> DB
   A --> C[C++ core via N-API<br/>matchMany, Aho-Corasick scan]
+  A <-->|line protocol, supervised| S[lanturn-search<br/>C++ executable, BM25 index]
   A -->|bounded, breaker| P[Python NLP sidecar<br/>TF-IDF relevance]
   A -->|breaker, task routing| L[LLM providers<br/>NVIDIA / OpenCode / ...]
   A --> O[/health/ready, /admin/metrics/]
@@ -75,3 +76,6 @@ Native kernels, `node scripts/microbench.mjs`: `matchMany` over 100k students 7.
 - **C++ core:** built automatically by the Dockerfile's first stage. Locally: `npm run build:native`. Opt out with `DISABLE_NATIVE=1`. `/api/admin/metrics` shows `matchBackend`.
 - **Python sidecar:** deploy `services/nlp` as a second Railway service (root directory `services/nlp`, uses its Dockerfile). On the web service set `NLP_SERVICE_URL` (the sidecar's private URL) and the same `NLP_SERVICE_TOKEN` on both. Without these, recommendations use skill match only.
 - **Load testing:** `DISABLE_RATE_LIMIT=1` exists only for `scripts/bench.mjs`; never set it in production.
+
+### lanturn-search (C++ executable)
+A standalone full-text engine (`native/search/lanturn_search.cpp`, no dependencies): BM25 with field weights (title 3, company 2, skills 2, body 1), prefix matching on every query token, exact words beating prefixes, AND semantics. The Node server runs it as one long-lived child process (`src/searchEngine.js`): pipelined requests with ids, a timeout on each, restart after a crash, a circuit breaker, and a re-index whenever the jobs data version changes. A bad query or a crash cannot take the API down; any miss falls back to the SQL `LIKE` search. On 50k synthetic jobs it ranks a two-word query in about 5 ms versus 22 ms for an unranked `LIKE` scan (`npm run bench:native`). At today's few hundred jobs both are instant: the visible gain is relevance ordering and typeahead-style prefix matching. `/api/admin/metrics` reports its status under `search`.

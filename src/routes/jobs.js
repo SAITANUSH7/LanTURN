@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { notify } from '../notify.js';
 import { nlpEnabled, semanticRank } from '../nlp.js';
+import { searchJobs } from '../searchEngine.js';
 import { z } from 'zod';
 import { db, tx } from '../db.js';
 import { conflict, notFound, forbidden, parse, wrap, page } from '../util.js';
@@ -42,6 +43,21 @@ jobsRouter.get('/jobs', authenticate, wrap(async (req, res) => {
   if (req.query.remote === 'true') where.push('j.remote = 1');
   const skillId = idParam(req.query.skillId);
   if (skillId > 0) { where.push('EXISTS (SELECT 1 FROM job_skills js WHERE js.job_id = j.id AND js.skill_id = ?)'); args.push(skillId); }
+  if (q) {
+    // Ranked full-text search from the native engine; any miss or failure falls through to the SQL LIKE path below.
+    const b = openJobsBundle();
+    const found = await searchJobs(b, q);
+    if (found?.hits.length) {
+      const wantLoc = String(req.query.location || '').trim().toLowerCase();
+      const hits = found.hits.map((h) => ({ row: b.byId.get(h.id), h })).filter(({ row }) => row
+        && (!['INTERNSHIP', 'FULL_TIME', 'PART_TIME', 'CONTRACT'].includes(req.query.type) || row.type === req.query.type)
+        && (!wantLoc || String(row.location || '').toLowerCase().includes(wantLoc))
+        && (req.query.remote !== 'true' || row.remote)
+        && (skillId <= 0 || (b.skills.get(row.id) || []).some((s) => s.skill_id === skillId)));
+      const pageRows = hits.slice(offset, offset + pageSize).map((x) => x.row);
+      return res.json({ items: withMatches(pageRows, req, b.skills), page: p, pageSize, total: hits.length, ranked: true });
+    }
+  }
   if (!args.length && where.length === 1 && req.query.remote !== 'true') {
     // Unfiltered first-page browsing is the hottest read: serve it from the cached bundle.
     const b = openJobsBundle();

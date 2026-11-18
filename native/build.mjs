@@ -16,4 +16,9 @@ const cxx = process.env.CXX || 'g++';
 const args = ['-std=c++17', '-O3', '-shared', '-fPIC', '-Wall', `-I${include}`, '-DNODE_GYP_MODULE_NAME=lanturn_native', '-DNAPI_VERSION=8', path.join(here, 'lanturn_native.cc'), '-o', out];
 const r = spawnSync(cxx, args, { stdio: 'inherit' });
 if (r.status !== 0) { console.warn('native: compile failed or no compiler; skipping (JS fallback in use)'); process.exit(0); }
+// The standalone search executable (no Node headers needed)
+const exe = path.join(outDir, 'lanturn-search');
+const r2 = spawnSync(cxx, ['-std=c++17', '-O3', '-Wall', path.join(here, 'search', 'lanturn_search.cpp'), '-o', exe], { stdio: 'inherit' });
+if (r2.status !== 0) console.warn('native: lanturn-search failed to build; job search falls back to SQL');
+else console.log(`native: built ${path.relative(process.cwd(), exe)}`);
 console.log(`native: built ${path.relative(process.cwd(), out)}`);

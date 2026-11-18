@@ -5,6 +5,7 @@ import { startWorker, stopWorker } from './src/queue.js';
 import { startScheduler, stopScheduler } from './src/tasks.js';
 import { setDraining } from './src/routes/ops.js';
 import { db } from './src/db.js';
+import { stopSearch } from './src/searchEngine.js';
 import { startupWarnings } from './src/security.js';
 import { seedTaxonomy, seedAdmin, seedDemo } from './src/seed.js';
 
@@ -41,6 +42,7 @@ async function shutdown(signal) {
   server.close();
   server.closeIdleConnections?.();
   await stopWorker(7000);
+  stopSearch();
   try { db.exec('PRAGMA wal_checkpoint(TRUNCATE)'); db.close(); } catch { /* already closed */ }
   console.log('shutdown complete');
   process.exit(0);
