@@ -1,4 +1,4 @@
-import { get, post } from '../api.js';
+import { get, post, put, del } from '../api.js';
 import { h, clear, icon, empty, toast, busy, loadingBlock, errorBox } from '../ui.js';
 import { pageHead, wrapPage } from './shared.js';
 import { uploader } from './careermap.js';
@@ -7,12 +7,25 @@ const LABELS = { name: 'Name', college: 'College', degree: 'Degree', branch: 'Br
 
 /** "We set everything up from your resume": what was filled, skills, direction, next steps, matching jobs. */
 export async function setupPage() {
+  const feedbackHost = h('div');
+  const drawFeedback = async () => {
+    try {
+      const f = await get('/career/feedback');
+      const pick = h('select', { 'aria-label': 'Your real career direction' }, ...f.domains.map((d) => h('option', { value: d.id, selected: d.id === f.domain ? true : null }, d.title)));
+      clear(feedbackHost).append(h('div', { class: 'card stack' }, h('h3', null, 'Help improve the model (optional)'),
+        h('p', { class: 'muted' }, 'Tell us the direction that is actually yours. If you share it, only that choice and your skill names (never your resume, name or contact details) are used to train the recommendation model. You can withdraw any time.'),
+        h('div', { class: 'row' }, pick,
+          h('button', { class: 'btn btn--secondary btn--sm', onclick: (ev) => busy(ev.currentTarget, async () => { try { await put('/career/feedback', { domain: pick.value }); toast('Thanks, shared with consent', 'success'); await drawFeedback(); } catch (e) { toast(e.message, 'error'); } }) }, f.consent ? 'Update' : 'Share my direction'),
+          f.consent ? h('button', { class: 'btn btn--ghost btn--sm', onclick: (ev) => busy(ev.currentTarget, async () => { try { await del('/career/feedback'); toast('Withdrawn', 'success'); await drawFeedback(); } catch (e) { toast(e.message, 'error'); } }) }, 'Withdraw') : null)));
+    } catch { clear(feedbackHost); }
+  };
   const host = h('div', { class: 'stack stack--lg' }, loadingBlock(3));
   const load = async () => {
     clear(host).append(loadingBlock(3));
     try {
       const { setup } = await get('/career/setup');
       draw(setup);
+      drawFeedback();
     } catch (e) { clear(host).append(errorBox(e, load)); }
   };
   let polls = 0;
@@ -31,6 +44,7 @@ export async function setupPage() {
         h('p', null, s.direction ? `Best direction for you right now: ${s.direction.title} (${s.direction.fit}% of its topics already on your resume).` : 'Add more skills to see a direction.'),
         h('div', { class: 'row' }, h('a', { class: 'btn', href: '#/student/roadmap' }, icon('route'), 'Open my roadmap'), h('a', { class: 'btn btn--secondary', href: '#/student/map' }, 'See all directions'), h('a', { class: 'btn btn--secondary', href: '#/student/jobs' }, 'Browse jobs'))),
       s.verdict ? verdictCard(s.verdict, redoVerdict) : null,
+      feedbackHost,
       h('div', { class: 'grid grid--2' },
         h('div', { class: 'card stack' }, h('h3', null, 'Filled into your profile'),
           filled.length ? h('dl', { class: 'kv' }, filled.flatMap(([k, v]) => [h('dt', null, LABELS[k] || k), h('dd', null, String(v))])) : h('p', { class: 'muted' }, 'Your profile already had these details, so nothing was overwritten.'),

@@ -12,6 +12,7 @@ import { callJson, llmEnabled } from '../ai/providers.js';
 import { studentSkills } from './common.js';
 import { autoSetup, attachMl } from '../ai/autoSetup.js';
 import { startVerdict, concludeVerdict } from '../ai/fusion.js';
+import { feedbackFor, saveFeedback, withdrawFeedback, validDomain } from '../ai/measure.js';
 import { guideFor } from '../ai/prep.js';
 
 export const careerMapRouter = Router();
@@ -136,3 +137,13 @@ careerMapRouter.get('/career/guide', ...student, wrap(async (req, res) => {
   const q = parse(z.object({ topic: z.string().trim().min(1).max(80) }), req.query);
   res.json(guideFor(q.topic));
 }));
+
+// Opt-in: confirm your real direction so the ML model can learn from skills-only examples. Submitting is consent; DELETE withdraws.
+careerMapRouter.get('/career/feedback', authenticate, requireRole('STUDENT'), wrap(async (req, res) => { res.json({ ...feedbackFor(req.user.id), domains: CAREER_DOMAINS.map((d) => ({ id: d.id, title: d.title })) }); }));
+careerMapRouter.put('/career/feedback', authenticate, requireRole('STUDENT'), wrap(async (req, res) => {
+  const b = parse(z.object({ domain: z.string().max(64) }), req.body);
+  if (!validDomain(b.domain)) throw bad('Unknown career direction');
+  saveFeedback(req.user.id, b.domain);
+  res.json(feedbackFor(req.user.id));
+}));
+careerMapRouter.delete('/career/feedback', authenticate, requireRole('STUDENT'), wrap(async (req, res) => { withdrawFeedback(req.user.id); res.json(feedbackFor(req.user.id)); }));

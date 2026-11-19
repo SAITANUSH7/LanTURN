@@ -376,6 +376,7 @@ try {
 for (const col of ['headline TEXT NOT NULL DEFAULT \'\'', 'target_domain TEXT', 'auto_setup TEXT', 'auto_filled_at TEXT']) {
   try { db.exec(`ALTER TABLE student_profiles ADD COLUMN ${col}`); } catch { /* column already exists */ }
 }
+db.exec("CREATE TABLE IF NOT EXISTS ml_feedback (user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, domain TEXT NOT NULL, consent_at TEXT NOT NULL)");
 db.exec('CREATE TABLE IF NOT EXISTS app_flags (key TEXT PRIMARY KEY, value TEXT NOT NULL)');
 
 // Change counters: triggers bump these on ANY write (routes, seed, scripts), so in-process caches can validate
