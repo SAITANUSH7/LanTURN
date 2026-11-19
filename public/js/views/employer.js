@@ -1,6 +1,6 @@
 import { get, post, put, patch, openPdf, session, reloadUser } from '../api.js';
 import { h, clear, icon, scoreRing, skillChip, statusBadge, verifyBadge, fmtDate, fmtDateTime, empty, errorBox, loadingBlock, toast, confirmDialog, busy, field, input, select, textarea, TYPE_LABEL, STATUS_META, initials } from '../ui.js';
-import { pageHead, wrapPage, analysisView } from './shared.js';
+import { pageHead, wrapPage, analysisView, emailPrefsCard } from './shared.js';
 import { jdWriter, companyDnaCard } from './ai.js';
 
 const pendingBanner = (v) => v === 'VERIFIED' ? null
@@ -225,5 +225,5 @@ export async function company() {
       try { await put('/employers/me/company', { companyName: v.name.value.trim(), website: v.website.value.trim(), industry: v.industry.value.trim(), size: v.size.value, description: v.about.value.trim(), location: v.location.value.trim() }); await reloadUser(); toast('Company saved', 'success'); } catch (ex) { toast(ex.message, 'error'); }
     });
   } }, h('div', { class: 'form-grid' }, field('Company name', v.name), field('Website', v.website), field('Industry', v.industry), field('Size', v.size), field('Location', v.location)), field('About', v.about), h('div', null, btn));
-  return wrapPage(pageHead('Company', 'This is what students see on your job posts.', verifyBadge(c.verification)), pendingBanner(c.verification), form, await companyDnaCard());
+  return wrapPage(pageHead('Company', 'This is what students see on your job posts.', verifyBadge(c.verification)), pendingBanner(c.verification), form, await companyDnaCard(), await emailPrefsCard());
 }

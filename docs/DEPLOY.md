@@ -54,3 +54,8 @@ Without them, the live search falls back to jobs posted by employers on LanTURN.
 ## Auto-setup
 
 After a student uploads a resume, LanTURN fills the profile, adds skills, picks a direction, builds the roadmap and matches jobs. No AI quota is used. `student.three@example.test` is seeded blank on purpose (needs `SEED_DEMO=true`).
+
+## Email (optional)
+Set `EMAIL_API_KEY`, `EMAIL_FROM` (a sender you have verified with the provider) and `PUBLIC_URL` (your site address, used in email links).
+The default API is Resend-compatible; override with `EMAIL_API_URL`. Without these, nothing is sent and the settings toggle is hidden.
+Emails go through the durable queue (retries with backoff), cover status changes, new applications, strong matches, job closures and job alerts (max 3 a day per student), and include an unsubscribe link. Not tested against a live provider.

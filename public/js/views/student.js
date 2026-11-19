@@ -1,6 +1,6 @@
 import { api, get, post, put, del, openPdf, session, reloadUser } from '../api.js';
 import { h, clear, icon, scoreRing, skillChip, meter, statusBadge, fmtDate, fmtDateTime, empty, errorBox, loadingBlock, toast, confirmDialog, busy, field, input, select, textarea, TYPE_LABEL, STATUS_META, weightDots } from '../ui.js';
-import { pageHead, wrapPage, jobCard, analysisView, roadmapView } from './shared.js';
+import { pageHead, wrapPage, jobCard, analysisView, roadmapView, emailPrefsCard } from './shared.js';
 import { jobTools } from './ai.js';
 
 const TERMINAL = ['OFFERED', 'REJECTED', 'WITHDRAWN'];
@@ -290,7 +290,7 @@ export async function profile() {
   const skillBtn = h('button', { class: 'btn', type: 'button' }, 'Save skills');
   skillBtn.onclick = () => busy(skillBtn, async () => { try { await put('/students/me/skills', { skillIds: [...mine.keys()] }); toast('Skills saved', 'success'); } catch (e) { toast(e.message, 'error'); } });
   const skillCard = h('div', { class: 'card stack' }, h('h3', null, 'Your skills'), chips, h('div', { class: 'picker' }, search, list), h('div', null, skillBtn));
-  return wrapPage(pageHead('Profile', 'Employers and the matching engine use this to find your best fit.'), h('div', { class: 'grid grid--2', style: { alignItems: 'start' } }, profileForm, skillCard));
+  return wrapPage(pageHead('Profile', 'Employers and the matching engine use this to find your best fit.'), h('div', { class: 'grid grid--2', style: { alignItems: 'start' } }, profileForm, skillCard), await emailPrefsCard());
 }
 
 // Live job boards (Adzuna / Jooble when the administrator set a key); otherwise campus postings.

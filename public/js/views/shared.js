@@ -1,4 +1,5 @@
-import { h, icon, TYPE_LABEL, scoreRing, skillChip, meter, fmtDate, badgeSource } from '../ui.js';
+import { get, put } from '../api.js';
+import { h, icon, toast, TYPE_LABEL, scoreRing, skillChip, meter, fmtDate, badgeSource } from '../ui.js';
 
 export const pageHead = (title, sub, actions) =>
   h('div', { class: 'page-head' }, h('div', null, h('h1', null, title), sub ? h('p', null, sub) : null), actions ? h('div', { class: 'row' }, actions) : null);
@@ -56,3 +57,15 @@ export function roadmapView(r) {
 }
 
 export { fmtDate };
+
+/** Email notification switch. Hidden when the server has no email provider configured. */
+export async function emailPrefsCard() {
+  try {
+    const p = await get('/email-prefs');
+    if (!p.available) return null;
+    const box = h('input', { type: 'checkbox', checked: p.enabled ? true : null, onchange: async (e) => {
+      try { await put('/email-prefs', { enabled: e.target.checked }); toast(e.target.checked ? 'Emails on' : 'Emails off', 'success'); } catch (x) { e.target.checked = !e.target.checked; toast(x.message, 'error'); }
+    } });
+    return h('div', { class: 'card stack stack--sm' }, h('h3', null, 'Email notifications'), h('label', { class: 'check' }, box, 'Email me about application updates, strong matches and new matching jobs'), h('small', { class: 'muted' }, 'Chat and connection activity is never emailed. Every email also has a one-click unsubscribe link.'));
+  } catch { return null; }
+}

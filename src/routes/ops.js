@@ -3,12 +3,13 @@ import { Router } from 'express';
 import { db } from '../db.js';
 import { config } from '../config.js';
 import { authenticate, requireRole } from '../auth.js';
-import { wrap, notFound } from '../util.js';
+import { wrap, notFound, bad } from '../util.js';
 import { snapshot, prometheus } from '../metrics.js';
 import { queueStats } from '../queue.js';
 import { breakerStates } from '../ai/breaker.js';
 import { backend } from '../match.js';
 import { nlpStatus, modelInfo, retrainModel } from '../nlp.js';
+import { prefsFor, setPrefs, checkUnsubToken, emailEnabled } from '../email.js';
 import { measureOutcomes, feedbackExtras } from '../ai/measure.js';
 import { searchStatus } from '../searchEngine.js';
 
@@ -32,7 +33,7 @@ opsRouter.get('/health/ready', (_req, res) => {
 
 const admin = [authenticate, requireRole('ADMIN')];
 opsRouter.get('/admin/metrics', ...admin, wrap(async (_req, res) => {
-  res.json({ ...snapshot(), queue: queueStats(), breakers: breakerStates(), matchBackend: backend, nlp: nlpStatus(), search: searchStatus() });
+  res.json({ ...snapshot(), queue: queueStats(), breakers: breakerStates(), matchBackend: backend, email: { enabled: emailEnabled() }, nlp: nlpStatus(), search: searchStatus() });
 }));
 opsRouter.get('/admin/metrics.prom', ...admin, wrap(async (_req, res) => {
   const q = queueStats();
@@ -63,3 +64,18 @@ opsRouter.post('/admin/ml/retrain', ...admin, wrap(async (req, res) => {
   const extra = req.body?.includeFeedback ? feedbackExtras() : [];
   try { res.json({ ...(await retrainModel(extra)), feedbackUsed: extra.length }); } catch (e) { res.status(502).json({ error: { code: 'NLP_UNAVAILABLE', message: e.message } }); }
 }));
+
+// ---- Email preferences ----
+opsRouter.get('/email-prefs', authenticate, wrap(async (req, res) => { res.json(prefsFor(req.user.id)); }));
+opsRouter.put('/email-prefs', authenticate, wrap(async (req, res) => {
+  if (typeof req.body?.enabled !== 'boolean') throw bad('enabled must be true or false');
+  setPrefs(req.user.id, req.body.enabled);
+  res.json(prefsFor(req.user.id));
+}));
+// One-click unsubscribe from the link in every email (no login needed; the token is an HMAC of the user id).
+opsRouter.get('/email/unsubscribe', (req, res) => {
+  const u = Number(req.query.u);
+  if (!Number.isInteger(u) || !checkUnsubToken(u, req.query.t)) return res.status(400).type('html').send('<p>This unsubscribe link is not valid.</p>');
+  setPrefs(u, false);
+  res.type('html').send('<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><body style="font-family:system-ui;max-width:480px;margin:60px auto;padding:0 16px"><h2>You are unsubscribed</h2><p>LanTURN will no longer email you. You will still see notifications in the app, and you can turn emails back on in your settings.</p></body>');
+});
