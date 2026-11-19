@@ -8,6 +8,7 @@ import { authenticate, requireRole, requireVerifiedEmployer } from '../auth.js';
 import { idParam, loadJobSkills, serializeJob, JOB_SELECT, recordEvent, eventsFor, latestAnalysis, studentSkills } from './common.js';
 import { skillGap } from '../ai/scoring.js';
 import { llmEnabled, providerSummary } from '../ai/providers.js';
+import { rankCandidates, explainTop, suggestSkills } from '../ai/hiring.js';
 
 export const employerRouter = Router();
 const employer = [authenticate, requireRole('EMPLOYER')];
@@ -513,3 +514,45 @@ for (const [action, value] of [['approve', 'VERIFIED'], ['reject', 'REJECTED']])
 }
 
 export { parseJson };
+
+// ---------- Smart ranking, skill suggestions, bulk actions ----------
+employerRouter.get('/employer/jobs/:id/ranking', ...employer, wrap(async (req, res) => {
+  const job = ownJob(req.user.id, req.params.id);
+  const items = await rankCandidates(job);
+  res.json({ job: { id: job.id, title: job.title, status: job.status }, source: 'rules', items });
+}));
+
+// Ask the AI provider to phrase the "why" for the top candidates (counts against the employer's daily AI quota).
+employerRouter.post('/employer/jobs/:id/ranking/explain', ...employer, wrap(async (req, res) => {
+  const job = ownJob(req.user.id, req.params.id);
+  const out = await explainTop(req.user.id, job, await rankCandidates(job));
+  res.json({ job: { id: job.id, title: job.title, status: job.status }, ...out });
+}));
+
+employerRouter.post('/employer/skills/suggest', ...employer, wrap(async (req, res) => {
+  const b = parse(z.object({ title: z.string().trim().max(160).default(''), description: z.string().trim().max(5000).default(''), exclude: z.array(z.number().int()).max(50).default([]) }), req.body);
+  res.json({ items: await suggestSkills(b) });
+}));
+
+// Move many applications at once. Each one is checked against the same transition rules; the reply says what happened to each.
+employerRouter.post('/employer/applications/bulk-status', ...employer, wrap(async (req, res) => {
+  const b = parse(z.object({ ids: z.array(z.number().int()).min(1).max(100), status: z.string().max(30) }), req.body);
+  const target = normalizeStatus(b.status);
+  if (!STATUSES.includes(target)) throw bad(`Invalid status: ${b.status}`);
+  const results = [];
+  for (const id of b.ids) {
+    try {
+      const a = ownApplication(req.user.id, id);
+      if (a.status === target) { results.push({ id, ok: true, status: target, unchanged: true }); continue; }
+      if (!TRANSITIONS[a.status].includes(target)) { results.push({ id, ok: false, error: `Cannot move from ${a.status} to ${target}` }); continue; }
+      tx(() => {
+        db.prepare("UPDATE applications SET status = ?, updated_at = datetime('now') WHERE id = ?").run(target, a.id);
+        recordEvent(a.id, a.status, target, req.user.id);
+      });
+      const jt = db.prepare('SELECT j.title, e.company_name FROM jobs j LEFT JOIN employer_profiles e ON e.user_id = j.employer_id WHERE j.id = ?').get(a.job_id);
+      notify(a.student_id, 'application_status', `Application ${target.toLowerCase()}`, `${jt?.company_name || 'The employer'} moved your application for ${jt?.title || 'a job'} to ${target}.`, '#/student/applications');
+      results.push({ id, ok: true, status: target });
+    } catch (e) { results.push({ id, ok: false, error: e.message }); }
+  }
+  res.json({ results, changed: results.filter((r) => r.ok && !r.unchanged).length, failed: results.filter((r) => !r.ok).length });
+}));

@@ -87,6 +87,15 @@ export async function jobForm({ params, navigate }) {
       list.hidden = !list.childNodes.length;
     }, 180);
   };
+  const sugBox = h('div', { class: 'chips', 'aria-live': 'polite' });
+  const sugBtn = h('button', { type: 'button', class: 'btn btn--secondary btn--sm', onclick: () => busy(sugBtn, async () => {
+    try {
+      const d = await post('/employer/skills/suggest', { title: v.title.value.trim(), description: v.description.value.trim(), exclude: [...skills.keys()] });
+      clear(sugBox);
+      if (!d.items.length) { sugBox.append(h('p', { class: 'muted' }, 'No suggestions yet. Add a title or a few lines of description first.')); return; }
+      d.items.forEach((x) => sugBox.append(h('button', { type: 'button', class: 'chip chip--blue', title: x.reason, onclick: (ev) => { skills.set(x.skillId, { id: x.skillId, name: x.name, weight: Math.min(3, Math.max(1, x.weight)) }); paint(); ev.currentTarget.remove(); } }, `+ ${x.name}`, h('small', { class: 'muted' }, ` ${x.reason}`))));
+    } catch (e) { toast(e.message, 'error'); }
+  }) }, icon('target'), 'Suggest skills');
   const btn = h('button', { class: 'btn', type: 'submit', disabled: me.verification !== 'VERIFIED' ? true : null }, editing ? 'Save changes' : 'Publish job');
   const form = h('form', { class: 'card stack', onsubmit: (e) => {
     e.preventDefault();
@@ -104,7 +113,7 @@ export async function jobForm({ params, navigate }) {
     onResult: (r) => { v.description.value = [r.description, r.responsibilities.length ? `\nWhat you will do:\n${r.responsibilities.map((x) => `- ${x}`).join('\n')}` : '', r.requirements.length ? `\nWhat we look for:\n${r.requirements.map((x) => `- ${x}`).join('\n')}` : '', r.niceToHave.length ? `\nNice to have:\n${r.niceToHave.map((x) => `- ${x}`).join('\n')}` : ''].filter(Boolean).join('\n').slice(0, 5000); toast('Draft added. Edit it before publishing.', 'success'); } }),
   h('div', { class: 'form-grid' }, field('Type', v.type), field('Location', v.location), field('Compensation', v.comp), field('Apply by', v.deadline)),
   h('label', { class: 'check' }, v.remote, 'Remote friendly'),
-  h('div', { class: 'stack stack--sm' }, h('h3', null, 'Required skills'), h('p', { class: 'hint muted' }, 'Weights drive the match score students and you see.'), skillList, h('div', { class: 'picker' }, search, list)),
+  h('div', { class: 'stack stack--sm' }, h('h3', null, 'Required skills'), h('p', { class: 'hint muted' }, 'Weights drive the match score students and you see.'), skillList, h('div', { class: 'picker' }, search, list), h('div', { class: 'row' }, sugBtn), sugBox),
   h('div', { class: 'form-actions' }, btn, h('a', { class: 'btn btn--secondary', href: '#/employer/jobs' }, 'Cancel')));
   return wrapPage(h('a', { class: 'crumb', href: '#/employer/jobs' }, icon('arrow-left'), 'My jobs'), pageHead(editing ? 'Edit job' : 'Post a job'), pendingBanner(me.verification), form);
 }
@@ -113,11 +122,42 @@ export async function jobForm({ params, navigate }) {
 const STATUSES = ['APPLIED', 'SHORTLISTED', 'INTERVIEW', 'OFFERED', 'REJECTED', 'WITHDRAWN'];
 export async function candidates({ params, query }) {
   let status = query.status || '';
-  let sort = query.sort === 'resume' ? 'resume' : 'match';
+  let sort = query.sort === 'resume' ? 'resume' : query.sort === 'match' ? 'match' : 'smart';
   const bar = h('div', { class: 'row row--between' });
   const list = h('div', { class: 'stack' });
   const titleEl = h('p', { class: 'strong' });
+  const selected = new Set();
+  const sortBar = () => h('div', { class: 'segmented', role: 'group', 'aria-label': 'Sort' }, ...[['smart', 'AI rank'], ['match', 'Best match'], ['resume', 'Resume score']].map(([k, l]) => h('button', { 'aria-pressed': String(sort === k), onclick: () => { sort = k; load(); } }, l)));
+  async function loadSmart(explain) {
+    clear(list).append(loadingBlock(2));
+    try {
+      const d = explain ? await post(`/employer/jobs/${params.id}/ranking/explain`, {}) : await get(`/employer/jobs/${params.id}/ranking`);
+      titleEl.textContent = d.job.title;
+      const items = status ? d.items.filter((c) => c.status === status) : d.items;
+      clear(list);
+      if (!items.length) { list.append(empty('users', 'No candidates here yet', 'Applications will appear as soon as students apply.')); return; }
+      const bulk = h('div', { class: 'row card card--flat', style: { padding: '10px 14px' } });
+      const paintBulk = () => {
+        clear(bulk).append(h('strong', null, `${selected.size} selected`),
+          ...['SHORTLISTED', 'INTERVIEW', 'REJECTED'].map((s2) => h('button', { type: 'button', class: `btn btn--sm ${s2 === 'REJECTED' ? 'btn--danger' : 'btn--secondary'}`, disabled: selected.size ? null : true, onclick: async (ev) => {
+            if (s2 === 'REJECTED' && !(await confirmDialog({ title: `Reject ${selected.size} candidate(s)?`, body: 'Students will see the new status.', confirmText: 'Reject', danger: true }))) return;
+            busy(ev.currentTarget, async () => { try { const r = await post('/employer/applications/bulk-status', { ids: [...selected], status: s2 }); toast(`${r.changed} moved${r.failed ? `, ${r.failed} not allowed from their current stage` : ''}`, r.failed ? 'info' : 'success'); selected.clear(); await loadSmart(false); } catch (e) { toast(e.message, 'error'); } });
+          } }, s2 === 'REJECTED' ? 'Reject' : `Move to ${STATUS_META[s2].label}`)),
+          h('button', { type: 'button', class: 'btn btn--ghost btn--sm', onclick: () => { items.forEach((c) => selected.add(c.applicationId)); paintBulk(); list.querySelectorAll('input[type=checkbox]').forEach((i) => { i.checked = true; }); } }, 'Select all'));
+      };
+      paintBulk();
+      list.append(h('div', { class: 'row row--between' }, h('p', { class: 'muted' }, d.source === 'llm' ? `Explanations written by ${d.provider || 'your AI provider'} from the facts below. Names are never sent.` : (d.note ? 'AI explanation unavailable, showing rule-based reasons.' : 'Ranked by skill match, resume score, medals and resume wording. Reasons are rule-based.')),
+        h('button', { type: 'button', class: 'btn btn--secondary btn--sm', onclick: (ev) => busy(ev.currentTarget, () => loadSmart(true)) }, icon('target'), 'Explain top with AI')), bulk);
+      items.forEach((c, i) => list.append(h('div', { class: 'card cand' },
+        h('input', { type: 'checkbox', 'aria-label': `Select ${c.name}`, checked: selected.has(c.applicationId) ? true : null, onchange: (e) => { e.target.checked ? selected.add(c.applicationId) : selected.delete(c.applicationId); paintBulk(); } }),
+        h('div', { class: 'stack stack--sm' }, h('div', { class: 'row' }, h('strong', null, `#${i + 1}`), h('a', { href: `#/employer/applications/${c.applicationId}` }, h('h3', null, c.name)), statusBadge(c.status)),
+          h('p', null, c.why),
+          h('div', { class: 'chips' }, ...c.strengths.map((x) => skillChip(x, 'matched')), ...c.concerns.map((x) => skillChip(x, 'missing')))),
+        h('div', { class: 'cand__scores' }, h('div', null, scoreRing(c.composite, { size: 'sm' }), 'Overall'), h('div', null, scoreRing(c.matchScore, { size: 'sm', accent: true }), 'Match')))));
+    } catch (e) { clear(list).append(errorBox(e, () => loadSmart(false))); }
+  }
   async function load() {
+    if (sort === 'smart') { clear(bar).append(h('span'), sortBar()); return loadSmart(false); }
     clear(list).append(loadingBlock(2));
     try {
       const d = await get(`/employer/jobs/${params.id}/candidates?sort=${sort}${status ? `&status=${status}` : ''}`);
@@ -126,7 +166,7 @@ export async function candidates({ params, query }) {
         h('div', { class: 'filters', role: 'group', 'aria-label': 'Filter by status' },
           h('button', { class: 'filter', 'aria-pressed': String(!status), onclick: () => { status = ''; load(); } }, `All (${total})`),
           ...STATUSES.map((s) => h('button', { class: 'filter', 'aria-pressed': String(status === s), onclick: () => { status = s; load(); } }, `${STATUS_META[s].label} (${d.counts[s]})`))),
-        h('div', { class: 'segmented', role: 'group', 'aria-label': 'Sort' }, h('button', { 'aria-pressed': String(sort === 'match'), onclick: () => { sort = 'match'; load(); } }, 'Best match'), h('button', { 'aria-pressed': String(sort === 'resume'), onclick: () => { sort = 'resume'; load(); } }, 'Resume score')));
+        sortBar());
       titleEl.textContent = d.job.title;
       clear(list);
       if (!d.items.length) { list.append(empty('users', 'No candidates here yet', status ? 'No applications have this status.' : 'Applications will appear as soon as students apply.')); return; }

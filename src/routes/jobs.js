@@ -148,6 +148,7 @@ jobsRouter.post('/jobs/:id/apply', authenticate, requireRole('STUDENT'), wrap(as
   });
   const who = db.prepare('SELECT full_name FROM student_profiles WHERE user_id = ?').get(req.user.id);
   notify(row.employer_id, 'application_received', `New application: ${row.title}`, `${who?.full_name || 'A student'} applied (match ${m.score}%).`, `#/employer/jobs/${row.id}/candidates`);
+  if (m.score >= 80) notify(row.employer_id, 'strong_applicant', `Strong match: ${who?.full_name || 'A student'} (${m.score}%)`, `Top-tier applicant for ${row.title}. Review them first.`, `#/employer/applications/${id}`);
   res.status(201).json(applicationOut(id));
 }));
 
