@@ -129,3 +129,43 @@ export async function aiSettings() {
   await load(); await loadLogs();
   return wrapPage(pageHead('AI providers', 'Add API keys here. They are encrypted on the server and never sent back to the browser.'), summary, host, logs);
 }
+
+// ---------------------------------------------------------------- System: queue, circuit breakers, ML, metrics
+const stat = (label, value, tone) => h('div', { class: 'card card--flat stack stack--sm' }, h('small', { class: 'muted' }, label), h('strong', { style: { fontSize: '1.6rem', ...(tone === 'bad' ? { color: 'var(--danger, #e5484d)' } : {}) } }, String(value)));
+const table = (head, rows) => h('div', { class: 'table-wrap' }, h('table', { class: 'table' }, h('thead', null, h('tr', null, ...head.map((x) => h('th', null, x)))), h('tbody', null, ...rows.map((r) => h('tr', null, ...r.map((c) => h('td', null, c)))))));
+
+export async function system() {
+  const host = h('div', { class: 'stack stack--lg' });
+  let timer = null;
+  let includeFeedback = false;
+  async function load(first) {
+    if (first) clear(host).append(loadingBlock(3));
+    try {
+      const [m, t, ml, me] = await Promise.all([get('/admin/metrics'), get('/admin/tasks'), get('/admin/ml'), get('/admin/ml/measure')]);
+      const q = m.queue;
+      const failed = t.items.filter((x) => x.status === 'FAILED');
+      clear(host).append(
+        h('div', { class: 'grid grid--4' }, stat('Uptime', `${Math.round(m.uptimeSec / 60)} min`), stat('In flight', m.inflight), stat('Memory', `${m.memoryMb.rss} MB`), stat('Match engine', m.matchBackend)),
+        h('div', { class: 'card stack' }, h('h3', null, 'Background queue'),
+          h('div', { class: 'grid grid--4' }, stat('Queued', q.queued ?? 0), stat('Running', q.running), stat('Failed (dead letters)', q.deadLetters, q.deadLetters ? 'bad' : ''), stat('Oldest waiting', `${q.oldestQueuedSec}s`, q.oldestQueuedSec > 300 ? 'bad' : '')),
+          failed.length ? table(['Task', 'Type', 'Attempts', 'Error', ''], failed.map((x) => [`#${x.id}`, x.type, `${x.attempts}/${x.max_attempts}`, (x.error || '').slice(0, 90), h('button', { class: 'btn btn--secondary btn--sm', onclick: (ev) => busy(ev.currentTarget, async () => { try { await post(`/admin/tasks/${x.id}/retry`); toast('Re-queued', 'success'); await load(); } catch (e) { toast(e.message, 'error'); } }) }, 'Retry')])) : h('p', { class: 'muted' }, 'No failed tasks.')),
+        h('div', { class: 'card stack' }, h('h3', null, 'Circuit breakers'), h('p', { class: 'muted' }, 'Open means the provider or service is being skipped and the built-in fallback is serving requests.'),
+          m.breakers.length ? table(['Service', 'Recent failures', 'State'], m.breakers.map((b) => [b.key, b.fails, h('span', { class: b.open ? 'chip chip--missing' : 'chip chip--matched' }, b.open ? `open, retry in ${Math.ceil(b.retryInMs / 1000)}s` : 'closed')])) : h('p', { class: 'muted' }, 'No provider has been called yet.')),
+        h('div', { class: 'card stack' }, h('h3', null, 'ML model'),
+          ml.model ? h('div', { class: 'stack stack--sm' }, h('p', null, `Active version ${ml.model.meta?.version ?? '?'} · ${ml.model.extra_samples ?? 0} extra training examples · ${ml.model.versions?.length ?? 0} saved versions`),
+            ml.model.meta ? h('p', { class: 'muted' }, `Hold-out top-1 accuracy ${ml.model.meta.holdout_top1 ?? 'n/a'}. This is measured on synthetic text from the same generator as training, so it is not real-world accuracy.`) : null)
+            : h('p', { class: 'muted' }, 'NLP service is not connected. Everything runs on the built-in rules.'),
+          h('div', { class: 'row' }, h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: includeFeedback ? true : null, onchange: (e) => { includeFeedback = e.target.checked; } }), `Include student feedback (${me.feedbackExamples} examples)`),
+            h('button', { class: 'btn btn--secondary btn--sm', disabled: ml.model ? null : true, onclick: (ev) => busy(ev.currentTarget, async () => { try { const r = await post('/admin/ml/retrain', { includeFeedback }); toast(`Retrained (${r.feedbackUsed} feedback examples used)`, 'success'); await load(); } catch (e) { toast(e.message, 'error'); } }) }, 'Retrain now'))),
+        h('div', { class: 'card stack' }, h('h3', null, 'Does the match score predict hiring decisions?'), h('p', { class: me.enoughData ? '' : 'muted' }, me.note),
+          h('p', null, `${me.labeled} decided applications (${me.positives} advanced, ${me.negatives} rejected).`),
+          table(['Signal', 'Samples', 'AUC', 'Precision in top fifth', 'Reading'], [['Skill match score', me.matchScore.n, me.matchScore.auc ?? '—', me.matchScore.precisionAtTopFifth ?? '—', me.matchScore.interpretation], ['Resume score', me.resumeScore.n, me.resumeScore.auc ?? '—', me.resumeScore.precisionAtTopFifth ?? '—', me.resumeScore.interpretation]]),
+          h('small', { class: 'muted' }, 'AUC 0.5 is a coin flip, 1.0 is perfect agreement with employers.')),
+        h('div', { class: 'card stack' }, h('h3', null, 'Slowest routes'),
+          table(['Route', 'Requests', 'Errors', 'p50', 'p95', 'Max'], [...m.routes].sort((a, b) => b.p95Ms - a.p95Ms).slice(0, 12).map((r) => [r.route, r.count, r.errors, `${r.p50Ms} ms`, `${r.p95Ms} ms`, `${r.maxMs} ms`]))));
+    } catch (e) { clear(host).append(errorBox(e, () => load(true))); }
+  }
+  await load(true);
+  timer = setInterval(() => { if (!host.isConnected) { clearInterval(timer); return; } load(); }, 8000);
+  return wrapPage(pageHead('System', 'Live view of background work, provider health and the ML model. Refreshes every few seconds.'), host);
+}

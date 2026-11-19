@@ -42,6 +42,7 @@ const ROUTES = [
   ['/employer/company', ['EMPLOYER'], emp.company, 'Company'],
   ['/admin', ['ADMIN'], adm.employers, 'Employers'],
   ['/admin/ai', ['ADMIN'], adm.aiSettings, 'AI providers'],
+  ['/admin/system', ['ADMIN'], adm.system, 'System'],
 ].map(([p, roles, view, title]) => ({
   roles, view, title,
   keys: [...p.matchAll(/:(\w+)/g)].map((m) => m[1]),
@@ -51,7 +52,7 @@ const ROUTES = [
 const NAV = {
   STUDENT: [['/student', 'Home', 'home'], ['/student/jobs', 'Jobs', 'briefcase'], ['/student/applications', 'Applications', 'clock'], ['/student/resume', 'Resume', 'file'], ['/student/roadmap', 'Roadmap', 'route'], ['/student/career', 'Career', 'route'], ['/student/dna', 'DNA', 'sparkle'], ['/student/arena', 'Arena', 'bolt'], ['/student/coach', 'Coach', 'users'], ['/student/profile', 'Profile', 'user']],
   EMPLOYER: [['/employer', 'Dashboard', 'chart'], ['/employer/jobs', 'Jobs', 'briefcase'], ['/employer/assistant', 'Assistant', 'sparkle'], ['/employer/company', 'Company', 'building']],
-  ADMIN: [['/admin', 'Employers', 'shield'], ['/admin/ai', 'AI providers', 'sparkle']],
+  ADMIN: [['/admin', 'Employers', 'shield'], ['/admin/ai', 'AI providers', 'sparkle'], ['/admin/system', 'System', 'chart']],
 };
 export const homeFor = (role) => (role === 'STUDENT' ? '/student' : role === 'EMPLOYER' ? '/employer' : role === 'ADMIN' ? '/admin' : '/');
 export const navigate = (path) => { if (location.hash.slice(1) === path) render(); else location.hash = path; };
