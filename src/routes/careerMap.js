@@ -11,6 +11,7 @@ import { checkQuota } from '../ai/index.js';
 import { callJson, llmEnabled } from '../ai/providers.js';
 import { studentSkills } from './common.js';
 import { autoSetup, attachMl } from '../ai/autoSetup.js';
+import { startVerdict, concludeVerdict } from '../ai/fusion.js';
 import { guideFor } from '../ai/prep.js';
 
 export const careerMapRouter = Router();
@@ -79,9 +80,16 @@ careerMapRouter.get('/career/setup', ...student, wrap(async (req, res) => {
   const row = db.prepare('SELECT auto_setup FROM student_profiles WHERE user_id = ?').get(req.user.id);
   res.json({ setup: row?.auto_setup ? JSON.parse(row.auto_setup) : null });
 }));
+// Re-run the combined ML + rules + LLM conclusion on demand (counts against the AI daily quota when an LLM answers).
+careerMapRouter.post('/career/verdict', ...student, wrap(async (req, res) => {
+  const v = await concludeVerdict(req.user.id, { force: true });
+  if (!v) throw bad('Upload a resume first');
+  res.json({ verdict: v });
+}));
 careerMapRouter.post('/career/auto-setup', ...student, wrap(async (req, res) => {
   const setup = await attachMl(req.user.id, autoSetup(req.user.id));
   if (!setup) throw bad('Upload a resume first');
+  setup.verdict = await startVerdict(req.user.id);
   res.json({ setup });
 }));
 

@@ -12,6 +12,7 @@ import { authenticate, requireRole } from '../auth.js';
 import { analyzeResume, buildRoadmap, checkQuota } from '../ai/index.js';
 import { tailorResume } from '../ai/features.js';
 import { autoSetup, attachMl } from '../ai/autoSetup.js';
+import { startVerdict } from '../ai/fusion.js';
 import { imageMime, ocrAvailable, textFromImage, textFromScannedPdf } from '../ai/ocr.js';
 import { skillGap } from '../ai/scoring.js';
 import { idParam, studentSkills, studentContext, loadJobSkills, latestAnalysis } from './common.js';
@@ -198,7 +199,7 @@ studentRouter.post('/resumes', ...student, upload.single('file'), wrap(async (re
   const id = Number(db.prepare('INSERT INTO resumes (student_id, filename, file_key, size_bytes, page_count, extracted_text) VALUES (?,?,?,?,?,?)').run(req.user.id, filename, key, buf.length, pages, text).lastInsertRowid);
   await runAnalysis(req.user.id, db.prepare('SELECT * FROM resumes WHERE id = ?').get(id));
   let setup = null;
-  try { setup = await attachMl(req.user.id, autoSetup(req.user.id)); } catch (e) { console.warn('auto-setup failed:', e.message); }
+  try { setup = await attachMl(req.user.id, autoSetup(req.user.id)); if (setup) setup.verdict = await startVerdict(req.user.id); } catch (e) { console.warn('auto-setup failed:', e.message); }
   res.status(201).json({ ...resumeOut(db.prepare('SELECT * FROM resumes WHERE id = ?').get(id)), setup });
 }));
 

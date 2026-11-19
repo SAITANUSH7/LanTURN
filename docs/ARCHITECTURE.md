@@ -84,3 +84,15 @@ A standalone full-text engine (`native/search/lanturn_search.cpp`, no dependenci
 `services/nlp/domain_model.py` trains a career-direction classifier (TF-IDF 1-2 grams + logistic regression over the 28 Career AIsle paths). There is no labeled resume dataset, so training is weakly supervised: synthetic resume-like documents are sampled from each path's topics, projects and descriptions (skills lists, sentences, noise from other paths). Be careful reading the held-out numbers in `/v1/model` (about 100% top-1): that hold-out comes from the same generator, so it checks the model learned the corpus, not real-world accuracy. Real resumes will score lower, which is why the result is shown as a second opinion next to the rule-based direction and never replaces it.
 
 Persistence: models are versioned files (`domain-vN.joblib` + metadata) behind an atomically-swapped `CURRENT` pointer in `MODEL_DIR` (mount a Railway Volume at `/models`); a restart loads the saved model in milliseconds and retrains only if the corpus changed or the file is corrupt. The last 3 versions are kept. `POST /v1/train` (service token) persists extra labeled documents to `extra.jsonl`, retrains on corpus + every extra ever added, saves a new version and hot-swaps it. Admin: `GET /api/admin/ml` (status, versions) and `POST /api/admin/ml/retrain`. After changing `src/data/careerRoadmaps.js` run `node scripts/export-domains.mjs` (a test fails if the exported corpus is stale).
+
+### Fusion: rules + ML + LLM concluding together (`src/ai/fusion.js`)
+```mermaid
+flowchart LR
+  R[Rules<br/>skill coverage, job matches, resume score] --> E[Evidence]
+  M[Python ML<br/>path probabilities, text relevance, shared/missing terms] --> E
+  E -->|instant| D[Deterministic verdict<br/>agree / partial / disagree]
+  E -->|queued task| L[LLM provider<br/>reconciles, explains disagreements]
+  L -->|validated| V[(Stored verdict)]
+  D --> V
+```
+After a resume upload the student gets a deterministic verdict immediately (rules decide, ML corroborates or flags disagreement). If an AI provider is configured and the daily quota allows, a background task sends the whole evidence, including the ML output, to the provider, which concludes. The reply is schema-validated and may only pick a direction and jobs that appear in the evidence; anything else is rejected and the deterministic verdict stays (`llmSkipped` says why). The setup page shows the result with its sources ("rules + ML model + AI (nvidia)"); `POST /api/career/verdict` re-runs it. Unchanged evidence is not re-sent (hash), so it doesn't spend quota twice.
