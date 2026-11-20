@@ -141,7 +141,7 @@ export async function system() {
   async function load(first) {
     if (first) clear(host).append(loadingBlock(3));
     try {
-      const [m, t, ml, me] = await Promise.all([get('/admin/metrics'), get('/admin/tasks'), get('/admin/ml'), get('/admin/ml/measure')]);
+      const [m, t, ml, me, bk] = await Promise.all([get('/admin/metrics'), get('/admin/tasks'), get('/admin/ml'), get('/admin/ml/measure'), get('/admin/backups')]);
       const q = m.queue;
       const failed = t.items.filter((x) => x.status === 'FAILED');
       clear(host).append(
@@ -161,6 +161,11 @@ export async function system() {
           h('p', null, `${me.labeled} decided applications (${me.positives} advanced, ${me.negatives} rejected).`),
           table(['Signal', 'Samples', 'AUC', 'Precision in top fifth', 'Reading'], [['Skill match score', me.matchScore.n, me.matchScore.auc ?? '—', me.matchScore.precisionAtTopFifth ?? '—', me.matchScore.interpretation], ['Resume score', me.resumeScore.n, me.resumeScore.auc ?? '—', me.resumeScore.precisionAtTopFifth ?? '—', me.resumeScore.interpretation]]),
           h('small', { class: 'muted' }, 'AUC 0.5 is a coin flip, 1.0 is perfect agreement with employers.')),
+        h('div', { class: 'card stack' }, h('h3', null, 'Monitoring and backups'),
+          h('div', { class: 'row' }, ...[['Sentry', bk.monitoring.sentry], ['Alert webhook', bk.monitoring.alertWebhook], ['Uptime ping', bk.monitoring.uptimePing]].map(([l, on]) => h('span', { class: on ? 'chip chip--matched' : 'chip chip--missing' }, `${l}: ${on ? 'on' : 'not set'}`))),
+          bk.items.length ? table(['Backup', 'Size', 'Created'], bk.items.slice(0, 5).map((b) => [b.file, `${Math.round(b.sizeBytes / 1024)} KB`, fmtDate(b.createdAt)])) : h('p', { class: 'muted' }, 'No backups yet. One is taken daily.'),
+          h('div', { class: 'row' }, h('button', { class: 'btn btn--secondary btn--sm', onclick: (ev) => busy(ev.currentTarget, async () => { try { const r = await post('/admin/backups/run'); toast(`Backup saved (${Math.round(r.sizeBytes / 1024)} KB)`, 'success'); await load(); } catch (e) { toast(e.message, 'error'); } }) }, 'Back up now')),
+          h('small', { class: 'muted' }, 'Backups live on the same volume as the database. They protect against corruption and mistakes, not against losing the volume: download one regularly or copy it off-site.')),
         h('div', { class: 'card stack' }, h('h3', null, 'Slowest routes'),
           table(['Route', 'Requests', 'Errors', 'p50', 'p95', 'Max'], [...m.routes].sort((a, b) => b.p95Ms - a.p95Ms).slice(0, 12).map((r) => [r.route, r.count, r.errors, `${r.p50Ms} ms`, `${r.p95Ms} ms`, `${r.maxMs} ms`]))));
     } catch (e) { clear(host).append(errorBox(e, () => load(true))); }

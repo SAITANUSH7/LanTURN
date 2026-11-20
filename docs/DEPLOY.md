@@ -59,3 +59,10 @@ After a student uploads a resume, LanTURN fills the profile, adds skills, picks 
 Set `EMAIL_API_KEY`, `EMAIL_FROM` (a sender you have verified with the provider) and `PUBLIC_URL` (your site address, used in email links).
 The default API is Resend-compatible; override with `EMAIL_API_URL`. Without these, nothing is sent and the settings toggle is hidden.
 Emails go through the durable queue (retries with backoff), cover status changes, new applications, strong matches, job closures and job alerts (max 3 a day per student), and include an unsubscribe link. Not tested against a live provider.
+
+## Monitoring and backups (all optional)
+- `SENTRY_DSN`: server errors (5xx, unhandled rejections) are sent to Sentry through its HTTP envelope API. Written without the SDK and only unit-tested against a fake endpoint, so confirm one real event arrives after you set it.
+- `ALERT_WEBHOOK_URL`: Slack or Discord compatible webhook. Alerts on server errors, tasks that failed permanently, a queue more than 5 minutes behind, an open provider circuit and failed backups. Each kind is rate-limited so an outage is one message.
+- `UPTIME_PING_URL`: a healthchecks.io style URL pinged every 5 minutes while the app is healthy. Set the service to alert you when pings stop; that catches a crashed or frozen process that cannot alert for itself.
+- Backups: a consistent SQLite snapshot daily into `BACKUP_DIR` (default `backups/` next to the database, so it lands on your `/data` volume), newest `BACKUP_KEEP` (default 7) kept. Admin, System page: list and "Back up now". Copy one off-site regularly; a backup on the same volume does not survive losing the volume.
+- Database: still SQLite. Moving to Postgres is a rewrite, not a switch, because every query uses the synchronous `node:sqlite` API. If you outgrow one instance, the path is: put queries behind an async repository layer, port the schema, then migrate data.

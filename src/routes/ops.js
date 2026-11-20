@@ -10,6 +10,7 @@ import { breakerStates } from '../ai/breaker.js';
 import { backend } from '../match.js';
 import { nlpStatus, modelInfo, retrainModel } from '../nlp.js';
 import { prefsFor, setPrefs, checkUnsubToken, emailEnabled } from '../email.js';
+import { runBackup, listBackups, monitorStatus } from '../monitor.js';
 import { measureOutcomes, feedbackExtras } from '../ai/measure.js';
 import { searchStatus } from '../searchEngine.js';
 
@@ -33,7 +34,7 @@ opsRouter.get('/health/ready', (_req, res) => {
 
 const admin = [authenticate, requireRole('ADMIN')];
 opsRouter.get('/admin/metrics', ...admin, wrap(async (_req, res) => {
-  res.json({ ...snapshot(), queue: queueStats(), breakers: breakerStates(), matchBackend: backend, email: { enabled: emailEnabled() }, nlp: nlpStatus(), search: searchStatus() });
+  res.json({ ...snapshot(), queue: queueStats(), breakers: breakerStates(), matchBackend: backend, email: { enabled: emailEnabled() }, monitoring: monitorStatus(), nlp: nlpStatus(), search: searchStatus() });
 }));
 opsRouter.get('/admin/metrics.prom', ...admin, wrap(async (_req, res) => {
   const q = queueStats();
@@ -79,3 +80,6 @@ opsRouter.get('/email/unsubscribe', (req, res) => {
   setPrefs(u, false);
   res.type('html').send('<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><body style="font-family:system-ui;max-width:480px;margin:60px auto;padding:0 16px"><h2>You are unsubscribed</h2><p>LanTURN will no longer email you. You will still see notifications in the app, and you can turn emails back on in your settings.</p></body>');
 });
+
+opsRouter.get('/admin/backups', ...admin, wrap(async (_req, res) => { res.json({ items: listBackups(), monitoring: monitorStatus() }); }));
+opsRouter.post('/admin/backups/run', ...admin, wrap(async (_req, res) => { res.json(runBackup()); }));

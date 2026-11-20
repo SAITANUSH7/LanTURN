@@ -5,6 +5,7 @@ import { startWorker, stopWorker } from './src/queue.js';
 import { startScheduler, stopScheduler } from './src/tasks.js';
 import { setDraining } from './src/routes/ops.js';
 import { db } from './src/db.js';
+import { startMonitor, stopMonitor, reportError } from './src/monitor.js';
 import { stopSearch } from './src/searchEngine.js';
 import { startupWarnings } from './src/security.js';
 import { seedTaxonomy, seedAdmin, seedDemo } from './src/seed.js';
@@ -15,6 +16,9 @@ if (config.seedDemo) seedDemo();
 
 startWorker();
 startScheduler();
+startMonitor();
+process.on('unhandledRejection', (e) => { console.error('unhandledRejection', e); reportError(e, { tags: { kind: 'unhandledRejection' } }); });
+process.on('uncaughtException', async (e) => { console.error('uncaughtException', e); await reportError(e, { tags: { kind: 'uncaughtException' } }); process.exit(1); });
 const server = createApp().listen(config.port, () => {
   for (const w of startupWarnings()) console.warn(`SECURITY: ${w}`);
   console.log(`LanTURN running on http://localhost:${config.port}`);
@@ -37,6 +41,7 @@ async function shutdown(signal) {
   console.log(`${signal} received: draining`);
   setDraining(true);
   stopScheduler();
+  stopMonitor();
   const force = setTimeout(() => { console.error('forced exit after 10s'); process.exit(1); }, 10_000);
   force.unref();
   server.close();

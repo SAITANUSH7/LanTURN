@@ -23,6 +23,7 @@ import { drivesRouter } from './routes/drives.js';
 import { realtimeRouter } from './realtime.js';
 import { apiHeaders, sameOriginGuard } from './security.js';
 import { requestMetrics } from './metrics.js';
+import { reportError } from './monitor.js';
 import { opsRouter } from './routes/ops.js';
 import { studentToolsRouter } from './routes/studentTools.js';
 import './tasks.js';
@@ -146,6 +147,7 @@ export function createApp() {
     } else {
       console.error(`[${req.id}]`, err);
     }
+    if (status >= 500) reportError(err, { extra: { route: `${req.method} ${req.route?.path || req.path}`, requestId: req.id } });
     res.status(status).json({ error: { code, message, details, requestId: req.id } });
   });
 
