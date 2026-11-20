@@ -1,3 +1,4 @@
+import { recordAction } from '../streak.js';
 import { Router } from 'express';
 import { z } from 'zod';
 import { config } from '../config.js';
@@ -222,6 +223,7 @@ aiRouter.post('/interviews/:id/submit', ...student, wrap(async (req, res) => {
   db.prepare(`UPDATE mock_interviews SET answers = ?, feedback = ?, overall_score = ?, status = 'COMPLETED', source = ?, updated_at = datetime('now') WHERE id = ?`)
     .run(JSON.stringify(b.answers), JSON.stringify(evaluation), evaluation.overallScore, evaluation.source, r.id);
 
+  recordAction(req.user.id, 'interview');
   res.json(interviewOut(db.prepare('SELECT * FROM mock_interviews WHERE id = ?').get(r.id)));
 }));
 

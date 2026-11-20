@@ -24,6 +24,7 @@ import { realtimeRouter } from './realtime.js';
 import { apiHeaders, sameOriginGuard } from './security.js';
 import { requestMetrics } from './metrics.js';
 import { opsRouter } from './routes/ops.js';
+import { studentToolsRouter } from './routes/studentTools.js';
 import './tasks.js';
 
 export function createApp() {
@@ -104,7 +105,7 @@ export function createApp() {
 
   app.use('/api/auth', authRouter);
   app.use('/api/me', meRouter);
-  app.use('/api', studentRouter, jobsRouter, employerRouter, aiRouter, adminRouter, opsRouter, networkingRouter, careerRoadmapsRouter, careerMapRouter, compatRouter, drivesRouter, realtimeRouter);
+  app.use('/api', studentRouter, jobsRouter, employerRouter, aiRouter, adminRouter, opsRouter, studentToolsRouter, networkingRouter, careerRoadmapsRouter, careerMapRouter, compatRouter, drivesRouter, realtimeRouter);
   app.use('/api', (_req, _res, next) => next(new HttpError(404, 'NOT_FOUND', 'Unknown API route')));
 
   const frontendDist = path.join(ROOT, 'frontend', 'dist');

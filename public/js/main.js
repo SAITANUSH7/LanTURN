@@ -4,6 +4,7 @@ import * as pub from './views/public.js';
 import * as stu from './views/student.js';
 import * as emp from './views/employer.js';
 import * as adm from './views/admin.js';
+import * as stt from './views/studentTools.js';
 import { careerMap } from './views/careermap.js';
 import { setupPage } from './views/setup.js';
 import { roadmapPage } from './views/roadmap.js';
@@ -18,6 +19,7 @@ const ROUTES = [
   ['/login', null, pub.login, 'Sign in'],
   ['/register', null, pub.register, 'Create account'],
   ['/student', ['STUDENT'], stu.dashboard, 'Home'],
+  ['/student/builder', ['STUDENT'], stt.resumeBuilder, 'Resume builder'],
   ['/student/jobs', ['STUDENT'], stu.jobs, 'Jobs'],
   ['/student/jobs/:id', ['STUDENT'], stu.jobDetail, 'Job'],
   ['/student/applications', ['STUDENT'], stu.applications, 'Applications'],
@@ -50,7 +52,7 @@ const ROUTES = [
 }));
 
 const NAV = {
-  STUDENT: [['/student', 'Home', 'home'], ['/student/jobs', 'Jobs', 'briefcase'], ['/student/applications', 'Applications', 'clock'], ['/student/resume', 'Resume', 'file'], ['/student/roadmap', 'Roadmap', 'route'], ['/student/career', 'Career', 'route'], ['/student/dna', 'DNA', 'sparkle'], ['/student/arena', 'Arena', 'bolt'], ['/student/coach', 'Coach', 'users'], ['/student/profile', 'Profile', 'user']],
+  STUDENT: [['/student', 'Home', 'home'], ['/student/jobs', 'Jobs', 'briefcase'], ['/student/applications', 'Applications', 'clock'], ['/student/resume', 'Resume', 'file'], ['/student/builder', 'Builder', 'file'], ['/student/roadmap', 'Roadmap', 'route'], ['/student/career', 'Career', 'route'], ['/student/dna', 'DNA', 'sparkle'], ['/student/arena', 'Arena', 'bolt'], ['/student/coach', 'Coach', 'users'], ['/student/profile', 'Profile', 'user']],
   EMPLOYER: [['/employer', 'Dashboard', 'chart'], ['/employer/jobs', 'Jobs', 'briefcase'], ['/employer/assistant', 'Assistant', 'sparkle'], ['/employer/company', 'Company', 'building']],
   ADMIN: [['/admin', 'Employers', 'shield'], ['/admin/ai', 'AI providers', 'sparkle'], ['/admin/system', 'System', 'chart']],
 };

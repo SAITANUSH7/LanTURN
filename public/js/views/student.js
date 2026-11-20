@@ -1,5 +1,6 @@
 import { api, get, post, put, del, openPdf, session, reloadUser } from '../api.js';
 import { h, clear, icon, scoreRing, skillChip, meter, statusBadge, fmtDate, fmtDateTime, empty, errorBox, loadingBlock, toast, confirmDialog, busy, field, input, select, textarea, TYPE_LABEL, STATUS_META, weightDots } from '../ui.js';
+import { todayCard } from './studentTools.js';
 import { pageHead, wrapPage, jobCard, analysisView, roadmapView, emailPrefsCard } from './shared.js';
 import { jobTools } from './ai.js';
 
@@ -7,14 +8,15 @@ const TERMINAL = ['OFFERED', 'REJECTED', 'WITHDRAWN'];
 
 // ---------------------------------------------------------------- Dashboard
 export async function dashboard({ user }) {
-  const [resumes, rec, apps, skills, road] = await Promise.all([
-    get('/resumes'), get('/jobs/recommended'), get('/applications'), get('/students/me/skills'), get('/career/roadmaps/latest'),
+  const [resumes, rec, apps, skills, road, today] = await Promise.all([
+    get('/resumes'), get('/jobs/recommended'), get('/applications'), get('/students/me/skills'), get('/career/roadmaps/latest'), todayCard(),
   ]);
   const latest = resumes.items[0]?.analysis;
   const active = apps.items.filter((a) => !TERMINAL.includes(a.status)).length;
   const stat = (label, value, cls = '') => h('div', { class: `stat ${cls}` }, h('div', { class: 'stat__label' }, label), h('div', { class: 'stat__value' }, value));
   return wrapPage(
     pageHead(`Hi, ${(user.name || 'there').split(' ')[0]}`, 'Here is where you stand today.', h('a', { class: 'btn btn--accent', href: '#/student/jobs' }, 'Browse jobs', icon('arrow-right'))),
+    today,
     h('div', { class: 'stats' },
       stat('Resume score', latest?.overallScore ?? '—', 'stat--accent'), stat('Skills on profile', skills.items.length), stat('Active applications', active), stat('Jobs matched for you', rec.items.length)),
     !resumes.items.length
