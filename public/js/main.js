@@ -68,6 +68,9 @@ function langPicker() {
   return sel;
 }
 
+// Colour section for a path: "/student/jobs/12" -> "jobs", "/student" -> "home".
+const sectionOf = (path) => { const seg = path.split('/').filter(Boolean); return seg.length < 2 ? 'home' : seg[1] === 'jobs' && seg[0] === 'employer' ? 'jobs' : seg[1]; };
+
 function shell() {
   const user = session.user;
   const links = user ? NAV[user.role] || [] : [];
@@ -76,7 +79,7 @@ function shell() {
   const bar = h('header', { class: 'topbar' },
     h('div', { class: 'container topbar__in' },
       h('a', { class: 'brand', href: `#${user ? homeFor(user.role) : '/'}`, 'aria-label': 'LanTURN home' }, lantern(), h('span', null, 'Lan', h('b', null, 'TURN'))),
-      user ? h('nav', { class: 'nav', 'aria-label': 'Main' }, links.map(([to, label, ic]) => h('a', { href: `#${to}`, 'aria-current': active(to) }, icon(ic), t(label)))) : h('div', { class: 'nav' }),
+      user ? h('nav', { class: 'nav', 'aria-label': 'Main' }, links.map(([to, label, ic]) => h('a', { href: `#${to}`, 'data-s': sectionOf(to), 'aria-current': active(to) }, icon(ic), t(label)))) : h('div', { class: 'nav' }),
       user
         ? h('div', { class: 'topbar__user' },
           langPicker(), user.role !== 'ADMIN' ? ai.bell() : null,
@@ -106,6 +109,7 @@ async function render() {
   const m = path.match(route.re);
   route.keys.forEach((k, i) => { params[k] = decodeURIComponent(m[i + 1]); });
 
+  document.body.dataset.section = sectionOf(path);
   clear(app).append(shell());
   const main = document.getElementById('main');
   document.title = `${route.title} · LanTURN`;
