@@ -66,3 +66,11 @@ Emails go through the durable queue (retries with backoff), cover status changes
 - `UPTIME_PING_URL`: a healthchecks.io style URL pinged every 5 minutes while the app is healthy. Set the service to alert you when pings stop; that catches a crashed or frozen process that cannot alert for itself.
 - Backups: a consistent SQLite snapshot daily into `BACKUP_DIR` (default `backups/` next to the database, so it lands on your `/data` volume), newest `BACKUP_KEEP` (default 7) kept. Admin, System page: list and "Back up now". Copy one off-site regularly; a backup on the same volume does not survive losing the volume.
 - Database: still SQLite. Moving to Postgres is a rewrite, not a switch, because every query uses the synchronous `node:sqlite` API. If you outgrow one instance, the path is: put queries behind an async repository layer, port the schema, then migrate data.
+
+## Railway variables
+**Web service (required):** `NODE_ENV=production`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET` (each 48+ random characters), `ADMIN_EMAIL`, `ADMIN_PASSWORD` (strong), `PUBLIC_URL` (your Railway URL). Attach a Volume at `/data` and set `DB_FILE=/data/lanturn.db`, `UPLOAD_DIR=/data/uploads`.
+**Web service (recommended):** `SEED_DEMO=false`, `ALLOWED_STUDENT_EMAIL_DOMAINS` (if students must use college email), `COLLEGE_NAME`.
+**AI (any one is enough, add more for fallback):** `NVIDIA_API_KEY`, `GROQ_API_KEY`, `CEREBRAS_API_KEY`, `MISTRAL_API_KEY`, `GITHUB_MODELS_TOKEN`, `GEMINI_API_KEY`, `OPENROUTER_API_KEY`, `DEEPSEEK_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`; optional `AI_PRIORITY` (comma list, e.g. `nvidia,groq,cerebras`), `AI_DAILY_QUOTA`.
+**ML service:** deploy `services/nlp` as a second service with a Volume at `/models`, set `NLP_SERVICE_TOKEN` there and on the web service, and `NLP_SERVICE_URL` on the web service (use the private `*.railway.internal` address).
+**Optional:** `ADZUNA_APP_ID`, `ADZUNA_APP_KEY`, `ADZUNA_COUNTRY`, `JOOBLE_API_KEY` (job feeds); `EMAIL_API_KEY`, `EMAIL_FROM`; `SENTRY_DSN`, `ALERT_WEBHOOK_URL`, `UPTIME_PING_URL`; `BACKUP_KEEP`.
+Never set `DISABLE_RATE_LIMIT` in production.
