@@ -11,7 +11,7 @@ export async function setupPage() {
   const drawFeedback = async () => {
     try {
       const f = await get('/career/feedback');
-      const pick = h('select', { 'aria-label': 'Your real career direction' }, ...f.domains.map((d) => h('option', { value: d.id, selected: d.id === f.domain ? true : null }, d.title)));
+      const pick = h('select', { 'aria-label': 'Your real career direction' }, ...f.domains.map((d) => h('option', { value: d.id, selected: d.id === (f.domain || f.suggested) ? true : null }, d.title)));
       clear(feedbackHost).append(h('div', { class: 'card stack' }, h('h3', null, 'Help improve the model (optional)'),
         h('p', { class: 'muted' }, 'Tell us the direction that is actually yours. If you share it, only that choice and your skill names (never your resume, name or contact details) are used to train the recommendation model. You can withdraw any time.'),
         h('div', { class: 'row' }, pick,

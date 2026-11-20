@@ -139,7 +139,7 @@ careerMapRouter.get('/career/guide', ...student, wrap(async (req, res) => {
 }));
 
 // Opt-in: confirm your real direction so the ML model can learn from skills-only examples. Submitting is consent; DELETE withdraws.
-careerMapRouter.get('/career/feedback', authenticate, requireRole('STUDENT'), wrap(async (req, res) => { res.json({ ...feedbackFor(req.user.id), domains: CAREER_DOMAINS.map((d) => ({ id: d.id, title: d.title })) }); }));
+careerMapRouter.get('/career/feedback', authenticate, requireRole('STUDENT'), wrap(async (req, res) => { res.json({ ...feedbackFor(req.user.id), suggested: db.prepare('SELECT target_domain FROM student_profiles WHERE user_id = ?').get(req.user.id)?.target_domain || null, domains: CAREER_DOMAINS.map((d) => ({ id: d.id, title: d.title })) }); }));
 careerMapRouter.put('/career/feedback', authenticate, requireRole('STUDENT'), wrap(async (req, res) => {
   const b = parse(z.object({ domain: z.string().max(64) }), req.body);
   if (!validDomain(b.domain)) throw bad('Unknown career direction');

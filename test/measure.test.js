@@ -33,7 +33,7 @@ test('feedback: consent by submitting, validated, withdrawable, skills-only retr
   const st = await register('STUDENT');
   const f0 = await api('GET', '/career/feedback', { token: st.accessToken });
   assert.equal(f0.body.consent, false);
-  assert.ok(f0.body.domains.length > 10);
+  assert.ok(f0.body.domains.length > 10); assert.ok('suggested' in f0.body);
   assert.equal((await api('PUT', '/career/feedback', { token: st.accessToken, body: { domain: 'nope' } })).status, 400);
   const sk = await api('GET', '/skills?q=a', { token: st.accessToken });
   const ids = sk.body.items.slice(0, 4).map((x) => x.id);
