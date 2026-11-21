@@ -9,6 +9,7 @@ import { careerMap } from './views/careermap.js';
 import { setupPage } from './views/setup.js';
 import { roadmapPage } from './views/roadmap.js';
 import * as ai from './views/ai.js';
+import './fx.js';
 import { t, LANGS, getLang, setLang } from './i18n.js';
 
 const app = document.getElementById('app');

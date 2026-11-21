@@ -64,8 +64,8 @@ a { color: var(--sec-hi); }
 
 /* ===== Chips and badges vary by position, so a list of skills is not one flat blue ===== */
 .chip:not(.chip--matched):not(.chip--missing):not(.chip--btn) { --k: var(--c-sky); background: color-mix(in srgb, var(--k) 14%, transparent); border-color: color-mix(in srgb, var(--k) 45%, transparent); color: color-mix(in srgb, var(--k) 70%, #fff); }
-.chip:nth-child(5n+2) { --k: var(--c-violet); } .chip:nth-child(5n+3) { --k: var(--c-teal); }
-.chip:nth-child(5n+4) { --k: var(--c-amber); } .chip:nth-child(5n+5) { --k: var(--c-pink); }
+.chip:not(.chip--matched):not(.chip--missing):not(.chip--btn):nth-child(5n+2) { --k: var(--c-violet); } .chip:not(.chip--matched):not(.chip--missing):not(.chip--btn):nth-child(5n+3) { --k: var(--c-teal); }
+.chip:not(.chip--matched):not(.chip--missing):not(.chip--btn):nth-child(5n+4) { --k: var(--c-amber); } .chip:not(.chip--matched):not(.chip--missing):not(.chip--btn):nth-child(5n+5) { --k: var(--c-pink); }
 .badge--accent { background: color-mix(in srgb, var(--c-violet) 22%, transparent); color: #ddd2ff; border-color: color-mix(in srgb, var(--c-violet) 60%, transparent); }
 .badge:not([class*='badge--']) { background: color-mix(in srgb, var(--c-sky) 18%, transparent); color: #cfe3ff; border-color: color-mix(in srgb, var(--c-sky) 55%, transparent); }
 

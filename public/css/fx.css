@@ -1,0 +1,84 @@
+/* Motion and interaction styles for fx.js. Loaded last. Everything degrades to the static design. */
+@property --ang { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+
+/* ===== entrance and reveal ===== */
+.fx-pre { opacity: 0; transform: translateY(28px) scale(0.985); }
+.fx-in { animation: fx-rise 0.75s var(--ease-out, cubic-bezier(0.2, 0.8, 0.2, 1)) backwards; animation-delay: calc(var(--i, 0) * 55ms); }
+@keyframes fx-rise { from { opacity: 0; transform: translateY(30px) scale(0.985); filter: blur(6px); } }
+
+/* ===== pointer-following light, scroll progress ===== */
+.fx-cursor { position: fixed; left: 0; top: 0; width: 520px; height: 520px; border-radius: 50%; pointer-events: none; z-index: 0; background: radial-gradient(circle, color-mix(in srgb, var(--sec) 22%, transparent), transparent 65%); opacity: 0.55; mix-blend-mode: screen; will-change: transform; transition: opacity 0.4s; }
+@media (hover: none) { .fx-cursor { display: none; } }
+.fx-progress { position: fixed; left: 0; top: 0; height: 3px; width: 100%; z-index: 250; transform-origin: 0 50%; transform: scaleX(0); background: linear-gradient(90deg, var(--c-sky), var(--sec), var(--c-pink)); box-shadow: 0 0 14px var(--sec); pointer-events: none; }
+#app { position: relative; z-index: 1; }
+
+/* ===== cards: coloured spotlight, lift, sheen ===== */
+.card::before { background: radial-gradient(380px circle at var(--mx) var(--my), color-mix(in srgb, var(--sec) 24%, transparent), transparent 62%); }
+.card, .stat { transition: transform 0.25s var(--ease-out, ease), border-color 0.25s, box-shadow 0.25s; }
+a.card:hover, .card--hover:hover, .cand:hover { box-shadow: var(--inset-hi), 0 22px 60px -24px var(--sec); }
+.stat:hover { box-shadow: var(--inset-hi), 0 18px 50px -22px var(--tile, var(--sec)); }
+.card--accent::after { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1.5px; pointer-events: none;
+  background: conic-gradient(from var(--ang), transparent 0 58%, var(--sec) 78%, var(--sec-hi) 86%, transparent 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); animation: fx-ang 5s linear infinite; }
+@keyframes fx-ang { to { --ang: 360deg; } }
+
+/* ===== buttons ===== */
+.btn { overflow: hidden; transition: transform 0.18s var(--ease-out, ease), box-shadow 0.25s, filter 0.2s; }
+.btn:hover { transform: translateY(-2px); }
+.btn:active { transform: translateY(0) scale(0.97); }
+.ripple { position: absolute; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: rgba(255, 255, 255, 0.55); pointer-events: none; animation: fx-ripple 0.65s ease-out forwards; }
+@keyframes fx-ripple { to { transform: scale(26); opacity: 0; } }
+
+/* ===== navigation ===== */
+.nav { position: relative; }
+.nav__glow { position: absolute; top: 8px; bottom: 10px; left: 0; width: 0; border-radius: 999px; background: color-mix(in srgb, var(--sec, var(--blue-hi)) 20%, transparent); box-shadow: 0 0 24px -6px var(--sec, var(--blue-hi)); opacity: 0; pointer-events: none; transition: left 0.28s var(--ease-out, ease), width 0.28s var(--ease-out, ease), opacity 0.2s; }
+.nav__glow.on { opacity: 1; }
+.nav a { position: relative; z-index: 1; }
+.nav a:hover .icon { animation: fx-bob 0.5s ease; }
+@keyframes fx-bob { 40% { transform: translateY(-4px) rotate(-8deg) scale(1.15); } }
+.kbd-hint { display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 10px 0 14px; border-radius: 999px; border: 1px solid var(--line, rgba(255, 255, 255, 0.14)); background: rgba(255, 255, 255, 0.05); color: var(--text-2, #aab); font: inherit; font-size: 0.85rem; cursor: pointer; transition: border-color 0.2s, background 0.2s; }
+.kbd-hint:hover { border-color: var(--sec-line); background: var(--sec-soft); color: #fff; }
+.kbd-hint kbd { font: 600 0.72rem/1 ui-monospace, monospace; padding: 4px 6px; border-radius: 6px; background: rgba(255, 255, 255, 0.1); }
+@media (max-width: 820px) { .kbd-hint { display: none; } }
+
+/* ===== command palette ===== */
+.pal { position: fixed; inset: 0; z-index: 400; display: grid; place-items: start center; padding-top: 14vh; background: rgba(3, 6, 16, 0.62); backdrop-filter: blur(8px); animation: fade 0.18s; }
+.pal__box { width: min(560px, calc(100vw - 28px)); border-radius: 18px; overflow: hidden; background: linear-gradient(160deg, rgba(30, 36, 62, 0.96), rgba(12, 15, 28, 0.98)); border: 1px solid var(--sec-line, rgba(255, 255, 255, 0.2)); box-shadow: 0 40px 120px -20px #000, 0 0 60px -20px var(--sec); animation: pop 0.25s var(--ease-out, ease); }
+.pal__in { width: 100%; padding: 18px 20px; font: inherit; font-size: 1.05rem; color: #fff; background: transparent; border: 0; border-bottom: 1px solid rgba(255, 255, 255, 0.1); outline: none; }
+.pal__list { list-style: none; margin: 0; padding: 8px; max-height: 50vh; overflow: auto; }
+.pal__item { display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 12px; cursor: pointer; }
+.pal__item.on { background: color-mix(in srgb, var(--sec) 18%, transparent); }
+.pal__item small { margin-left: auto; color: var(--text-3, #889); }
+.pal__dot { width: 10px; height: 10px; border-radius: 50%; background: var(--sec); box-shadow: 0 0 12px var(--sec); }
+.pal__empty { padding: 18px; text-align: center; color: var(--text-3, #889); }
+.pal__foot { padding: 9px 16px; font-size: 0.75rem; color: var(--text-3, #889); border-top: 1px solid rgba(255, 255, 255, 0.08); }
+.fx-confetti { position: fixed; inset: 0; z-index: 500; pointer-events: none; }
+
+/* ===== each area gets its own backdrop pattern and a glow behind the title ===== */
+.page-head::before { content: ''; position: absolute; left: -40px; top: -30px; width: 420px; height: 200px; background: radial-gradient(closest-side, color-mix(in srgb, var(--sec) 30%, transparent), transparent); filter: blur(24px); pointer-events: none; z-index: -1; animation: fx-breathe 6s ease-in-out infinite alternate; }
+@keyframes fx-breathe { to { transform: translate(40px, 10px) scale(1.15); opacity: 0.7; } }
+.page-head h1 { background-size: 220% 100%; animation: fx-shine 7s ease-in-out infinite alternate; }
+@keyframes fx-shine { to { background-position: 100% 0; } }
+body[data-section='roadmap'] .bg__grid, body[data-section='setup'] .bg__grid { background-image: radial-gradient(rgba(255, 255, 255, 0.12) 1.2px, transparent 1.4px); background-size: 28px 28px; }
+body[data-section='resume'] .bg__grid, body[data-section='builder'] .bg__grid { background-image: linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px); background-size: 100% 34px; }
+body[data-section='arena'] .bg__grid { background-image: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0 2px, transparent 2px 22px); background-size: auto; }
+body[data-section='dna'] .bg__grid { background-image: radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.1) 2px, transparent 3px), radial-gradient(circle at 75% 75%, rgba(255, 255, 255, 0.1) 2px, transparent 3px); background-size: 46px 46px; }
+body[data-section='coach'] .bg__grid { background-image: repeating-radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.07) 0 1px, transparent 1px 64px); background-size: auto; }
+body[data-section='applications'] .bg__grid { background-image: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px); background-size: 64px 100%; }
+body[data-section='system'] .bg__grid, body[data-section='ai'] .bg__grid, body[data-section='admin'] .bg__grid { background-size: 28px 28px; }
+.bg__orb { transition: background 0.8s, opacity 0.8s; }
+
+/* ===== toasts, progress, ring glow ===== */
+.toast { border: 1px solid var(--sec-line); box-shadow: 0 18px 50px -18px var(--sec); animation: fx-toast 0.5s var(--ease-out, ease); }
+@keyframes fx-toast { from { transform: translateX(60px) scale(0.9); opacity: 0; } }
+.ring { background: conic-gradient(from 0deg, var(--sec), var(--sec-hi) calc(var(--p) * 0.6%), var(--c-pink) calc(var(--p) * 1%), rgba(255, 255, 255, 0.1) 0); box-shadow: 0 0 44px -8px var(--sec); }
+.meter__fill { background: linear-gradient(90deg, var(--sec), var(--sec-hi)); }
+.badge { transition: transform 0.2s; } .badge:hover { transform: scale(1.06); }
+.chip { transition: transform 0.18s var(--ease-out, ease), box-shadow 0.2s; } .chip:hover { transform: translateY(-2px); box-shadow: 0 8px 22px -10px var(--k, var(--sec)); }
+
+/* ===== roadmap flowchart: connectors draw in, stages lift ===== */
+.flow__line, .flow > .flow__link { transform-origin: top; animation: fx-draw 0.9s var(--ease-out, ease) both; }
+@keyframes fx-draw { from { transform: scaleY(0); } }
+.flow > * { transition: transform 0.25s var(--ease-out, ease), box-shadow 0.3s; }
+.flow > *:hover { transform: translateY(-3px); box-shadow: 0 24px 60px -26px var(--sec); }
+@media (prefers-reduced-motion: reduce) { .fx-pre { opacity: 1; transform: none; } .fx-cursor, .fx-progress { display: none; } }
