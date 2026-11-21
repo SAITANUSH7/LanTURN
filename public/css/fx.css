@@ -82,3 +82,7 @@ body[data-section='system'] .bg__grid, body[data-section='ai'] .bg__grid, body[d
 .flow > * { transition: transform 0.25s var(--ease-out, ease), box-shadow 0.3s; }
 .flow > *:hover { transform: translateY(-3px); box-shadow: 0 24px 60px -26px var(--sec); }
 @media (prefers-reduced-motion: reduce) { .fx-pre { opacity: 1; transform: none; } .fx-cursor, .fx-progress { display: none; } }
+
+/* Decorative glows must never create sideways scrolling on phones */
+html, body { overflow-x: clip; }
+.page-head::before { left: 0; width: min(420px, 100%); }
