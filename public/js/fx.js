@@ -87,7 +87,7 @@ function setupNav() {
 export function confetti(x = innerWidth / 2, y = innerHeight / 3) {
   if (reduce) return;
   const c = el('canvas', 'fx-confetti'); c.width = innerWidth; c.height = innerHeight; document.body.append(c);
-  const g = c.getContext('2d'); const cols = ['#6ea8ff', '#a78bfa', '#2dd4bf', '#fbbf24', '#f472b6', '#34d399', '#fb923c'];
+  const g = c.getContext('2d'); const cols = ['#6ea8ff', '#a78bfa', '#38bdf8', '#fbbf24', '#818cf8', '#ffffff', '#fb923c'];
   const ps = Array.from({ length: 110 }, () => ({ x, y, vx: (Math.random() - 0.5) * 13, vy: -Math.random() * 13 - 3, s: 4 + Math.random() * 6, r: Math.random() * 6, vr: (Math.random() - 0.5) * 0.4, c: cols[(Math.random() * cols.length) | 0] }));
   const t0 = performance.now();
   const tick = (t) => {

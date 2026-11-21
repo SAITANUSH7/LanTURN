@@ -1,8 +1,9 @@
 /* Section colour system. Blue stays the brand colour; every area also gets its own accent (--sec) so the app
    reads as a set of distinct places. Applied with data-s on nav links and data-section on <body>. */
 :root {
-  --c-cyan: #22d3ee; --c-teal: #2dd4bf; --c-emerald: #34d399; --c-amber: #fbbf24; --c-orange: #fb923c;
-  --c-rose: #fb7185; --c-pink: #f472b6; --c-violet: #a78bfa; --c-indigo: #818cf8; --c-sky: #60a5fa;
+  /* Names are historical: emerald is periwinkle, pink is lilac, rose is slate. No green or pink is used for decoration. */
+  --c-cyan: #38bdf8; --c-teal: #22d3ee; --c-emerald: #7aa2ff; --c-amber: #fbbf24; --c-orange: #fb923c;
+  --c-rose: #94a3b8; --c-pink: #c084fc; --c-violet: #a78bfa; --c-indigo: #818cf8; --c-sky: #60a5fa;
   --sec: var(--blue-hi);
 }
 [data-s='home'], [data-section='home'], [data-s='dashboard'], [data-section='dashboard'] { --sec: var(--c-sky); }
@@ -50,28 +51,28 @@ a { color: var(--sec-hi); }
 
 /* ===== Background: the orbs follow the section colour, with fixed violet and teal companions ===== */
 .bg { background: radial-gradient(120% 80% at 50% -10%, #0b1640 0%, var(--void) 55%); }
-.bg__orb--a { background: radial-gradient(circle, var(--c-violet) 0%, transparent 68%); opacity: 0.38; }
+.bg__orb--a { background: radial-gradient(circle, var(--c-indigo) 0%, transparent 68%); opacity: 0.34; }
 .bg__orb--blue { background: radial-gradient(circle, var(--sec) 0%, transparent 68%); opacity: 0.42; transition: background 0.6s; }
-.bg__orb--ice { background: radial-gradient(circle, var(--c-teal) 0%, transparent 68%); opacity: 0.26; }
+.bg__orb--ice { background: radial-gradient(circle, var(--c-sky) 0%, transparent 68%); opacity: 0.24; }
 
 /* ===== Stat tiles each get their own colour ===== */
 .stats .stat { border-top: 3px solid var(--tile, var(--sec)); }
 .stats .stat:nth-child(1) { --tile: var(--c-sky); } .stats .stat:nth-child(2) { --tile: var(--c-violet); } .stats .stat:nth-child(3) { --tile: var(--c-amber); }
-.stats .stat:nth-child(4) { --tile: var(--c-emerald); } .stats .stat:nth-child(5) { --tile: var(--c-pink); } .stats .stat:nth-child(6) { --tile: var(--c-orange); }
+.stats .stat:nth-child(4) { --tile: var(--c-cyan); } .stats .stat:nth-child(5) { --tile: var(--c-indigo); } .stats .stat:nth-child(6) { --tile: var(--c-orange); }
 .stats .stat .stat__value { background: linear-gradient(120deg, #fff, var(--tile, var(--sec))); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .stats .stat--accent { background: linear-gradient(135deg, color-mix(in srgb, var(--tile) 30%, transparent), var(--glass)); }
 .stats .stat--accent .stat__value { color: var(--white); background: none; }
 
 /* ===== Chips and badges vary by position, so a list of skills is not one flat blue ===== */
 .chip:not(.chip--matched):not(.chip--missing):not(.chip--btn) { --k: var(--c-sky); background: color-mix(in srgb, var(--k) 14%, transparent); border-color: color-mix(in srgb, var(--k) 45%, transparent); color: color-mix(in srgb, var(--k) 70%, #fff); }
-.chip:not(.chip--matched):not(.chip--missing):not(.chip--btn):nth-child(5n+2) { --k: var(--c-violet); } .chip:not(.chip--matched):not(.chip--missing):not(.chip--btn):nth-child(5n+3) { --k: var(--c-teal); }
-.chip:not(.chip--matched):not(.chip--missing):not(.chip--btn):nth-child(5n+4) { --k: var(--c-amber); } .chip:not(.chip--matched):not(.chip--missing):not(.chip--btn):nth-child(5n+5) { --k: var(--c-pink); }
+.chip:not(.chip--matched):not(.chip--missing):not(.chip--btn):nth-child(5n+2) { --k: var(--c-violet); } .chip:not(.chip--matched):not(.chip--missing):not(.chip--btn):nth-child(5n+3) { --k: var(--c-cyan); }
+.chip:not(.chip--matched):not(.chip--missing):not(.chip--btn):nth-child(5n+4) { --k: var(--c-amber); } .chip:not(.chip--matched):not(.chip--missing):not(.chip--btn):nth-child(5n+5) { --k: var(--c-indigo); }
 .badge--accent { background: color-mix(in srgb, var(--c-violet) 22%, transparent); color: #ddd2ff; border-color: color-mix(in srgb, var(--c-violet) 60%, transparent); }
 .badge:not([class*='badge--']) { background: color-mix(in srgb, var(--c-sky) 18%, transparent); color: #cfe3ff; border-color: color-mix(in srgb, var(--c-sky) 55%, transparent); }
 
 /* ===== Roadmap stages walk through the palette ===== */
-.flow > *:nth-child(6n+1) { --sec: var(--c-sky); } .flow > *:nth-child(6n+2) { --sec: var(--c-violet); } .flow > *:nth-child(6n+3) { --sec: var(--c-teal); }
-.flow > *:nth-child(6n+4) { --sec: var(--c-amber); } .flow > *:nth-child(6n+5) { --sec: var(--c-pink); } .flow > *:nth-child(6n+6) { --sec: var(--c-emerald); }
+.flow > *:nth-child(6n+1) { --sec: var(--c-sky); } .flow > *:nth-child(6n+2) { --sec: var(--c-violet); } .flow > *:nth-child(6n+3) { --sec: var(--c-cyan); }
+.flow > *:nth-child(6n+4) { --sec: var(--c-amber); } .flow > *:nth-child(6n+5) { --sec: var(--c-indigo); } .flow > *:nth-child(6n+6) { --sec: var(--c-orange); }
 
 /* Fit all student links on one row at laptop widths */
 @media (min-width: 821px) {

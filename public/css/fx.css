@@ -9,7 +9,7 @@
 /* ===== pointer-following light, scroll progress ===== */
 .fx-cursor { position: fixed; left: 0; top: 0; width: 520px; height: 520px; border-radius: 50%; pointer-events: none; z-index: 0; background: radial-gradient(circle, color-mix(in srgb, var(--sec) 22%, transparent), transparent 65%); opacity: 0.55; mix-blend-mode: screen; will-change: transform; transition: opacity 0.4s; }
 @media (hover: none) { .fx-cursor { display: none; } }
-.fx-progress { position: fixed; left: 0; top: 0; height: 3px; width: 100%; z-index: 250; transform-origin: 0 50%; transform: scaleX(0); background: linear-gradient(90deg, var(--c-sky), var(--sec), var(--c-pink)); box-shadow: 0 0 14px var(--sec); pointer-events: none; }
+.fx-progress { position: fixed; left: 0; top: 0; height: 3px; width: 100%; z-index: 250; transform-origin: 0 50%; transform: scaleX(0); background: linear-gradient(90deg, var(--sec), var(--sec-hi)); box-shadow: 0 0 14px var(--sec); pointer-events: none; }
 #app { position: relative; z-index: 1; }
 
 /* ===== cards: coloured spotlight, lift, sheen ===== */
@@ -71,7 +71,7 @@ body[data-section='system'] .bg__grid, body[data-section='ai'] .bg__grid, body[d
 /* ===== toasts, progress, ring glow ===== */
 .toast { border: 1px solid var(--sec-line); box-shadow: 0 18px 50px -18px var(--sec); animation: fx-toast 0.5s var(--ease-out, ease); }
 @keyframes fx-toast { from { transform: translateX(60px) scale(0.9); opacity: 0; } }
-.ring { background: conic-gradient(from 0deg, var(--sec), var(--sec-hi) calc(var(--p) * 0.6%), var(--c-pink) calc(var(--p) * 1%), rgba(255, 255, 255, 0.1) 0); box-shadow: 0 0 44px -8px var(--sec); }
+.ring { background: conic-gradient(from 0deg, var(--sec), var(--sec-hi) calc(var(--p) * 1%), rgba(255, 255, 255, 0.1) 0); box-shadow: 0 0 44px -8px var(--sec); }
 .meter__fill { background: linear-gradient(90deg, var(--sec), var(--sec-hi)); }
 .badge { transition: transform 0.2s; } .badge:hover { transform: scale(1.06); }
 .chip { transition: transform 0.18s var(--ease-out, ease), box-shadow 0.2s; } .chip:hover { transform: translateY(-2px); box-shadow: 0 8px 22px -10px var(--k, var(--sec)); }
