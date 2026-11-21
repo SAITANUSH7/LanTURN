@@ -88,3 +88,10 @@ a { color: var(--sec-hi); }
   .brand { font-size: 1.25rem; gap: 6px; }
   .brand svg { width: 22px; height: 30px; }
 }
+
+/* ===== Readability: a slightly larger type scale everywhere ===== */
+:root { --fs-xs: 0.875rem; --fs-sm: 1rem; --fs-md: 1.0625rem; --fs-lg: 1.3rem; }
+body { line-height: 1.62; }
+.muted, small { font-size: max(0.92rem, 0.9em); }
+.card p, .card li { line-height: 1.6; }
+.btn { font-size: 1rem; }

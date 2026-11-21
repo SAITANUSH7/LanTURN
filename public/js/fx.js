@@ -98,7 +98,7 @@ export function confetti(x = innerWidth / 2, y = innerHeight / 3) {
   requestAnimationFrame(tick);
 }
 // Celebrate completing a roadmap topic, and wins that arrive as success toasts.
-document.addEventListener('change', (e) => { const i = e.target; if (i.matches?.('input[type=checkbox]') && i.checked && i.closest('.flow__topic, .flow, .road, .topic')) { const r = i.getBoundingClientRect(); confetti(r.left + 10, r.top); } });
+document.addEventListener('change', (e) => { const i = e.target; if (i.matches?.('input[type=checkbox]') && i.checked && i.closest('.rm-topic, .flow__topic, .flow, .road, .topic')) { const r = i.getBoundingClientRect(); confetti(r.left + 10, r.top); } });
 new MutationObserver((ms) => { for (const m of ms) for (const n of m.addedNodes) if (n.nodeType === 1 && /offer|hired|congrat|streak|medal|badge/i.test(n.textContent)) confetti(); }).observe(document.body, { childList: true, subtree: true });
 
 // ---------- command palette (Ctrl/Cmd+K or "/") ----------
