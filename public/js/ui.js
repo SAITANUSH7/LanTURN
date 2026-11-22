@@ -94,7 +94,7 @@ export const STATUS_META = {
 };
 export const statusBadge = (s) => {
   const m = STATUS_META[s] || { label: s, cls: 'badge--neutral', icon: 'info' };
-  return h('span', { class: `badge ${m.cls}` }, icon(ICONS[m.icon] ? m.icon : 'info'), m.label);
+  return h('span', { class: `badge ${m.cls}`, 'data-st': s }, icon(ICONS[m.icon] ? m.icon : 'info'), m.label);
 };
 export const verifyBadge = (v) =>
   h('span', { class: `badge ${v === 'VERIFIED' ? 'badge--success' : v === 'REJECTED' ? 'badge--danger' : 'badge--warning'}` }, icon(v === 'VERIFIED' ? 'shield' : v === 'REJECTED' ? 'x' : 'clock'), v === 'VERIFIED' ? 'Verified' : v === 'REJECTED' ? 'Rejected' : 'Pending approval');
@@ -113,13 +113,13 @@ export const initials = (name) => (name || '?').split(/\s+/).filter(Boolean).sli
 // ---------- Components ----------
 export function scoreRing(value, { size = '', label = true, accent = false } = {}) {
   const v = Math.max(0, Math.min(100, Math.round(value ?? 0)));
-  return h('div', { class: `ring ${size === 'sm' ? 'ring--sm' : ''} ${accent ? 'ring--accent' : ''}`, role: 'img', 'aria-label': `Score ${v} out of 100`, style: { '--p': v } },
+  return h('div', { class: `ring ${size === 'sm' ? 'ring--sm' : ''} ${accent ? 'ring--accent' : ''} ${v >= 75 ? 'ring--hi' : v >= 50 ? 'ring--mid' : 'ring--lo'}`, role: 'img', 'aria-label': `Score ${v} out of 100`, style: { '--p': v } },
     h('span', { class: 'ring__value' }, v));
 }
 
 export function meter(label, value, max) {
   const pct = max ? Math.round((value / max) * 100) : 0;
-  const fill = h('div', { class: 'meter__fill' });
+  const fill = h('div', { class: `meter__fill ${pct >= 75 ? 'is-hi' : pct >= 50 ? 'is-mid' : 'is-lo'}` });
   requestAnimationFrame(() => { fill.style.width = `${pct}%`; });
   return h('div', { class: 'meter' }, h('span', null, label), h('div', { class: 'meter__track', role: 'img', 'aria-label': `${label}: ${value} of ${max}` }, fill), h('span', { class: 'meter__val' }, `${value}/${max}`));
 }

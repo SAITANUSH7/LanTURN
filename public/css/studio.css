@@ -306,3 +306,82 @@ a.card:hover, .card--hover:hover { background: var(--raised); }
 .bell .icon, .iconbtn .icon { width: 18px; height: 18px; }
 .bell { position: relative; }
 .lang { flex: none; min-width: 104px; }
+
+/* ============ Colour with meaning ============ */
+:root { --good: #4ade80; --ok: #f5b544; --bad: #f87171; }
+/* Scores: green when strong, amber in the middle, red when low */
+.ring--hi { --sec: var(--good); } .ring--mid { --sec: var(--ok); } .ring--lo { --sec: var(--bad); }
+.ring--hi .ring__value { color: #bbf7d0; } .ring--mid .ring__value { color: #fde68a; } .ring--lo .ring__value { color: #fecaca; }
+.meter__fill.is-hi { background: var(--good); } .meter__fill.is-mid { background: var(--ok); } .meter__fill.is-lo { background: var(--bad); }
+
+/* Application status: one colour per stage everywhere it appears */
+.badge[data-st='APPLIED'] { background: rgba(96, 165, 250, 0.13); color: #93c5fd; border-color: rgba(96, 165, 250, 0.4); }
+.badge[data-st='SHORTLISTED'] { background: rgba(167, 139, 250, 0.14); color: #c4b5fd; border-color: rgba(167, 139, 250, 0.4); }
+.badge[data-st='INTERVIEW'] { background: rgba(245, 181, 68, 0.13); color: #fcd34d; border-color: rgba(245, 181, 68, 0.4); }
+.badge[data-st='OFFERED'] { background: rgba(74, 222, 128, 0.13); color: #86efac; border-color: rgba(74, 222, 128, 0.4); }
+.badge[data-st='REJECTED'] { background: rgba(248, 113, 113, 0.13); color: #fca5a5; border-color: rgba(248, 113, 113, 0.4); }
+.badge[data-st='WITHDRAWN'] { background: rgba(148, 163, 184, 0.12); color: #cbd5e1; border-color: rgba(148, 163, 184, 0.35); }
+.badge .icon { width: 13px; height: 13px; }
+.board { --st: #60a5fa; }
+.board__col { border: 1px solid var(--line); border-top: 3px solid var(--st); border-radius: 12px; background: rgba(255, 255, 255, 0.015); }
+.board__col[data-status='APPLIED'] { --st: #60a5fa; } .board__col[data-status='SHORTLISTED'] { --st: #a78bfa; } .board__col[data-status='INTERVIEW'] { --st: #f5b544; }
+.board__col[data-status='OFFERED'] { --st: #4ade80; } .board__col[data-status='REJECTED'] { --st: #f87171; } .board__col[data-status='WITHDRAWN'] { --st: #94a3b8; }
+.board__col--over { border-color: var(--st); background: color-mix(in srgb, var(--st) 8%, transparent); }
+.board__card { border-left: 3px solid var(--st, #60a5fa); } .board__col[data-status] .board__card { --st: inherit; }
+.board__head { color: var(--white); }
+.board__col[data-status='APPLIED'] .board__card { border-left-color: #60a5fa; } .board__col[data-status='SHORTLISTED'] .board__card { border-left-color: #a78bfa; }
+.board__col[data-status='INTERVIEW'] .board__card { border-left-color: #f5b544; } .board__col[data-status='OFFERED'] .board__card { border-left-color: #4ade80; }
+.board__col[data-status='REJECTED'] .board__card { border-left-color: #f87171; }
+
+/* Job metadata: each fact gets its own hue */
+.job__meta { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.job__meta span { display: inline-flex; align-items: center; gap: 6px; }
+.job__meta span:nth-child(1) .icon { color: var(--c-violet); } .job__meta span:nth-child(2) .icon { color: var(--c-amber); } .job__meta span:nth-child(3) .icon { color: var(--c-cyan); }
+a.job:hover { border-color: var(--sec-line); }
+
+/* Section colour: page title marker, card titles, stat values, info alerts */
+.page-head h1::before { content: ''; display: inline-block; width: 10px; height: 10px; border-radius: 3px; background: var(--sec); margin-right: 12px; vertical-align: middle; transform: translateY(-2px); }
+.card__title { position: relative; padding-left: 16px; }
+.card__title::before { content: ''; position: absolute; left: 0; top: 0.42em; width: 8px; height: 8px; border-radius: 2px; background: var(--cc, var(--sec)); }
+:is(.grid, .split, .stack, .gap-grid) > .card:nth-child(6n+1), .card { --cc: var(--c-sky); }
+:is(.grid, .split, .stack) > .card:nth-child(6n+2) { --cc: var(--c-violet); } :is(.grid, .split, .stack) > .card:nth-child(6n+3) { --cc: var(--c-cyan); }
+:is(.grid, .split, .stack) > .card:nth-child(6n+4) { --cc: var(--c-amber); } :is(.grid, .split, .stack) > .card:nth-child(6n+5) { --cc: var(--c-orange); } :is(.grid, .split, .stack) > .card:nth-child(6n+6) { --cc: var(--c-indigo); }
+.stats .stat .stat__value { color: color-mix(in srgb, var(--tile, var(--sec)) 28%, #fff); }
+.stats .stat { border-top: 2px solid color-mix(in srgb, var(--tile, var(--sec)) 70%, transparent); }
+.stats .stat:nth-child(1) { --tile: var(--c-sky); } .stats .stat:nth-child(2) { --tile: var(--c-violet); } .stats .stat:nth-child(3) { --tile: var(--c-amber); }
+.stats .stat:nth-child(4) { --tile: var(--c-cyan); } .stats .stat:nth-child(5) { --tile: var(--c-orange); } .stats .stat:nth-child(6) { --tile: var(--c-indigo); }
+.stats .stat--accent { background: color-mix(in srgb, var(--tile, var(--sec)) 12%, var(--panel)); border-color: color-mix(in srgb, var(--tile, var(--sec)) 45%, transparent); }
+.alert { border-left: 3px solid var(--c-sky); background: rgba(96, 165, 250, 0.07); } .alert .icon { color: var(--c-sky); }
+.alert--danger { border-left-color: var(--bad); background: var(--danger-soft); } .alert--danger .icon { color: var(--bad); }
+.alert--warning { border-left-color: var(--ok); background: var(--warning-soft); } .alert--warning .icon { color: var(--ok); }
+.alert--success { border-left-color: var(--good); background: var(--success-soft); } .alert--success .icon { color: var(--good); }
+.card--accent { background: color-mix(in srgb, var(--sec) 10%, var(--panel)); border-color: color-mix(in srgb, var(--sec) 45%, transparent); }
+
+/* Timelines and steps follow the section colour; completed items turn green */
+.timeline__dot { border-color: var(--sec-line); color: var(--sec-hi); background: var(--sec-soft); }
+.timeline__dot--done { background: var(--sec); border-color: var(--sec); color: #09090b; }
+.step--done .step__n { background: var(--good); color: #09090b; border-color: var(--good); } .step--active .step__n { background: var(--sec); color: #09090b; border-color: var(--sec); }
+.table th:first-child { color: var(--sec-hi); }
+.table tbody tr:hover td:first-child { box-shadow: inset 2px 0 0 var(--sec); }
+.segmented button[aria-pressed='true'], .segmented button[aria-selected='true'] { box-shadow: inset 0 -2px 0 var(--sec), 0 0 0 1px var(--line-2); }
+.filter[aria-pressed='true'] { background: var(--sec-soft); border-color: var(--sec-line); }
+.input:focus, .select:focus, .textarea:focus { border-color: var(--sec); box-shadow: 0 0 0 3px var(--sec-soft); }
+.dropzone:hover, .dropzone.is-over { border-color: var(--sec); background: var(--sec-soft); }
+.btn--accent { background: var(--sec); border-color: var(--sec); color: #09090b; }
+.btn--accent:hover { background: var(--sec-hi); border-color: var(--sec-hi); color: #09090b; }
+.fx-progress { background: var(--sec); }
+.topbar__crumb i { box-shadow: 0 0 0 3px var(--sec-soft); }
+/* Notification counter and unread dot */
+.bell__n { position: absolute; top: -5px; right: -5px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--bad); color: #fff; font-size: 0.7rem; font-weight: 700; display: grid; place-items: center; }
+.chip--blue { background: rgba(96, 165, 250, 0.1); border-color: rgba(96, 165, 250, 0.35); color: #bfdbfe; }
+.badge--neutral { background: rgba(148, 163, 184, 0.12); color: #cbd5e1; border-color: rgba(148, 163, 184, 0.3); }
+
+/* Each sidebar destination keeps its own colour (icon always, label when active) */
+.side .nav a[data-s='home'], .side .nav a[data-s='dashboard'], .side .nav a[data-s='profile'] { --sec: var(--c-sky); }
+.side .nav a[data-s='jobs'] { --sec: var(--c-cyan); } .side .nav a[data-s='applications'], .side .nav a[data-s='company'] { --sec: var(--c-amber); }
+.side .nav a[data-s='resume'], .side .nav a[data-s='builder'], .side .nav a[data-s='assistant'] { --sec: var(--c-violet); }
+.side .nav a[data-s='roadmap'] { --sec: var(--c-emerald); } .side .nav a[data-s='career'] { --sec: var(--c-teal); }
+.side .nav a[data-s='dna'] { --sec: var(--c-pink); } .side .nav a[data-s='arena'] { --sec: var(--c-orange); } .side .nav a[data-s='coach'] { --sec: var(--c-indigo); }
+.side .nav a[data-s='ai'], .side .nav a[data-s='system'], .side .nav a[data-s='admin'] { --sec: #cbd5e1; }
+.side .nav a .icon { opacity: 1; }
+.side .nav a[aria-current='page'] { background: color-mix(in srgb, var(--sec) 12%, transparent); border-color: color-mix(in srgb, var(--sec) 30%, transparent); }
