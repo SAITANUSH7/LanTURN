@@ -14,6 +14,17 @@ import { t, LANGS, getLang, setLang } from './i18n.js';
 
 const app = document.getElementById('app');
 
+// Theme: dark by default, light on request; remembers the choice and follows the OS until one is made.
+const readTheme = () => { try { return localStorage.getItem('lanturn-theme'); } catch { return null; } };
+const currentTheme = () => readTheme() || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+const applyTheme = (th) => { document.documentElement.dataset.theme = th; document.querySelector('meta[name=theme-color]')?.setAttribute('content', th === 'light' ? '#fafafa' : '#09090b'); };
+applyTheme(currentTheme());
+function themeToggle() {
+  const light = document.documentElement.dataset.theme === 'light';
+  return h('button', { class: 'iconbtn', type: 'button', 'aria-label': light ? 'Switch to dark theme' : 'Switch to light theme', title: light ? 'Dark theme' : 'Light theme',
+    onclick: () => { const next = light ? 'dark' : 'light'; try { localStorage.setItem('lanturn-theme', next); } catch { /* optional */ } applyTheme(next); render(); } }, icon(light ? 'moon' : 'sun'));
+}
+
 // [pattern, allowed roles (null = public), handler, title]
 const ROUTES = [
   ['/', null, pub.landing, 'Home'],
@@ -87,7 +98,7 @@ function shell() {
       h('header', { class: 'topbar topbar--pub' },
         h('div', { class: 'topbar__in' },
           h('a', { class: 'brand', href: '#/', 'aria-label': 'LanTURN home' }, lantern(), h('span', null, 'Lan', h('b', null, 'TURN'))),
-          h('div', { class: 'topbar__user' }, langPicker(),
+          h('div', { class: 'topbar__user' }, themeToggle(), langPicker(),
             h('a', { class: 'btn btn--secondary btn--sm', href: '#/login' }, t('Sign in')),
             h('a', { class: 'btn btn--accent btn--sm', href: '#/register' }, t('Get started'))))),
       h('main', { id: 'main', tabindex: '-1' }));
@@ -109,7 +120,7 @@ function shell() {
       h('div', { class: 'topbar__crumb' },
         h('button', { class: 'iconbtn menu-btn', type: 'button', 'aria-label': 'Open menu', 'aria-controls': 'side', onclick: () => app.classList.toggle('is-open') }, icon('list')),
         h('i', { 'aria-hidden': 'true' }), h('b', null, t(label || 'LanTURN'))),
-      h('div', { class: 'topbar__user' }, langPicker(), user.role !== 'ADMIN' ? ai.bell() : null)));
+      h('div', { class: 'topbar__user' }, themeToggle(), langPicker(), user.role !== 'ADMIN' ? ai.bell() : null)));
   app.append(side, h('div', { class: 'scrim', onclick: () => app.classList.remove('is-open') }), h('div', { class: 'app__main' }, bar, h('main', { id: 'main', tabindex: '-1' })));
   return app;
 }

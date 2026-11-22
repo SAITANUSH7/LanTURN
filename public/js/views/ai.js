@@ -37,7 +37,7 @@ export async function careerDna() {
 
 // ---------------------------------------------------------------- Skill Arena
 const MEDAL = { gold: 'Gold', silver: 'Silver', bronze: 'Bronze', basic: 'Basic' };
-const medalBadge = (m) => h('span', { class: `medal medal--${m}` }, icon('shield'), MEDAL[m] || m);
+const medalBadge = (m) => { const k = String(m).trim().split(/\s+/)[0].toLowerCase(); return h('span', { class: `medal medal--${MEDAL[k] ? k : 'basic'}` }, icon('shield'), MEDAL[k] ? `${MEDAL[k]} medal` : m); };
 
 export async function arena() {
   const [skills, medals] = await Promise.all([get('/students/me/skills'), get('/arena/medals')]);
