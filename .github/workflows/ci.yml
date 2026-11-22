@@ -29,6 +29,18 @@ jobs:
       - name: Verify demo seeder
         run: npm run seed
 
+  e2e:
+    runs-on: ubuntu-latest
+    name: Browser tests (Playwright)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22.x, cache: npm }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: End-to-end and accessibility tests
+        run: npm run e2e
+
   python:
     runs-on: ubuntu-latest
     defaults: { run: { working-directory: services/nlp } }

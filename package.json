@@ -17,7 +17,8 @@
     "start:prod": "node --no-warnings server.js",
     "build:native": "node native/build.mjs",
     "bench": "node scripts/bench.mjs",
-    "bench:native": "node --no-warnings scripts/microbench.mjs"
+    "bench:native": "node --no-warnings scripts/microbench.mjs",
+    "e2e": "node --no-warnings --test --test-concurrency=1 e2e/*.e2e.test.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
@@ -29,5 +30,9 @@
     "multer": "^2.5.0",
     "pdf-parse": "^1.1.1",
     "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "axe-core": "^4.14.1",
+    "playwright": "^1.65.1"
   }
 }

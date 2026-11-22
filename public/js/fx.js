@@ -34,7 +34,7 @@ let order = 0; let orderReset = 0;
 function enhance(root) {
   if (!fresh() || root.nodeType !== 1) return;
   const now = performance.now(); if (now - orderReset > 400) order = 0; orderReset = now;
-  const targets = [...(root.matches?.('.card, .stat, .table-wrap, .empty, .alert, .ring, .seg') ? [root] : []), ...$$('.card, .stat, .table-wrap, .empty, .alert', root)];
+  const targets = [...(root.matches?.('.card, .stat, .table-wrap, .empty, .alert, .ring, .seg, .bento__c, .duo__c, .steps4, .lp-window, .lp-final') ? [root] : []), ...$$('.card, .stat, .table-wrap, .empty, .alert, .bento__c, .duo__c, .steps4, .lp-window, .lp-final', root)];
   for (const t of targets) {
     if (t.dataset.fx) continue; t.dataset.fx = '1';
     const r = t.getBoundingClientRect();
@@ -49,26 +49,23 @@ function enhance(root) {
 }
 if (app) new MutationObserver((ms) => { for (const m of ms) for (const n of m.addedNodes) if (n.nodeType === 1) enhance(n); }).observe(app, { childList: true, subtree: true });
 
-// ---------- pointer effects: card spotlight, gentle tilt, button ripple, cursor glow ----------
-const glow = el('i', 'fx-cursor'); glow.setAttribute('aria-hidden', 'true'); document.body.append(glow);
-let px = 0; let py = 0; let raf = 0;
-document.addEventListener('pointermove', (e) => {
-  px = e.clientX; py = e.clientY;
-  if (!raf) raf = requestAnimationFrame(() => { raf = 0; glow.style.transform = `translate(${px - 260}px, ${py - 260}px)`; });
-  const card = e.target.closest?.('.card, .stat');
-  if (!card) return;
-  const r = card.getBoundingClientRect(); const x = e.clientX - r.left; const y = e.clientY - r.top;
-  card.style.setProperty('--mx', `${x}px`); card.style.setProperty('--my', `${y}px`);
-  if (!reduce && card.matches('.card--hover, .stat, .cand, a.card') && r.width < 760) {
-    card.style.transform = `perspective(900px) rotateX(${((0.5 - y / r.height) * 5).toFixed(2)}deg) rotateY(${((x / r.width - 0.5) * 6).toFixed(2)}deg) translateZ(0)`;
-  }
-}, { passive: true });
-document.addEventListener('pointerout', (e) => { const c = e.target.closest?.('.card, .stat'); if (c && !c.contains(e.relatedTarget)) c.style.transform = ''; });
-document.addEventListener('pointerdown', (e) => {
-  const b = e.target.closest?.('.btn'); if (!b || reduce) return;
-  const r = b.getBoundingClientRect(); const s = el('i', 'ripple');
-  s.style.left = `${e.clientX - r.left}px`; s.style.top = `${e.clientY - r.top}px`; b.append(s); setTimeout(() => s.remove(), 650);
-});
+// ---------- pointer lighting: lit borders on surfaces, button sheen, hero light, magnetic CTAs ----------
+// Only on devices with a real pointer, and never with reduced motion. All visuals live in CSS; this just feeds coordinates.
+const LIT = '.card, .stat, .bento__c, .duo__c, .ds-sw, .ob__step, .lp-tile';
+if (!reduce && matchMedia('(hover: hover) and (pointer: fine)').matches) {
+  let frame = 0; let last = null;
+  const local = (node, e) => { const r = node.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top, r]; };
+  document.addEventListener('pointermove', (e) => {
+    last = e; if (frame) return;
+    frame = requestAnimationFrame(() => {
+      frame = 0; const t = last.target; if (!t?.closest) return;
+      const lit = t.closest(LIT); if (lit) { const [x, y] = local(lit, last); lit.style.setProperty('--mx', `${x}px`); lit.style.setProperty('--my', `${y}px`); }
+      const btn = t.closest('.btn'); if (btn) { const [x, y, r] = local(btn, last); btn.style.setProperty('--bx', `${x}px`); btn.style.setProperty('--by', `${y}px`); if (btn.closest('.lp-cta')) btn.style.translate = `${((x / r.width - 0.5) * 8).toFixed(1)}px ${((y / r.height - 0.5) * 6).toFixed(1)}px`; }
+      const hero = t.closest('.lp-hero'); if (hero) { const [x, y] = local(hero, last); hero.style.setProperty('--hx', `${x}px`); hero.style.setProperty('--hy', `${y}px`); }
+    });
+  }, { passive: true });
+  document.addEventListener('pointerout', (e) => { const b = e.target.closest?.('.lp-cta .btn'); if (b && !b.contains(e.relatedTarget)) b.style.translate = ''; });
+}
 
 // ---------- scroll progress ----------
 const bar = el('i', 'fx-progress'); bar.setAttribute('aria-hidden', 'true'); document.body.append(bar);

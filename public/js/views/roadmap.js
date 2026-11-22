@@ -94,7 +94,7 @@ export async function roadmapPage({ query }) {
     const sel = h('select', { class: 'rm-select', 'aria-label': 'Career direction', onchange: (e) => { domain = e.target.value; load(); } },
       d.directions.slice(0, 12).map((x) => h('option', { value: x.id, selected: x.id === d.domain.id ? true : null }, `${x.title} · ${x.fit}% match`)));
     const panel = h('aside', { class: 'rm-panel' },
-      h('div', { class: 'rm-panel__ring' }, scoreRing(d.pct, { accent: true }), h('div', null, h('strong', null, `${d.doneTotal} of ${d.total}`), h('span', null, 'topics known'))),
+      h('div', { class: 'rm-panel__ring' }, scoreRing(d.pct, { accent: true }), h('div', null, h('strong', { 'data-testid': 'rm-known' }, `${d.doneTotal} of ${d.total}`), h('span', null, 'topics known'))),
       h('div', { class: 'rm-panel__stats' }, h('div', null, h('b', null, d.stagesDone), h('span', null, `of ${d.stages.length} stages`)), h('div', null, h('b', null, d.monthsLeft), h('span', null, 'months to go'))),
       nextUp ? h('div', { class: 'rm-next' }, h('small', null, 'Up next'), h('strong', null, nextUp.t.title), h('span', null, d.stages[nextUp.si].title),
         h('button', { type: 'button', class: 'btn btn--accent', onclick: () => { open.add(nextUp.si); showGuide(nextUp.si, nextUp.t); } }, icon('arrow-right'), 'Open study guide'))
