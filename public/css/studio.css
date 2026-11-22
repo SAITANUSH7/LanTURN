@@ -552,3 +552,4 @@ body[data-section='dna'] li:nth-child(6n+5) .meter__fill { background: var(--c-o
 :root[data-theme='light'] .chip:not(.chip--matched):not(.chip--missing):not(.chip--btn) { color: color-mix(in srgb, var(--k, var(--c-sky)) 68%, #000); }
 :root[data-theme='light'] .badge--success, :root[data-theme='light'] .badge[data-st='OFFERED'] { color: #166534; }
 :root[data-theme='light'] .chip--blue { color: #1e40af; }
+@media (prefers-reduced-motion: reduce) { .view-in, .fx-in, .toast { animation: none !important; } .fx-pre { opacity: 1; transform: none; } .ob__bar .meter__fill, .funnel__track i, .chart__bar { transition: none; } }

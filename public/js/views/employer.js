@@ -130,6 +130,7 @@ export async function candidates({ params, query }) {
   const selected = new Set();
   const sortBar = () => h('div', { class: 'segmented', role: 'group', 'aria-label': 'Sort' }, ...[['smart', 'AI rank'], ['match', 'Best match'], ['resume', 'Resume score']].map(([k, l]) => h('button', { 'aria-pressed': String(sort === k), onclick: () => { sort = k; load(); } }, l)));
   async function loadSmart(explain) {
+    syncUrl();
     clear(list).append(loadingBlock(2));
     try {
       const d = explain ? await post(`/employer/jobs/${params.id}/ranking/explain`, {}) : await get(`/employer/jobs/${params.id}/ranking`);
@@ -157,7 +158,12 @@ export async function candidates({ params, query }) {
         h('div', { class: 'cand__scores' }, h('div', null, scoreRing(c.composite, { size: 'sm' }), 'Overall'), h('div', null, scoreRing(c.matchScore, { size: 'sm', accent: true }), 'Match')))));
     } catch (e) { clear(list).append(errorBox(e, () => loadSmart(false))); }
   }
+  const syncUrl = () => {
+    const q = new URLSearchParams(); if (status) q.set('status', status); if (sort !== 'smart') q.set('sort', sort);
+    try { history.replaceState(null, '', `#/employer/jobs/${params.id}/candidates${q.toString() ? `?${q}` : ''}`); } catch { /* optional */ }
+  };
   async function load() {
+    syncUrl();
     if (sort === 'smart') { clear(bar).append(h('span'), sortBar()); return loadSmart(false); }
     clear(list).append(loadingBlock(2));
     try {

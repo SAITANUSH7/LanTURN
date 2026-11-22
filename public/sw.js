@@ -1,5 +1,5 @@
 // App-shell cache. API calls are never cached (they carry personal data); offline shows the cached shell.
-const V = 'lanturn-v4';
+const V = 'lanturn-v5';
 const SHELL = ['/', '/index.html', '/css/tokens.css', '/css/base.css', '/css/components.css', '/css/app.css', '/css/theme.css', '/css/fx.css', '/css/roadmap.css', '/css/studio.css', '/js/fx.js', '/js/main.js', '/js/api.js', '/js/ui.js', '/js/i18n.js', '/js/charts.js', '/icons/icon-192.png'];
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(V).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', (e) => { e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== V).map((k) => caches.delete(k)))).then(() => self.clients.claim())); });

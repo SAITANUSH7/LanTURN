@@ -130,22 +130,34 @@ export async function jobDetail({ params }) {
 }
 
 // ---------------------------------------------------------------- Applications
-export async function applications({ onLeave }) {
+const APP_FILTERS = [['', 'All'], ['active', 'Active'], ['OFFERED', 'Offered'], ['closed', 'Closed']];
+const appMatches = (f, a) => !f || (f === 'active' ? !TERMINAL.includes(a.status) : f === 'closed' ? ['REJECTED', 'WITHDRAWN'].includes(a.status) : a.status === f);
+
+export async function applications({ onLeave, query = {} }) {
+  let filter = APP_FILTERS.some(([k]) => k === query.status) ? query.status || '' : '';
+  const filters = h('div', { class: 'filters', role: 'group', 'aria-label': 'Filter applications' });
+  let all = [];
   const list = h('div', { class: 'stack' });
   const stamp = h('span', { class: 'muted', 'aria-live': 'polite' });
+  function paint() {
+    clear(list);
+    clear(filters).append(...APP_FILTERS.map(([k, label]) => h('button', { type: 'button', class: 'filter', 'aria-pressed': String(filter === k), onclick: () => { filter = k; try { history.replaceState(null, '', `#/student/applications${k ? `?status=${k}` : ''}`); } catch { /* optional */ } paint(); } }, `${label} (${all.filter((a) => appMatches(k, a)).length})`)));
+    const shown = all.filter((a) => appMatches(filter, a));
+    if (!all.length) list.append(empty('clock', 'No applications yet', 'Apply to a job and its status will show up here.', h('a', { class: 'btn', href: '#/student/jobs' }, 'Find jobs')));
+    else if (!shown.length) list.append(empty('search', 'Nothing in this view', 'Try another filter.'));
+    else shown.forEach((a) => list.append(appCard(a, () => load(true))));
+  }
   async function load(quiet) {
     try {
       const d = await get('/applications');
-      clear(list);
-      if (!d.items.length) list.append(empty('clock', 'No applications yet', 'Apply to a job and its status will show up here.', h('a', { class: 'btn', href: '#/student/jobs' }, 'Find jobs')));
-      d.items.forEach((a) => list.append(appCard(a, () => load(true))));
+      all = d.items; paint();
       stamp.textContent = `Updated ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · refreshes every 30 s`;
     } catch (e) { if (!quiet) clear(list).append(errorBox(e, () => load())); }
   }
   await load();
   const t = setInterval(() => load(true), 30000);
   onLeave(() => clearInterval(t));
-  return wrapPage(pageHead('Applications', 'Track every application from applied to offer.', h('button', { class: 'btn btn--secondary btn--sm', onclick: () => load() }, icon('refresh'), 'Refresh')), stamp, list);
+  return wrapPage(pageHead('Applications', 'Track every application from applied to offer.', h('button', { class: 'btn btn--secondary btn--sm', onclick: () => load() }, icon('refresh'), 'Refresh')), stamp, filters, list);
 }
 
 function appCard(a, reload) {
