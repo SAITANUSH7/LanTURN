@@ -492,3 +492,63 @@ body[data-section='dna'] li:nth-child(6n+5) .meter__fill { background: var(--c-o
 .rm-panel .ring__value { color: var(--white); }
 :root[data-theme='light'] .rm-dot { color: var(--text); }
 :root[data-theme='light'] .rm-stage--current .rm-dot { color: var(--text); }
+
+/* ============ Skeletons ============ */
+.skeleton { background: linear-gradient(90deg, color-mix(in srgb, var(--text) 5%, transparent) 25%, color-mix(in srgb, var(--text) 11%, transparent) 50%, color-mix(in srgb, var(--text) 5%, transparent) 75%); background-size: 200% 100%; animation: sk-shimmer 1.4s linear infinite; border-radius: 12px; }
+@keyframes sk-shimmer { to { background-position: -200% 0; } }
+.sk { display: grid; gap: 18px; align-content: start; }
+.sk__title { height: 34px; width: min(320px, 70%); border-radius: 8px; } .sk__sub { height: 18px; width: min(460px, 90%); border-radius: 6px; }
+.sk__stat { height: 96px; } .sk__card { height: 120px; } .sk__card--tall { height: 260px; }
+@media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } }
+
+/* ============ Onboarding ============ */
+.ob { display: grid; gap: 14px; }
+.ob__bar { height: 6px; } .ob__bar .meter__fill { display: block; height: 100%; transition: width 0.5s var(--ease-out); }
+.ob__list { display: grid; gap: 4px; list-style: none; padding: 0; margin: 0; }
+.ob__step { display: grid; grid-template-columns: 36px 1fr auto; gap: 14px; align-items: center; padding: 10px 8px; border-radius: 10px; }
+.ob__step.is-next { background: var(--sec-soft); }
+.ob__step p { font-size: 0.9rem; }
+.ob__mark { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: rgba(148, 163, 184, 0.12); color: var(--text-2); } .ob__mark .icon { width: 18px; height: 18px; }
+.ob__step.is-next .ob__mark { background: var(--sec); color: var(--on-sec, #09090b); }
+.ob__step.is-done .ob__mark { background: var(--success-soft); color: var(--good); } .ob__step.is-done strong { text-decoration: line-through; text-decoration-color: var(--text-3); color: var(--text-2); }
+
+/* ============ Charts ============ */
+.split--even { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 900px) { .split--even { grid-template-columns: 1fr; } }
+.chart__total { font-size: 2rem; font-weight: 600; letter-spacing: -0.03em; line-height: 1; margin-bottom: 14px; font-variant-numeric: tabular-nums; } .chart__total small { font-size: 0.9rem; font-weight: 500; color: var(--text-2); letter-spacing: 0; }
+.chart { display: flex; align-items: flex-end; gap: 6px; height: 140px; border-bottom: 1px solid var(--line-2); }
+.chart__col { flex: 1; height: 100%; display: flex; align-items: flex-end; min-width: 0; }
+.chart__bar { display: block; width: 100%; height: var(--h); border-radius: 4px 4px 0 0; background: color-mix(in srgb, var(--c-sky) 45%, transparent); transition: background 0.15s, height 0.5s var(--ease-out); }
+.chart__col:hover .chart__bar { background: var(--c-sky); } .chart__bar.is-today { background: var(--c-sky); }
+.chart__axis { display: flex; justify-content: space-between; margin-top: 8px; font-size: 0.8125rem; color: var(--text-3); }
+.funnel { display: grid; gap: 12px; list-style: none; padding: 0; margin: 4px 0 0; }
+.funnel li { display: grid; grid-template-columns: 92px 1fr 36px; gap: 12px; align-items: center; font-size: 0.9375rem; }
+.funnel__label { color: var(--text-2); } .funnel__n { text-align: right; font-variant-numeric: tabular-nums; }
+.funnel__track { height: 10px; border-radius: 6px; background: rgba(148, 163, 184, 0.14); overflow: hidden; } .funnel__track i { display: block; height: 100%; width: var(--w); min-width: 3px; border-radius: 6px; background: var(--st, #60a5fa); transition: width 0.6s var(--ease-out); }
+.funnel li[data-st='APPLIED'] { --st: #60a5fa; } .funnel li[data-st='SHORTLISTED'] { --st: #a78bfa; } .funnel li[data-st='INTERVIEW'] { --st: #f5b544; } .funnel li[data-st='OFFERED'] { --st: #4ade80; } .funnel li[data-st='REJECTED'] { --st: #f87171; } .funnel li[data-st='WITHDRAWN'] { --st: #94a3b8; }
+
+/* ============ Mobile tab bar (students) ============ */
+.tabbar { display: none; }
+@media (max-width: 960px) {
+  .app__main { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+  .tabbar { display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 54; padding: 6px 6px calc(6px + env(safe-area-inset-bottom)); background: color-mix(in srgb, var(--void) 92%, transparent); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border-top: 1px solid var(--line); }
+  .tabbar a, .tabbar button { all: unset; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 48px; border-radius: 10px; font-size: 0.72rem; font-weight: 500; color: var(--text-2); cursor: pointer; text-decoration: none; --sec: var(--c-sky); }
+  .tabbar .icon { width: 21px; height: 21px; }
+  .tabbar a[aria-current='page'] { color: var(--white); } .tabbar a[aria-current='page'] .icon { color: var(--sec); }
+  .tabbar a:focus-visible, .tabbar button:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+  .tabbar a[data-s='jobs'] { --sec: var(--c-cyan); } .tabbar a[data-s='resume'] { --sec: var(--c-violet); } .tabbar a[data-s='roadmap'] { --sec: var(--c-emerald); }
+  .toasts { bottom: 76px; }
+}
+
+/* Design-system page */
+.ds2__sec { margin-top: 40px; display: grid; gap: 14px; } .ds2__sec > h2 { font-size: 1.375rem; }
+.ds2__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.ds-sw { display: flex; gap: 14px; align-items: center; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+.ds-sw i { width: 44px; height: 44px; border-radius: 10px; flex: none; } .ds-sw strong { display: block; } .ds-sw code { font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-3); } .ds-sw p { font-size: 0.85rem; margin: 2px 0 0; }
+.segmented button { color: var(--text-2); }
+.segmented button[aria-pressed='true'], .segmented button[aria-selected='true'] { color: var(--white); }
+:root[data-theme='light'] .bento__tag { color: color-mix(in srgb, var(--k, var(--c-sky)) 55%, #000); }
+.filter { color: var(--text-2); } .filter[aria-pressed='true'] { color: var(--white); }
+:root[data-theme='light'] .chip:not(.chip--matched):not(.chip--missing):not(.chip--btn) { color: color-mix(in srgb, var(--k, var(--c-sky)) 68%, #000); }
+:root[data-theme='light'] .badge--success, :root[data-theme='light'] .badge[data-st='OFFERED'] { color: #166534; }
+:root[data-theme='light'] .chip--blue { color: #1e40af; }

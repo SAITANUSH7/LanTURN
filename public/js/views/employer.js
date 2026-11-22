@@ -15,6 +15,7 @@ export async function dashboard() {
     pageHead('Dashboard', 'Your hiring pipeline at a glance.', d.verification === 'VERIFIED' ? h('a', { class: 'btn btn--accent', href: '#/employer/jobs/new' }, icon('plus'), 'Post a job') : verifyBadge(d.verification)),
     pendingBanner(d.verification),
     h('div', { class: 'stats' }, stat('Open jobs', d.openJobs, 'stat--accent'), stat('Applicants', d.applicants), stat('Shortlisted', d.shortlisted), stat('Interviews', d.interviews), stat('Offers', d.offers)),
+    h('div', { class: 'split split--even' }, applicantsChart(d.daily || []), funnelChart(d.funnel || {})),
     h('section', { class: 'stack' }, h('div', { class: 'row row--between' }, h('h2', { class: 'section-title' }, 'Your jobs'), h('a', { href: '#/employer/jobs' }, 'Manage all')),
       jobs.items.length ? jobs.items.slice(0, 5).map(jobRow) : empty('briefcase', 'No jobs posted yet', d.verification === 'VERIFIED' ? 'Post your first role and start receiving matched candidates.' : 'Once approved, your postings appear here.', d.verification === 'VERIFIED' ? h('a', { class: 'btn', href: '#/employer/jobs/new' }, 'Post a job') : null)));
 }
@@ -226,4 +227,29 @@ export async function company() {
     });
   } }, h('div', { class: 'form-grid' }, field('Company name', v.name), field('Website', v.website), field('Industry', v.industry), field('Size', v.size), field('Location', v.location)), field('About', v.about), h('div', null, btn));
   return wrapPage(pageHead('Company', 'This is what students see on your job posts.', verifyBadge(c.verification)), pendingBanner(c.verification), form, await companyDnaCard(), await emailPrefsCard());
+}
+
+const FUNNEL = [['APPLIED', 'Applied'], ['SHORTLISTED', 'Shortlisted'], ['INTERVIEW', 'Interview'], ['OFFERED', 'Offered'], ['REJECTED', 'Rejected'], ['WITHDRAWN', 'Withdrawn']];
+
+function applicantsChart(daily) {
+  const max = Math.max(1, ...daily.map((x) => x.count));
+  const total = daily.reduce((n, x) => n + x.count, 0);
+  const fmt = (iso) => new Date(`${iso}T00:00:00Z`).toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' });
+  return h('div', { class: 'card' },
+    h('h3', { class: 'card__title' }, 'New applicants', h('span', { class: 'muted' }, 'last 14 days')),
+    h('p', { class: 'chart__total' }, String(total), h('small', null, total === 1 ? ' applicant' : ' applicants')),
+    h('div', { class: 'chart', role: 'img', 'aria-label': `New applicants per day: ${daily.map((x) => `${fmt(x.date)} ${x.count}`).join(', ')}` },
+      daily.map((x, i) => h('div', { class: 'chart__col', title: `${fmt(x.date)}: ${x.count}` },
+        h('i', { class: `chart__bar${i === daily.length - 1 ? ' is-today' : ''}`, style: { '--h': `${Math.max(x.count ? 8 : 3, (x.count / max) * 100)}%` } })))),
+    h('div', { class: 'chart__axis', 'aria-hidden': 'true' }, h('span', null, daily[0] ? fmt(daily[0].date) : ''), h('span', null, 'Today')));
+}
+
+function funnelChart(f) {
+  const max = Math.max(1, ...FUNNEL.map(([k]) => f[k] || 0));
+  return h('div', { class: 'card' },
+    h('h3', { class: 'card__title' }, 'Pipeline by stage'),
+    h('ul', { class: 'funnel' }, FUNNEL.map(([k, label]) => h('li', { 'data-st': k },
+      h('span', { class: 'funnel__label' }, label),
+      h('span', { class: 'funnel__track' }, h('i', { style: { '--w': `${((f[k] || 0) / max) * 100}%` } })),
+      h('b', { class: 'funnel__n' }, String(f[k] || 0))))));
 }

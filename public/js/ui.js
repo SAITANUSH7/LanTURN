@@ -139,6 +139,12 @@ export const empty = (iconName, title, text, action) =>
 export const errorBox = (err, retry) =>
   h('div', { class: 'alert alert--danger', role: 'alert' }, icon('warn'), h('div', { class: 'stack stack--sm' }, h('strong', null, 'Something went wrong'), h('p', null, err?.message || 'Please try again.'), retry ? h('div', null, h('button', { class: 'btn btn--sm btn--secondary', onclick: retry }, icon('refresh'), 'Try again')) : null));
 
+/** Page-shaped placeholder shown while a view's data loads: header, stat tiles, then cards. */
+export const pageSkeleton = () => h('div', { class: 'container page sk', 'aria-busy': 'true', 'aria-label': 'Loading' },
+  h('div', { class: 'skeleton sk__title' }), h('div', { class: 'skeleton sk__sub' }),
+  h('div', { class: 'stats' }, Array.from({ length: 4 }, () => h('div', { class: 'skeleton sk__stat' }))),
+  h('div', { class: 'split' }, h('div', { class: 'stack' }, Array.from({ length: 3 }, () => h('div', { class: 'skeleton sk__card' }))), h('div', { class: 'skeleton sk__card sk__card--tall' })));
+
 export const loadingBlock = (rows = 3) => h('div', { class: 'stack', 'aria-busy': 'true', 'aria-label': 'Loading' }, Array.from({ length: rows }, () => h('div', { class: 'skeleton', style: { height: '84px' } })));
 
 export function toast(message, type = '') {

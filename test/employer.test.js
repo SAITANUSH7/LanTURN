@@ -100,3 +100,13 @@ test('strong match alerts the employer', async () => {
   const text = JSON.stringify(n.body);
   assert.ok(text.includes('application_received'));
 });
+
+test('dashboard returns a status funnel and a zero-filled 14-day applicant series', async () => {
+  const { emp } = await setup(2);
+  const d = (await api('GET', '/employer/dashboard', { token: emp.accessToken })).body;
+  assert.equal(d.funnel.APPLIED, 2);
+  assert.equal(Object.values(d.funnel).reduce((a, b) => a + b, 0), d.applicants);
+  assert.equal(d.daily.length, 14);
+  assert.equal(d.daily.reduce((n, x) => n + x.count, 0), 2);
+  assert.equal(d.daily.at(-1).count, 2);
+});

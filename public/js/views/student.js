@@ -6,6 +6,25 @@ import { jobTools } from './ai.js';
 
 const TERMINAL = ['OFFERED', 'REJECTED', 'WITHDRAWN'];
 
+// First-run checklist: disappears once every step is done.
+function onboarding(done) {
+  const steps = [
+    ['resume', 'Upload your resume', 'Get a score and let us find your skills.', '#/student/resume', 'file'],
+    ['road', 'Pick a career direction', 'See your skill gaps and a step-by-step plan.', '#/student/career', 'route'],
+    ['applied', 'Apply to your first job', 'Matched jobs show exactly which skills fit.', '#/student/jobs', 'briefcase'],
+  ];
+  const n = steps.filter(([k]) => done[k]).length;
+  if (n === steps.length) return null;
+  const next = steps.find(([k]) => !done[k]);
+  return h('section', { class: 'card ob', 'aria-label': 'Getting started' },
+    h('div', { class: 'row row--between' }, h('h2', { class: 'section-title' }, 'Get started'), h('span', { class: 'muted' }, `${n} of ${steps.length} done`)),
+    h('div', { class: 'meter__track ob__bar', role: 'progressbar', 'aria-label': 'Getting started progress', 'aria-valuemin': '0', 'aria-valuemax': String(steps.length), 'aria-valuenow': String(n) }, h('i', { class: 'meter__fill', style: { width: `${(n / steps.length) * 100}%` } })),
+    h('ol', { class: 'ob__list' }, steps.map(([k, title, text, href, ic]) => h('li', { class: `ob__step${done[k] ? ' is-done' : ''}${next[0] === k ? ' is-next' : ''}` },
+      h('span', { class: 'ob__mark', 'aria-hidden': 'true' }, done[k] ? icon('check') : icon(ic)),
+      h('div', null, h('strong', null, title), h('p', { class: 'muted' }, text)),
+      done[k] ? h('span', { class: 'badge badge--success' }, 'Done') : h('a', { class: `btn btn--sm${next[0] === k ? ' btn--accent' : ' btn--secondary'}`, href }, next[0] === k ? 'Start' : 'Open')))));
+}
+
 // ---------------------------------------------------------------- Dashboard
 export async function dashboard({ user }) {
   const [resumes, rec, apps, skills, road, today] = await Promise.all([
@@ -17,11 +36,9 @@ export async function dashboard({ user }) {
   return wrapPage(
     pageHead(`Hi, ${(user.name || 'there').split(' ')[0]}`, 'Here is where you stand today.', h('a', { class: 'btn btn--accent', href: '#/student/jobs' }, 'Browse jobs', icon('arrow-right'))),
     today,
+    onboarding({ resume: resumes.items.length > 0, road: !!road, applied: apps.items.length > 0 }),
     h('div', { class: 'stats' },
       stat('Resume score', latest?.overallScore ?? '—', 'stat--accent'), stat('Skills on profile', skills.items.length), stat('Active applications', active), stat('Jobs matched for you', rec.items.length)),
-    !resumes.items.length
-      ? h('div', { class: 'card card--accent row row--between' }, h('div', null, h('h3', null, 'Start with your resume'), h('p', null, 'Upload a PDF to get a score, your skills and better job matches.')), h('a', { class: 'btn', href: '#/student/resume' }, icon('upload'), 'Upload resume'))
-      : null,
     h('div', { class: 'split' },
       h('section', { class: 'stack' },
         h('div', { class: 'row row--between' }, h('h2', { class: 'section-title' }, 'Recommended for you'), h('a', { href: '#/student/jobs' }, 'See all jobs')),
@@ -43,7 +60,13 @@ export async function jobs({ query }) {
   const locEl = input({ placeholder: 'City', value: f.location });
   const remoteEl = h('input', { type: 'checkbox', checked: f.remote ? true : null });
 
+  const syncUrl = () => {
+    const q = new URLSearchParams();
+    if (f.q) q.set('q', f.q); if (f.type) q.set('type', f.type); if (f.location) q.set('location', f.location); if (f.remote) q.set('remote', 'true'); if (f.page > 1) q.set('page', String(f.page));
+    try { history.replaceState(null, '', `#/student/jobs${q.toString() ? `?${q}` : ''}`); } catch { /* optional */ }
+  };
   async function load() {
+    syncUrl();
     clear(results).append(loadingBlock(3));
     const p = new URLSearchParams({ page: f.page, pageSize: 10 });
     if (f.q) p.set('q', f.q);

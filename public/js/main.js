@@ -1,5 +1,5 @@
 import { restoreSession, session, logout, onSessionChange } from './api.js';
-import { h, clear, icon, lantern, errorBox, loadingBlock } from './ui.js';
+import { h, clear, icon, lantern, errorBox, loadingBlock, pageSkeleton } from './ui.js';
 import * as pub from './views/public.js';
 import * as stu from './views/student.js';
 import * as emp from './views/employer.js';
@@ -121,7 +121,10 @@ function shell() {
         h('button', { class: 'iconbtn menu-btn', type: 'button', 'aria-label': 'Open menu', 'aria-controls': 'side', onclick: () => app.classList.toggle('is-open') }, icon('list')),
         h('i', { 'aria-hidden': 'true' }), h('b', null, t(label || 'LanTURN'))),
       h('div', { class: 'topbar__user' }, themeToggle(), langPicker(), user.role !== 'ADMIN' ? ai.bell() : null)));
-  app.append(side, h('div', { class: 'scrim', onclick: () => app.classList.remove('is-open') }), h('div', { class: 'app__main' }, bar, h('main', { id: 'main', tabindex: '-1' })));
+  const tabs = user.role === 'STUDENT' ? h('nav', { class: 'tabbar', 'aria-label': 'Quick navigation' },
+    [['/student', 'Home', 'home'], ['/student/jobs', 'Jobs', 'briefcase'], ['/student/resume', 'Resume', 'file'], ['/student/roadmap', 'Roadmap', 'route']].map(([to, name, ic]) => h('a', { href: `#${to}`, 'data-s': sectionOf(to), 'aria-current': active(to) }, icon(ic), h('span', null, t(name)))),
+    h('button', { type: 'button', 'aria-label': 'More', 'aria-controls': 'side', onclick: () => app.classList.toggle('is-open') }, icon('list'), h('span', null, t('More')))) : null;
+  app.append(side, h('div', { class: 'scrim', onclick: () => app.classList.remove('is-open') }), h('div', { class: 'app__main' }, bar, h('main', { id: 'main', tabindex: '-1' }), tabs));
   return app;
 }
 
@@ -147,7 +150,7 @@ async function render() {
   clear(app).append(shell());
   const main = document.getElementById('main');
   document.title = `${route.title} · LanTURN`;
-  main.append(h('div', { class: 'container page' }, loadingBlock()));
+  main.append(pageSkeleton());
   if (user && user.role !== 'ADMIN') ai.refreshBell();
   const ctx = { params, query: parseQuery(), navigate, onLeave: (fn) => leave.push(fn), user };
   try {

@@ -207,6 +207,14 @@ employerRouter.patch('/employer/applications/:id/status', ...employer, wrap(asyn
   res.json({ id: a.id, status: targetStatus, allowedTransitions: TRANSITIONS[targetStatus], events: eventsFor(a.id) });
 }));
 
+/** Applicants per day for the last `days` days (oldest first), zero-filled, in UTC. */
+function dailyApplicants(employerId, days) {
+  const rows = db.prepare(`SELECT date(a.created_at) AS d, COUNT(*) AS n FROM applications a JOIN jobs j ON j.id = a.job_id
+    WHERE j.employer_id = ? AND date(a.created_at) >= date('now', ?) GROUP BY d`).all(employerId, `-${days - 1} days`);
+  const by = new Map(rows.map((r) => [r.d, r.n]));
+  return Array.from({ length: days }, (_, i) => { const d = new Date(Date.now() - (days - 1 - i) * 86400000).toISOString().slice(0, 10); return { date: d, count: by.get(d) || 0 }; });
+}
+
 // ---------- Dashboard ----------
 employerRouter.get('/employer/dashboard', ...employer, wrap(async (req, res) => {
   const one = (sql, ...a) => db.prepare(sql).get(...a).n;
@@ -219,6 +227,8 @@ employerRouter.get('/employer/dashboard', ...employer, wrap(async (req, res) => 
     shortlisted: one(`SELECT COUNT(*) AS n ${base} AND a.status = 'SHORTLISTED'`, req.user.id),
     interviews: one(`SELECT COUNT(*) AS n ${base} AND a.status = 'INTERVIEW'`, req.user.id),
     offers: one(`SELECT COUNT(*) AS n ${base} AND a.status = 'OFFERED'`, req.user.id),
+    funnel: Object.fromEntries(['APPLIED', 'SHORTLISTED', 'INTERVIEW', 'OFFERED', 'REJECTED', 'WITHDRAWN'].map((st) => [st, one(`SELECT COUNT(*) AS n ${base} AND a.status = ?`, req.user.id, st)])),
+    daily: dailyApplicants(req.user.id, 14),
   });
 }));
 
