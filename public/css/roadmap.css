@@ -3,7 +3,7 @@
 .rm-head h2 { font-size: clamp(1.6rem, 3vw, 2.2rem); }
 .rm-head p { margin: 6px 0 0; color: var(--text-2); font-size: 1.05rem; }
 .rm-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 36px; align-items: start; }
-.rm-panel { position: sticky; top: calc(var(--nav-h, 112px) + 16px); display: grid; gap: 18px; padding: 22px; border-radius: 22px; background: linear-gradient(160deg, var(--sec-soft), var(--glass)); border: 1px solid var(--sec-line); box-shadow: 0 30px 80px -40px var(--sec); }
+.rm-panel { position: sticky; top: calc(var(--nav-h, 112px) + 16px); display: grid; gap: 18px; padding: 22px; border-radius: 22px; background: linear-gradient(160deg, var(--sec-soft), var(--glass)); border: 1px solid var(--sec-line); box-shadow: none; }
 .rm-panel__ring { display: flex; align-items: center; gap: 18px; }
 .rm-panel__ring strong { display: block; font-size: 1.35rem; }
 .rm-panel__ring span, .rm-panel__stats span { color: var(--text-2); font-size: 0.95rem; }
@@ -24,21 +24,21 @@
 .rm-start, .rm-goal { display: flex; gap: 16px; align-items: center; padding-left: 0; }
 .rm-start div, .rm-goal__card div { display: grid; } .rm-start span:not(.rm-dot), .rm-goal__card span:not(.rm-dot) { color: var(--text-2); font-size: 0.95rem; }
 .rm-goal__card { display: flex; gap: 16px; align-items: center; text-decoration: none; color: inherit; }
-.rm-goal__card:hover .rm-dot { transform: scale(1.1); box-shadow: 0 0 36px var(--sec); }
+.rm-goal__card:hover .rm-dot { transform: scale(1.1); box-shadow: none; }
 .rm-dot { flex: none; width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; font: 700 1.1rem var(--font-display); background: #0d1224; border: 2px solid var(--glass-line); color: var(--text-2); position: relative; z-index: 1; transition: transform 0.25s, box-shadow 0.3s, background 0.3s; }
 .rm-dot .icon { width: 22px; height: 22px; }
-.rm-start .rm-dot, .rm-goal .rm-dot { border-color: var(--sec); color: var(--sec-hi); box-shadow: 0 0 24px -4px var(--sec); }
+.rm-start .rm-dot, .rm-goal .rm-dot { border-color: var(--sec); color: var(--sec-hi); box-shadow: none; }
 .rm-stage { display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 16px; position: relative; padding: 0 0 22px; }
 .rm-stage::before { content: ''; position: absolute; left: 23px; top: 48px; bottom: -2px; width: 2px; background: var(--glass-line); }
-.rm-stage::after { content: ''; position: absolute; left: 23px; top: 48px; width: 2px; height: calc((100% - 50px) * var(--pn, 0) / 100); background: linear-gradient(var(--sec), var(--sec-hi)); box-shadow: 0 0 12px var(--sec); transition: height 0.7s var(--ease-out, ease); }
+.rm-stage::after { content: ''; position: absolute; left: 23px; top: 48px; width: 2px; height: calc((100% - 50px) * var(--pn, 0) / 100); background: linear-gradient(var(--sec), var(--sec-hi)); box-shadow: none; transition: height 0.7s var(--ease-out, ease); }
 .rm-start::after, .rm-start { position: relative; padding-bottom: 22px; }
 .rm-start::before { content: ''; position: absolute; left: 23px; top: 48px; bottom: 0; width: 2px; background: var(--sec); opacity: 0.7; }
-.rm-stage--done .rm-dot { background: var(--sec); border-color: var(--sec-hi); color: #07101f; box-shadow: 0 0 28px -4px var(--sec); }
+.rm-stage--done .rm-dot { background: var(--sec); border-color: var(--sec-hi); color: #07101f; box-shadow: none; }
 .rm-stage--current .rm-dot { border-color: var(--sec); color: #fff; box-shadow: 0 0 0 6px var(--sec-soft); animation: rm-pulse 2.4s ease-in-out infinite; }
 @keyframes rm-pulse { 50% { box-shadow: 0 0 0 12px transparent; } }
 .rm-stage__card { padding: 22px 24px; border-radius: 22px; background: linear-gradient(160deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)); border: 1px solid var(--glass-line); transition: border-color 0.25s, box-shadow 0.3s; display: grid; gap: 12px; }
 .rm-stage--current .rm-stage__card, .rm-stage.is-open .rm-stage__card { border-color: var(--sec-line); }
-.rm-stage--current .rm-stage__card { box-shadow: 0 26px 70px -36px var(--sec); }
+.rm-stage--current .rm-stage__card { box-shadow: none; }
 .rm-stage__head { all: unset; box-sizing: border-box; display: flex; align-items: center; gap: 12px; width: 100%; cursor: pointer; }
 .rm-stage__head:focus-visible { outline: 2px solid var(--sec-hi); outline-offset: 6px; border-radius: 8px; }
 .rm-stage__title { font: 700 1.45rem/1.25 var(--font-display); flex: 1; letter-spacing: -0.01em; }

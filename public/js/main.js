@@ -53,9 +53,15 @@ const ROUTES = [
 }));
 
 const NAV = {
-  STUDENT: [['/student', 'Home', 'home'], ['/student/jobs', 'Jobs', 'briefcase'], ['/student/applications', 'Applications', 'clock'], ['/student/resume', 'Resume', 'file'], ['/student/builder', 'Builder', 'file'], ['/student/roadmap', 'Roadmap', 'route'], ['/student/career', 'Career', 'route'], ['/student/dna', 'DNA', 'sparkle'], ['/student/arena', 'Arena', 'bolt'], ['/student/coach', 'Coach', 'users'], ['/student/profile', 'Profile', 'user']],
-  EMPLOYER: [['/employer', 'Dashboard', 'chart'], ['/employer/jobs', 'Jobs', 'briefcase'], ['/employer/assistant', 'Assistant', 'sparkle'], ['/employer/company', 'Company', 'building']],
-  ADMIN: [['/admin', 'Employers', 'shield'], ['/admin/ai', 'AI providers', 'sparkle'], ['/admin/system', 'System', 'chart']],
+  STUDENT: [
+    ['Overview', [['/student', 'Home', 'home']]],
+    ['Opportunities', [['/student/jobs', 'Jobs', 'briefcase'], ['/student/applications', 'Applications', 'clock']]],
+    ['Documents', [['/student/resume', 'Resume', 'file'], ['/student/builder', 'Builder', 'file']]],
+    ['Grow', [['/student/roadmap', 'Roadmap', 'route'], ['/student/career', 'Career', 'route'], ['/student/dna', 'DNA', 'sparkle'], ['/student/arena', 'Arena', 'bolt'], ['/student/coach', 'Coach', 'users']]],
+    ['Account', [['/student/profile', 'Profile', 'user']]],
+  ],
+  EMPLOYER: [['Hiring', [['/employer', 'Dashboard', 'chart'], ['/employer/jobs', 'Jobs', 'briefcase'], ['/employer/assistant', 'Assistant', 'sparkle'], ['/employer/company', 'Company', 'building']]]],
+  ADMIN: [['Administration', [['/admin', 'Employers', 'shield'], ['/admin/ai', 'AI providers', 'sparkle'], ['/admin/system', 'System', 'chart']]]],
 };
 export const homeFor = (role) => (role === 'STUDENT' ? '/student' : role === 'EMPLOYER' ? '/employer' : role === 'ADMIN' ? '/admin' : '/');
 export const navigate = (path) => { if (location.hash.slice(1) === path) render(); else location.hash = path; };
@@ -74,22 +80,38 @@ const sectionOf = (path) => { const seg = path.split('/').filter(Boolean); retur
 
 function shell() {
   const user = session.user;
-  const links = user ? NAV[user.role] || [] : [];
   const path = currentPath();
   const active = (to) => (to === path || (to !== homeFor(user?.role) && path.startsWith(`${to}/`)) ? 'page' : null);
+  if (!user) {
+    return h('div', null,
+      h('header', { class: 'topbar topbar--pub' },
+        h('div', { class: 'topbar__in' },
+          h('a', { class: 'brand', href: '#/', 'aria-label': 'LanTURN home' }, lantern(), h('span', null, 'Lan', h('b', null, 'TURN'))),
+          h('div', { class: 'topbar__user' }, langPicker(),
+            h('a', { class: 'btn btn--secondary btn--sm', href: '#/login' }, t('Sign in')),
+            h('a', { class: 'btn btn--accent btn--sm', href: '#/register' }, t('Get started'))))),
+      h('main', { id: 'main', tabindex: '-1' }));
+  }
+  const groups = NAV[user.role] || [];
+  const label = groups.flatMap(([, items]) => items).find(([to]) => active(to))?.[1] || '';
+  const app = h('div', { class: 'app' });
+  const side = h('aside', { class: 'side', id: 'side', 'aria-label': 'Sidebar' },
+    h('a', { class: 'brand', href: `#${homeFor(user.role)}`, 'aria-label': 'LanTURN home' }, lantern(), h('span', null, 'Lan', h('b', null, 'TURN'))),
+    h('nav', { class: 'nav', 'aria-label': 'Main' }, groups.map(([title, items]) => h('div', { class: 'side__group' },
+      h('div', { class: 'side__label' }, t(title)),
+      items.map(([to, name, ic]) => h('a', { href: `#${to}`, 'data-s': sectionOf(to), 'aria-current': active(to) }, icon(ic), t(name)))))),
+    h('div', { class: 'side__foot' },
+      h('div', { class: 'me' }, h('span', { class: 'me__av', 'aria-hidden': 'true' }, (user.name || user.email || '?').trim()[0].toUpperCase()),
+        h('div', { class: 'me__t' }, h('strong', null, user.name || user.email), h('small', null, user.role.toLowerCase()))),
+      h('button', { class: 'btn btn--secondary btn--sm', onclick: async () => { await logout(); navigate('/'); } }, icon('logout'), t('Sign out'))));
   const bar = h('header', { class: 'topbar' },
-    h('div', { class: 'container topbar__in' },
-      h('a', { class: 'brand', href: `#${user ? homeFor(user.role) : '/'}`, 'aria-label': 'LanTURN home' }, lantern(), h('span', null, 'Lan', h('b', null, 'TURN'))),
-      user ? h('nav', { class: 'nav', 'aria-label': 'Main' }, links.map(([to, label, ic]) => h('a', { href: `#${to}`, 'data-s': sectionOf(to), 'aria-current': active(to) }, icon(ic), t(label)))) : h('div', { class: 'nav' }),
-      user
-        ? h('div', { class: 'topbar__user' },
-          langPicker(), user.role !== 'ADMIN' ? ai.bell() : null,
-          h('div', { class: 'topbar__who' }, h('strong', null, user.name || user.email), h('small', null, user.role.toLowerCase())),
-          h('button', { class: 'btn btn--secondary btn--sm', onclick: async () => { await logout(); navigate('/'); } }, icon('logout'), t('Sign out')))
-        : h('div', { class: 'topbar__user' }, langPicker(),
-          h('a', { class: 'btn btn--secondary btn--sm', href: '#/login' }, t('Sign in')),
-          h('a', { class: 'btn btn--accent btn--sm', href: '#/register' }, t('Get started')))));
-  return h('div', null, bar, h('main', { id: 'main', tabindex: '-1' }));
+    h('div', { class: 'topbar__in' },
+      h('div', { class: 'topbar__crumb' },
+        h('button', { class: 'iconbtn menu-btn', type: 'button', 'aria-label': 'Open menu', 'aria-controls': 'side', onclick: () => app.classList.toggle('is-open') }, icon('list')),
+        h('i', { 'aria-hidden': 'true' }), h('b', null, t(label || 'LanTURN'))),
+      h('div', { class: 'topbar__user' }, langPicker(), user.role !== 'ADMIN' ? ai.bell() : null)));
+  app.append(side, h('div', { class: 'scrim', onclick: () => app.classList.remove('is-open') }), h('div', { class: 'app__main' }, bar, h('main', { id: 'main', tabindex: '-1' })));
+  return app;
 }
 
 let renderId = 0;

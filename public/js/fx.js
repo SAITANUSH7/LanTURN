@@ -99,7 +99,7 @@ export function confetti(x = innerWidth / 2, y = innerHeight / 3) {
 }
 // Celebrate completing a roadmap topic, and wins that arrive as success toasts.
 document.addEventListener('change', (e) => { const i = e.target; if (i.matches?.('input[type=checkbox]') && i.checked && i.closest('.rm-topic, .flow__topic, .flow, .road, .topic')) { const r = i.getBoundingClientRect(); confetti(r.left + 10, r.top); } });
-new MutationObserver((ms) => { for (const m of ms) for (const n of m.addedNodes) if (n.nodeType === 1 && /offer|hired|congrat|streak|medal|badge/i.test(n.textContent)) confetti(); }).observe(document.body, { childList: true, subtree: true });
+new MutationObserver((ms) => { for (const m of ms) for (const n of m.addedNodes) if (n.nodeType === 1 && n.matches?.('.toast') && /offer|hired|congrat|streak|medal|badge/i.test(n.textContent)) confetti(); }).observe(document.body, { childList: true, subtree: true });
 
 // ---------- command palette (Ctrl/Cmd+K or "/") ----------
 let pal = null;
@@ -114,7 +114,7 @@ function commands() {
   if (out.some((c) => c.href.startsWith('#/student'))) extra.push(['Auto-setup from resume', '#/student/setup', 'setup'], ['Mock interview and coach', '#/student/coach', 'coach'], ['Skill map of all directions', '#/student/map', 'career']);
   if (out.some((c) => c.href.startsWith('#/employer'))) extra.push(['Post a job', '#/employer/jobs/new', 'jobs'], ['Company profile', '#/employer/company', 'company']);
   for (const [label, href, s] of extra) if (!out.some((c) => c.href === href)) out.push({ label, hint: 'Go to', href, s });
-  const so = $$('.topbar__user button').find((b) => /sign out/i.test(b.textContent));
+  const so = $$('.side button, .topbar__user button').find((b) => /sign out/i.test(b.textContent));
   if (so) out.push({ label: 'Sign out', hint: 'Account', run: () => so.click(), s: 'ai' });
   return out;
 }

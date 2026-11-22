@@ -1,69 +1,77 @@
 import { login as doLogin, register as doRegister } from '../api.js';
-import { h, icon, field, input, busy, scoreRing, skillChip, toast, passwordField } from '../ui.js';
-
-const TICK = ['Career intelligence system / 001', 'ランターン', 'Skills meet opportunity', '就職支援', 'Resume score · Skill gap · Roadmap', '次の進化', 'Batch 16'];
-function ticker() {
-  const items = [...TICK, ...TICK].map((t, i) => h('span', { class: /[ぁ-んァ-ン一-龥]/.test(t) ? 'kanji' : '' }, t));
-  return h('div', { class: 'ticker', 'aria-hidden': 'true' }, h('div', { class: 'ticker__track' }, items, items.map((n) => n.cloneNode(true))));
-}
+import { h, icon, field, input, busy, skillChip, toast, passwordField, lantern } from '../ui.js';
 
 const home = (u) => (u.role === 'STUDENT' ? '/student' : u.role === 'EMPLOYER' ? '/employer' : '/admin');
 
+const bar = (n, on, c) => h('i', { class: `bar${on ? ' on' : ''}`, style: { '--h': `${n}%`, '--k': c } });
+
 export function landing({ navigate, user }) {
   if (user) { navigate(home(user)); return h('div'); }
-  const feature = (ic, title, text) => h('div', { class: 'card feature' }, h('div', { class: 'feature__icon' }, icon(ic)), h('h3', null, title), h('p', { class: 'muted' }, text));
-  return h('div', null,
-    ticker(),
-    h('section', { class: 'hero' },
-      h('span', { class: 'hero__kanji kanji', 'aria-hidden': 'true' }, '斬'),
-      h('div', { class: 'container hero__in' },
-      h('div', null,
-        h('span', { class: 'eyebrow' }, 'Batch 16 · Career intelligence'),
-        h('h1', null, h('span', { class: 'l1' }, 'Lan'), h('span', { class: 'l2' }, 'TURN')),
-        h('p', { class: 'hero__lead' }, 'Your potential is the weapon. ', h('b', null, 'Analyse your resume, see your skill gaps, follow a roadmap'), ' and apply to jobs that actually fit.'),
-        h('div', { class: 'row' },
-          h('a', { class: 'btn btn--accent btn--lg', href: '#/register' }, 'I’m a student', icon('arrow-right')),
-          h('a', { class: 'btn btn--secondary btn--lg', href: '#/register' }, 'I’m hiring'))),
-      h('div', { class: 'hero__stage' },
-        h('i', { class: 'liquid', 'aria-hidden': 'true' }),
-        h('i', { class: 'liquid liquid--b', 'aria-hidden': 'true' }),
-        h('div', { class: 'card hero__card', 'aria-label': 'Example of a resume analysis' },
-        h('div', { class: 'card__title' }, h('h3', null, 'Resume analysis'), h('span', { class: 'badge badge--neutral' }, 'Example')),
-        h('div', { class: 'gap-grid' },
-          scoreRing(72),
-          h('div', { class: 'stack stack--sm' },
-            h('p', { class: 'strong' }, 'Match for Android Developer'),
-            h('div', { class: 'chips' }, skillChip('Kotlin', 'matched', 3), skillChip('Android', 'matched', 3), skillChip('Jetpack Compose', 'missing', 3)))),
-        h('div', { class: 'alert', style: { marginTop: '16px' } }, icon('route'), h('span', null, 'Next step: build a small Compose app with a remote API.')))))),
-    h('section', { class: 'band' }, h('div', { class: 'container stack stack--lg' },
-      h('div', null, h('span', { class: 'eyebrow' }, 'Four modules'), h('h2', null, 'Everything in one place')),
-      h('div', { class: 'grid grid--4' },
-        feature('user', 'Student module', 'Build a profile, explore jobs and track every application in one list.'),
-        feature('building', 'Employer module', 'Post jobs with required skills and review ranked, matched candidates.'),
-        feature('sparkle', 'AI guidance', 'Resume scoring, skill-gap calculation and personalised learning roadmaps.'),
-        feature('shield', 'Core backend', 'Secure sign-in, application logic and a single shared data model.')))),
-    h('section', { class: 'band band--ink' }, h('div', { class: 'container stack stack--lg' },
-      h('div', null, h('span', { class: 'eyebrow' }, 'How it works'), h('h2', null, 'One loop, five steps')),
-      h('ol', { class: 'loop' },
-        [['Upload', 'Add your resume PDF and profile.'], ['Analyse', 'Get a score and the skills we found.'], ['Find gaps', 'Compare with a target role.'], ['Roadmap', 'Follow steps to close each gap.'], ['Match', 'Apply and track status.']]
-          .map(([t, d]) => h('li', null, h('h3', null, t), h('p', null, d)))))),
-    h('section', { class: 'band' }, h('div', { class: 'container' },
-      h('div', { class: 'card card--blue row row--between' },
-        h('div', null, h('h2', null, 'Ready to turn skills into offers?'), h('p', { class: 'muted' }, 'Create a free account in under a minute.')),
-        h('a', { class: 'btn btn--accent btn--lg', href: '#/register' }, 'Get started', icon('arrow-right'))))),
-    h('footer', { class: 'footer' }, h('div', { class: 'container row row--between' }, h('span', null, 'LanTURN · Batch 16 · A. Ganesh, Md. Noman, V. Sai Tanush'), h('span', null, h('a', { href: '/design-system.html' }, 'Design system'), ' · Skills meet opportunity.'))));
+  const cell = (cls, k, ic, tag, title, text, viz) => h('article', { class: `bento__c ${cls}`, style: { '--k': k } },
+    h('span', { class: 'bento__tag' }, icon(ic), tag), h('h3', null, title), h('p', null, text), viz);
+  const dot = (c, txt, on) => h('span', { class: on ? 'on' : '', style: { '--d': c } }, txt);
+  const bullets = (items) => h('ul', null, items.map((x) => h('li', null, icon('check'), x)));
+  return h('div', { class: 'lp' },
+    h('section', { class: 'lp-hero' }, h('div', { class: 'container' },
+      h('span', { class: 'eyebrow' }, 'Career intelligence for students and employers'),
+      h('h1', null, 'Turn your skills into offers'),
+      h('p', { class: 'lp-hero__lead' }, 'Upload a resume and LanTURN scores it, finds your skill gaps, builds a roadmap you can follow, and matches you to jobs that actually fit. Employers get ranked candidates with the reasons why.'),
+      h('div', { class: 'lp-cta' },
+        h('a', { class: 'btn btn--lg', href: '#/register' }, 'Get started free', icon('arrow-right')),
+        h('a', { class: 'btn btn--secondary btn--lg', href: '#/login' }, 'Sign in')),
+      h('p', { class: 'lp-note' }, 'Free for students. Employer accounts are reviewed before posting.'),
+      h('div', { class: 'lp-window', 'aria-label': 'Preview of the LanTURN dashboard' },
+        h('div', { class: 'lp-window__bar', 'aria-hidden': 'true' }, h('i'), h('i'), h('i'), h('span', null, 'lanturn / home')),
+        h('div', { class: 'lp-window__body' },
+          h('div', { class: 'lp-side', 'aria-hidden': 'true' }, dot('#60a5fa', 'Home', true), dot('#22d3ee', 'Jobs'), dot('#f5b544', 'Applications'), dot('#a78bfa', 'Resume'), dot('#8da2fb', 'Roadmap'), dot('#fb923c', 'Arena'), dot('#818cf8', 'Coach')),
+          h('div', { class: 'lp-main' },
+            h('div', { class: 'lp-tile' }, h('small', null, 'Resume score'), h('b', null, '82'), h('div', { class: 'lp-bar' }, h('i', { style: { '--w': '82%' } }))),
+            h('div', { class: 'lp-tile' }, h('small', null, 'Roadmap progress'), h('b', null, '7 of 25'), h('div', { class: 'lp-bar' }, h('i', { style: { '--w': '28%' } }))),
+            h('div', { class: 'lp-tile' }, h('small', null, 'Day streak'), h('b', null, '12'), h('div', { class: 'lp-bar' }, h('i', { style: { '--w': '60%' } }))),
+            h('div', { class: 'lp-tile lp-tile--wide' }, h('small', null, 'Matched for you'),
+              h('div', { class: 'lp-row' }, h('span', null, 'Android Developer'), h('span', null, h('em', null, 'Kotlin, Compose  '), skillChip('92%', 'matched', 0))),
+              h('div', { class: 'lp-row' }, h('span', null, 'Backend Engineer'), h('span', null, h('em', null, 'Node, SQL  '), skillChip('78%', 'matched', 0))),
+              h('div', { class: 'lp-row' }, h('span', null, 'ML Intern'), h('span', null, h('em', null, 'Python  '), skillChip('64%', 'missing', 0)))),
+            h('div', { class: 'lp-tile' }, h('small', null, 'Next step'), h('p', { style: { marginTop: '8px', fontWeight: '600' } }, 'Build a small Compose app with a remote API'), h('p', { class: 'muted', style: { fontSize: '0.875rem', marginTop: '6px' } }, 'Closes 2 skill gaps'))))))),
+    h('div', { class: 'container' }, h('div', { class: 'lp-logos', 'aria-label': 'What is inside' },
+      [['sparkle', 'Resume analysis'], ['route', 'Roadmaps'], ['briefcase', 'Job matching'], ['bolt', 'Skill arena'], ['users', 'Mock interviews'], ['chart', 'Candidate ranking']].map(([i, t]) => h('span', null, icon(i), t)))),
+    h('section', { class: 'lp-sec' }, h('div', { class: 'container' },
+      h('div', { class: 'lp-sec__head' }, h('span', { class: 'eyebrow' }, 'Platform'), h('h2', null, 'Everything between “I have a degree” and “I have an offer”'), h('p', null, 'One workspace for the whole placement journey, with scoring you can inspect instead of a black box.')),
+      h('div', { class: 'bento' },
+        cell('bento__c--x', '#a78bfa', 'file', 'Resume intelligence', 'A score that explains itself', 'Section-by-section feedback, the skills we found, and what a recruiter would flag. Rules, a trained model and an LLM are combined and checked against each other.',
+          h('div', { class: 'bento__viz bento__viz--h' }, [38, 52, 44, 66, 58, 74, 82, 70, 88].map((n, i) => bar(n, i > 5, '#a78bfa')))),
+        cell('', '#22d3ee', 'briefcase', 'Job matching', 'Matches with reasons', 'Every job shows which of your skills match and which are missing.', h('div', { class: 'bento__viz chips' }, skillChip('React', 'matched', 0), skillChip('SQL', 'matched', 0), skillChip('Docker', 'missing', 0))),
+        cell('', '#8da2fb', 'route', 'Roadmaps', 'A plan you can finish', 'Stages, topics and guides. Tick things off and watch the path fill in.', h('div', { class: 'bento__viz bento__viz--h' }, [30, 45, 60, 75, 90].map((n, i) => bar(n, i < 3, '#8da2fb')))),
+        cell('', '#fb923c', 'bolt', 'Skill arena', 'Practise, then prove it', 'Short challenges and timed mock interviews that feed a daily streak.', h('div', { class: 'bento__viz bento__viz--h' }, [50, 80, 35, 90, 60, 70].map((n, i) => bar(n, i % 2 === 0, '#fb923c')))),
+        cell('', '#818cf8', 'users', 'AI coach', 'Ask anything about your path', 'A coach that knows your resume, target role and gaps.', null),
+        cell('bento__c--w', '#f5b544', 'building', 'For employers', 'Ranked candidates, with the why', 'Post a role with required skills and review applicants sorted by fit, with an explanation for each, bulk status updates and strong-match alerts.', null),
+        cell('bento__c--w', '#60a5fa', 'shield', 'Built carefully', 'Secure by default, works offline', 'Hardened sign-in, audit-friendly data model, backups, monitoring hooks, and an installable app that still opens without a connection.', null)))),
+    h('section', { class: 'lp-sec' }, h('div', { class: 'container' },
+      h('div', { class: 'lp-sec__head' }, h('span', { class: 'eyebrow' }, 'How it works'), h('h2', null, 'One loop, four steps')),
+      h('div', { class: 'steps4' }, [['Upload', 'Add your resume PDF. We read it and fill your profile.'], ['Analyse', 'Get a score, the skills we found and the gaps to a target role.'], ['Follow the roadmap', 'Work through stages and guides built from your own profile.'], ['Apply', 'Apply to matched jobs and track every application.']]
+        .map(([t, d], i) => h('div', null, h('b', null, String(i + 1)), h('h3', null, t), h('p', null, d)))))),
+    h('section', { class: 'lp-sec' }, h('div', { class: 'container duo' },
+      h('div', { class: 'duo__c' }, h('span', { class: 'eyebrow' }, 'Students'), h('h3', null, 'Know where you stand, and what to do next'),
+        bullets(['Resume score and skill-gap report', 'Roadmaps with step-by-step guides', 'Resume builder and mock interviews', 'Applications tracked in one place']), h('a', { class: 'btn', href: '#/register' }, 'Create student account', icon('arrow-right'))),
+      h('div', { class: 'duo__c' }, h('span', { class: 'eyebrow' }, 'Employers'), h('h3', null, 'Spend your time on the best candidates'),
+        bullets(['Candidates ranked by fit, with reasons', 'Kanban board and bulk status updates', 'Skill suggestions for new job posts', 'Alerts when a strong applicant arrives']), h('a', { class: 'btn btn--secondary', href: '#/register' }, 'Create employer account', icon('arrow-right'))))),
+    h('section', { class: 'lp-sec' }, h('div', { class: 'container' },
+      h('div', { class: 'lp-final' }, h('h2', null, 'Ready to turn skills into offers?'), h('p', null, 'Create a free account in under a minute.'),
+        h('div', { class: 'lp-cta' }, h('a', { class: 'btn btn--lg', href: '#/register' }, 'Get started', icon('arrow-right')), h('a', { class: 'btn btn--secondary btn--lg', href: '#/login' }, 'Sign in'))))),
+    h('footer', { class: 'footer' }, h('div', { class: 'container footer__in' },
+      h('div', null, h('p', { class: 'strong' }, 'LanTURN'), h('p', null, 'Batch 16 · A. Ganesh, Md. Noman, V. Sai Tanush')),
+      h('div', { class: 'footer__cols' }, h('div', null, h('b', null, 'Product'), h('a', { href: '#/register' }, 'Get started'), h('a', { href: '#/login' }, 'Sign in')), h('div', null, h('b', null, 'Resources'), h('a', { href: '/design-system.html' }, 'Design system'), h('a', { href: '/api/health' }, 'Status'))))));
 }
 
 function authLayout(title, subtitle, form) {
-  return h('div', { class: 'auth' },
-    h('aside', { class: 'auth__side' },
-      h('i', { class: 'liquid', 'aria-hidden': 'true' }),
-      h('span', { class: 'kanji', 'aria-hidden': 'true' }, '転'),
-      h('span', { class: 'eyebrow' }, 'Career intelligence / 001'),
-      h('h1', null, 'Lan', h('span', null, 'TURN')),
-      h('p', null, 'Lighting the path from skills to opportunity.'),
-      h('ul', null, ['Resume score and skill gaps in seconds', 'Roadmaps built from your own profile', 'Ranked candidates for employers'].map((t) => h('li', null, icon('check'), t)))),
-    h('section', { class: 'auth__form' }, h('div', { class: 'card stack' }, h('div', null, h('h2', null, title), h('p', { class: 'muted' }, subtitle)), form)));
+  const pt = (b, t) => h('li', null, icon('check'), h('div', null, h('b', null, b), t));
+  return h('div', { class: 'auth2' },
+    h('section', { class: 'auth2__form' },
+      h('a', { class: 'brand', href: '#/', 'aria-label': 'LanTURN home' }, lantern(), h('span', null, 'Lan', h('b', null, 'TURN'))),
+      h('div', { class: 'auth2__box' }, h('div', null, h('h1', null, title), h('p', null, subtitle)), form)),
+    h('aside', { class: 'auth2__side', 'aria-hidden': 'true' },
+      h('h2', null, 'From skills to opportunity, with a plan.'),
+      h('ul', { class: 'auth2__list' }, pt('Resume score in seconds', 'Know exactly what to fix before you apply.'), pt('Roadmaps from your own profile', 'Stages, topics and guides you can finish.'), pt('Ranked candidates for employers', 'Every ranking comes with the reason.'))));
 }
 
 export function login({ navigate }) {
