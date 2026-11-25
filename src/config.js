@@ -90,31 +90,44 @@ export const config = {
 fs.mkdirSync(path.dirname(config.dbFile), { recursive: true });
 fs.mkdirSync(config.uploadDir, { recursive: true });
 
-// The public default admin password is fine for a local demo and unacceptable anywhere real: the account can approve
-// employers, read every candidate and rewrite AI settings. Refuse to boot in production unless the operator either
-// sets ADMIN_PASSWORD or explicitly accepts the risk.
+// ---- Production safety checks -----------------------------------------------------------------------------------
+// These are real risks, but a deployment that was serving traffic must never be turned into a crash loop by an upgrade:
+// processes that refuse to start are indistinguishable from a broken release, and whoever deployed it is already under
+// pressure. So they shout loudly, mark the instance unhealthy-looking in the logs, and keep serving. Set
+// STRICT_BOOT=1 when you want them to be fatal (recommended once the environment is clean, e.g. in CI or a new project).
+export const bootProblems = [];
+
+const strictBoot = () => ['1', 'true', 'yes'].includes(String(process.env.STRICT_BOOT || '').toLowerCase());
+
+function bootProblem(title, detail, fix) {
+  bootProblems.push({ title, detail, fix });
+  const lines = ['', '='.repeat(78), `SECURITY WARNING: ${title}`, detail, `Fix: ${fix}`];
+  if (!strictBoot()) lines.push('The server will start anyway. Set STRICT_BOOT=1 to make this fatal.');
+  lines.push('='.repeat(78), '');
+  console.error(lines.join('\n'));
+}
+
 if (config.isProd && !process.env.ALLOW_DEFAULT_ADMIN_PASSWORD) {
   const weak = !process.env.ADMIN_PASSWORD || config.adminPassword === 'Admin@12345' || config.adminPassword.length < 10;
   if (weak) {
-    console.error([
-      '',
-      'LanTURN cannot start: ADMIN_PASSWORD is missing or still the public default.',
-      'Set a strong ADMIN_PASSWORD (10+ characters) in your host\'s environment variables, then redeploy.',
-      'For a throw-away demo only, set ALLOW_DEFAULT_ADMIN_PASSWORD=1 to skip this check.',
-      '',
-    ].join('\n'));
-    process.exit(1);
+    bootProblem(
+      'ADMIN_PASSWORD is missing or still the public default.',
+      'Anyone who reads this repository can sign in as an administrator: approve employers, read every candidate and rewrite AI settings.',
+      'set ADMIN_PASSWORD to 10+ random characters in your host\'s environment variables. (ALLOW_DEFAULT_ADMIN_PASSWORD=1 silences this for a throw-away demo.)',
+    );
   }
 }
 
-// Demo seeding creates accounts with published passwords (student@demo.local etc.). That is a deliberate local-dev
-// convenience and a back door anywhere else, so production has to opt in explicitly.
+// Demo seeding creates accounts with published passwords (student.one@example.test / Demo@12345).
 if (config.isProd && config.seedDemo && process.env.ALLOW_DEMO_SEED !== '1') {
-  console.error([
-    '',
-    'LanTURN cannot start: SEED_DEMO=true in production would create demo accounts with published passwords.',
-    'Set SEED_DEMO=false (the default) for a real deployment, or ALLOW_DEMO_SEED=1 if this really is a public demo.',
-    '',
-  ].join('\n'));
+  bootProblem(
+    'SEED_DEMO=true in production.',
+    'Demo accounts with the published password Demo@12345 can sign in and see student and employer data.',
+    'set SEED_DEMO=false for a real deployment, or ALLOW_DEMO_SEED=1 if this instance really is a public demo.',
+  );
+}
+
+if (strictBoot() && bootProblems.length) {
+  console.error('STRICT_BOOT=1 is set, so the server is stopping instead of starting with the problems above.');
   process.exit(1);
 }

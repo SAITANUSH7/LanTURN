@@ -29,7 +29,8 @@ Only the current `main` branch is supported. There are no maintained release bra
   in the client, CSP without inline *script*.
 - **Secrets**: AI vendor keys are encrypted at rest (AES-256-GCM, scrypt-derived key, optional
   dedicated `AI_VAULT_SECRET`); JWT secrets are generated and persisted with `0600` when absent in
-  production; production refuses to boot with the default admin password or `SEED_DEMO=true`.
+  production; a default admin password or `SEED_DEMO=true` prints a large warning banner at boot, and
+  `STRICT_BOOT=1` turns those warnings into a refused start (our upgrade path never crash-loops a live host).
 - **Abuse**: layered rate limits, a per-feature AI quota that is only spent when a model actually
   runs, and `TRUST_PROXY` configured explicitly so `X-Forwarded-For` cannot be spoofed.
 

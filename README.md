@@ -233,4 +233,4 @@ to see every component in one page; `docs/ARCHITECTURE.md` explains how to exten
 - `npm run lint` — ESLint (flat config, `eslint.config.js`); `npm run lint:fix` to apply.
 - Optional **C++ core** (`npm run build:native`) and **Python NLP sidecar** (`services/nlp`) speed up and enrich matching; the app works without both. See `docs/ARCHITECTURE.md`.
 - Health: `/api/health/ready`. Metrics (admin): `/api/admin/metrics`. Load test: `npm run bench`. Tests: `npm test`.
-- In production set `ADMIN_PASSWORD` (the default is public) and keep `SEED_DEMO` off for real users.
+- In production set `ADMIN_PASSWORD` (the default is public) and keep `SEED_DEMO` off for real users. Both are reported as loud `SECURITY WARNING` banners at boot; set `STRICT_BOOT=1` to make them fatal.

@@ -34,6 +34,7 @@ Data resets on every deploy and the service sleeps when idle. Switch back to Sta
 - If the JWT secrets are not set in production, the app generates strong ones and saves them next to the database (warning in the log). Setting them yourself is still better; generate with `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`).
 - Set `SEED_DEMO=true` only for a demo deployment; demo accounts use a known password.
 - Cookies are `Secure` in production, so use the HTTPS URL the host gives you.
+- Security warnings are **warnings, not crashes**: a default `ADMIN_PASSWORD` or `SEED_DEMO=true` prints a large banner at boot and the server keeps serving. That is deliberate — an upgrade must not crash-loop a running host. Set `STRICT_BOOT=1` once the environment is clean (or in CI) to make them fatal.
 - `TRUST_PROXY` defaults to `1` in production. Set it to the number of proxy hops in front of the app (Render/Railway = 1, Cloudflare in front = 2) or to `false` when nothing sits in front, otherwise `X-Forwarded-For` can be spoofed to dodge rate limits.
 - The shipped UI is `public/` and needs no build step. Only if you set `USE_REACT=true` do you need `cd frontend && npm ci && npm run build` first — and the Dockerfile does not do that for you.
 - Back up the volume (`lanturn.db` and `uploads/`) before changing plans or regions.
