@@ -8,15 +8,20 @@ import { metricHistory, recordSample, maybeSample, __clearHistory, SAMPLE_MS, RE
 before(start);
 after(stop);
 
-const insert = (offset, { rss, heap = 20, inflight = 0, queued = 0, running = 0, dead = 0 }) => db.prepare(
-  `INSERT INTO metric_samples (at, rss_mb, heap_mb, inflight, queued, running, dead_letters)
-   VALUES (datetime('now', ?), ?, ?, ?, ?, ?, ?)`,
-).run(offset, rss, heap, inflight, queued, running, dead);
+// Timestamps are pinned to the start of an hour, so two rows meant to share an hour bucket always do: a plain
+// "-90 minutes" lands in a different bucket depending on which minute the suite happens to run. The stored format is
+// SQLite's own ("YYYY-MM-DD HH:00:00"), which is what `at`'s DEFAULT and every comparison in the module assume.
+const insert = (mods, { rss, heap = 20, inflight = 0, queued = 0, running = 0, dead = 0 }) => {
+  const list = Array.isArray(mods) ? mods : [mods];
+  db.prepare(`INSERT INTO metric_samples (at, rss_mb, heap_mb, inflight, queued, running, dead_letters)
+    VALUES (strftime('%Y-%m-%d %H:00:00', 'now'${list.map(() => ', ?').join('')}), ?, ?, ?, ?, ?, ?)`)
+    .run(...list, rss, heap, inflight, queued, running, dead);
+};
 
 test('samples fold into hourly buckets, oldest first, with gauges averaged and peaks kept', () => {
   __clearHistory();
-  insert('-90 minutes', { rss: 100, inflight: 1, queued: 2 });
-  insert('-85 minutes', { rss: 200, inflight: 5, queued: 0 });
+  insert('-2 hours', { rss: 100, inflight: 1, queued: 2 });
+  insert('-2 hours', { rss: 200, inflight: 5, queued: 0 });
   insert('-3 days', { rss: 300, inflight: 2, queued: 9 });
   insert(`-${RETENTION_DAYS + 3} days`, { rss: 999 }); // outside the window
 
