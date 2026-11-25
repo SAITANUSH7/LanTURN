@@ -81,6 +81,7 @@ employerRouter.post('/employer/jobs', ...employer, requireVerifiedEmployer, wrap
     return jid;
   });
   enqueue('job.match_notify', { jobId: id }, { userId: req.user.id, dedupeKey: `match:${id}` }); // heavy fan-out runs in the background
+  enqueue('alerts.saved_search', { jobId: id }, { userId: req.user.id, dedupeKey: `alerts:${id}` }); // candidate-defined saved searches
   const row = ownJob(req.user.id, id);
   res.status(201).json(serializeJob(row, loadJobSkills([id]).get(id)));
 }));
