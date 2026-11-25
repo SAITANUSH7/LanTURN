@@ -121,7 +121,7 @@ export const initials = (name) => (name || '?').split(/\s+/).filter(Boolean).sli
 export function scoreRing(value, { size = '', label = true, accent = false } = {}) {
   const v = Math.max(0, Math.min(100, Math.round(value ?? 0)));
   return h('div', { class: `ring ${size === 'sm' ? 'ring--sm' : ''} ${accent ? 'ring--accent' : ''} ${v >= 75 ? 'ring--hi' : v >= 50 ? 'ring--mid' : 'ring--lo'}`, role: 'img', 'aria-label': `Score ${v} out of 100`, style: { '--p': v } },
-    h('span', { class: 'ring__value' }, v));
+    h('span', { class: 'ring__value' }, v, h('small', null, '/100')));
 }
 
 

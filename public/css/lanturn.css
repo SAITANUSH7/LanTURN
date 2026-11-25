@@ -3175,13 +3175,10 @@ body:has(#main .auth2) .topbar__user > a.btn { display: none; }
 /* ---- Modules that were legible but not explained --------------------------------------------------------------
    The career page showed a bare "21" inside a ring: a number with no unit and no name. The ring is always 0-100, so
    say so; small rings in dense lists keep their space. */
-.ring::after {
-  content: '/ 100'; position: absolute; left: 50%; transform: translateX(-50%);
-  top: calc(50% + var(--size, 96px) * 0.135);
-  font: 600 calc(var(--size, 96px) * 0.105)/1 var(--font-body);
-  color: var(--text-3); letter-spacing: 0.04em; pointer-events: none;
-}
-.ring--sm::after { display: none; }
+/* The scale lives inside the ring as a <small> the stylesheet already knew how to draw ("21/100"); dense 66px rings
+   in lists drop it because 9px of caption is noise there. */
+.ring__value small { letter-spacing: 0; }
+.ring--sm .ring__value small { display: none; }
 
 /* Stat tiles: an accent hairline on the leading edge and a numeral that owns the card, so a row of four reads as one
    system instead of four identical boxes. */

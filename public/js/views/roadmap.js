@@ -128,7 +128,7 @@ export async function roadmapPage({ query }) {
         h('span', { class: 'rm-dot' }, st.status === 'done' ? icon('check') : String(si + 1)),
         h('div', { class: 'rm-stage__card' }, head,
           h('p', { class: 'rm-stage__desc' }, st.description),
-          h('div', { class: 'rm-bar', role: 'img', 'aria-label': `${st.pct}% complete` }, h('i')),
+          h('div', { class: 'rm-bar', role: 'img', 'aria-label': `${st.doneCount} of ${st.topics.length} topics done, ${st.pct}% complete` }, h('i')),
           h('div', { class: 'rm-meta' }, h('span', null, `${st.doneCount}/${st.topics.length} topics`), h('span', null, `${st.durationWeeks || '?'} weeks`), st.difficulty ? h('span', null, st.difficulty) : null),
           h('div', { class: 'rm-body' }, h('div', { class: 'rm-body__in' }, list,
             st.project ? h('div', { class: 'rm-project' }, icon('bolt'), h('div', null, h('strong', null, `Build: ${st.project.title}`), h('p', null, st.project.description || ''))) : null,
