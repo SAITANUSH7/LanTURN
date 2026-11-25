@@ -82,8 +82,8 @@ function chartTooltips(root) {
     const text = col.textContent.replace(/\s+/g, ' ').trim();
     if (!text) return;
     col.dataset.tip = '1';
+    // title only: aria-label on a plain div creates an accessibility violation (prohibited attribute on a generic role).
     col.setAttribute('title', text);
-    col.setAttribute('aria-label', text);
   });
 }
 
