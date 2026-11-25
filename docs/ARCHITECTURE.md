@@ -54,9 +54,17 @@ Per-account lockout (5 failures / 15 min) and constant-time unknown-email path; 
 |---|---|
 | `GET /api/health/live` | process is up (never touches the database) |
 | `GET /api/health/ready` | database, uploads dir, queue lag; 503 while draining. Used as the Railway healthcheck |
-| `GET /api/admin/metrics` | per-route count, errors, avg/p50/p95; queue depth; breaker states; native/NLP status |
+| `GET /api/admin/metrics` | per-route count, errors, avg/p50/p95; queue depth; breaker states; native/NLP status; `history` (below) |
 | `GET /api/admin/metrics.prom` | the same in Prometheus text format |
 | `GET /api/admin/tasks`, `POST /api/admin/tasks/:id/retry` | inspect and retry background tasks |
+
+**Seven-day gauge history.** A number answers "how much", a trend answers "is it getting worse", and memory and queue
+depth are the two gauges where the second question is the one that matters. `src/metricHistory.js` writes one row a
+minute into `metric_samples` (rss, heap, in-flight, queue depth, dead letters), keeps seven days, prunes on every
+write, and folds the rows into hourly buckets (average for memory, peak for the busy gauges) for the sparklines on
+Admin → System. It survives deploys because it is a table, not a process variable. `/api/admin/metrics` also records a
+sample when the newest one is older than the interval, so a freshly started process has a first point without waiting
+a minute. The sampler is skipped in tests; the bucket, retention and endpoint behaviour have their own suite.
 
 SIGTERM (every Railway deploy) stops accepting traffic, lets in-flight requests and tasks finish, checkpoints the WAL, then exits; a 10 s watchdog guarantees it never hangs a deploy. Requests log one JSON line each with a request id.
 

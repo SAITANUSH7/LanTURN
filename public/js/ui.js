@@ -124,6 +124,35 @@ export function scoreRing(value, { size = '', label = true, accent = false } = {
     h('span', { class: 'ring__value' }, v));
 }
 
+
+/**
+ * A trend line for a stat tile, drawn as inline SVG so it costs no request and no library.
+ *
+ * Returns null for fewer than two points: a single sample is not a trend, and drawing a flat line through one point
+ * would imply a stability nobody measured. `preserveAspectRatio="none"` lets the path stretch to the tile width; the
+ * stroke is kept even by `vector-effect: non-scaling-stroke` in CSS.
+ */
+export function sparkline(values, { label = '', height = 34, width = 132, tone = 'accent' } = {}) {
+  const nums = (values || []).filter((v) => typeof v === 'number' && Number.isFinite(v));
+  if (nums.length < 2) return null;
+  const min = Math.min(...nums); const max = Math.max(...nums);
+  const span = max - min || Math.abs(max) || 1;
+  const pad = 3;
+  const px = (i) => (i / (nums.length - 1)) * width;
+  const py = (v) => height - pad - ((v - min) / span) * (height - pad * 2);
+  const line = nums.map((v, i) => `${i ? 'L' : 'M'}${px(i).toFixed(1)} ${py(v).toFixed(1)}`).join(' ');
+  const el = (name, attrs) => {
+    const n = document.createElementNS(SVG_NS, name);
+    for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, String(v));
+    return n;
+  };
+  const svg = el('svg', { class: `spark spark--${tone}`, viewBox: `0 0 ${width} ${height}`, preserveAspectRatio: 'none', role: 'img', focusable: 'false', 'aria-label': `${label || 'Trend'} over ${nums.length} points: from ${nums[0]} to ${nums[nums.length - 1]}, low ${min}, high ${max}` });
+  svg.append(el('path', { class: 'spark__area', d: `${line} L${width} ${height} L0 ${height} Z` }));
+  svg.append(el('path', { class: 'spark__line', d: line }));
+  svg.append(el('circle', { class: 'spark__dot', cx: px(nums.length - 1).toFixed(1), cy: py(nums[nums.length - 1]).toFixed(1), r: 2.6 }));
+  return svg;
+}
+
 export function meter(label, value, max) {
   const pct = max ? Math.round((value / max) * 100) : 0;
   const fill = h('div', { class: `meter__fill ${pct >= 75 ? 'is-hi' : pct >= 50 ? 'is-mid' : 'is-lo'}` });

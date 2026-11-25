@@ -3198,7 +3198,7 @@ body:has(#main .auth2) .topbar__user > a.btn { display: none; }
 .weight { align-items: center; }
 .weight i { width: 6px; height: 6px; box-shadow: 0 0 0 1px color-mix(in srgb, currentColor 45%, transparent); opacity: 0.45; }
 .weight i.on { opacity: 1; box-shadow: none; }
-.chips-legend { margin: 6px 0 0; font-size: 0.82rem; color: var(--text-3); max-width: 46ch; }
+.chips-legend { margin: 6px 0 0; font-size: 0.82rem; color: var(--text-2); max-width: 46ch; }
 
 :root[data-theme='light'] .stat { background-image: linear-gradient(90deg, var(--brand), var(--accent-hi)) top / 100% 2px no-repeat, linear-gradient(180deg, #ffffff, #fbfbfd); }
 
@@ -3220,3 +3220,39 @@ body:has(#main .auth2) .topbar__user > a.btn { display: none; }
 .side .nav a:hover { background: color-mix(in srgb, var(--text) 6%, transparent); }
 :root[data-theme='light'] .side .nav a[aria-current='page'] { background: color-mix(in srgb, var(--sec) 16%, #fff); color: #111; }
 :root[data-theme='light'] .side .nav a[aria-current='page'] .icon { color: var(--sec); }
+
+/* ---- Roadmap plan header: title and meta no longer share a line ------------------------------------------------ */
+.rm-plan { display: grid; gap: 10px; }
+.rm-plan__target { margin: 0; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--sec-hi, var(--brand)); }
+.rm-plan__title { margin: 0; font-size: clamp(1.35rem, 2.4vw, 1.85rem); line-height: 1.22; letter-spacing: -0.02em; max-width: 36ch; }
+.rm-plan__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 2px; }
+.rm-plan__meta .badge { display: inline-flex; align-items: center; gap: 6px; }
+.rm-plan__meta .badge .icon { width: 14px; height: 14px; }
+
+/* ---- Stat tiles with a trend line, and a strip that is not four more cards ------------------------------------- */
+.stat--tile { display: grid; grid-template-rows: auto auto 40px auto; gap: 2px; align-content: start; }
+.stat--tile .stat__label { font-size: 0.72rem; letter-spacing: 0.1em; }
+.stat--tile .stat__value { font-size: clamp(1.8rem, 3.4vw, 2.4rem); line-height: 1.05; }
+.stat__hint { font-size: 0.78rem; color: var(--text-2); font-variant-numeric: tabular-nums; }
+.stat__spark { display: flex; align-items: center; margin-top: 8px; }
+/* No history yet: a hairline in the chart slot, so the numbers below it still line up across the row. */
+.stat__spark:empty::after { content: ''; width: 100%; height: 1px; background: var(--line); }
+.spark { display: block; width: 100%; height: 34px; overflow: visible; }
+.spark__line { fill: none; stroke: var(--sec-hi, var(--brand)); stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.spark__area { fill: color-mix(in srgb, var(--sec, var(--brand)) 18%, transparent); stroke: none; }
+.spark__dot { fill: var(--sec-hi, var(--brand)); }
+.spark--muted .spark__line { stroke: var(--text-3); }
+.spark--muted .spark__area { fill: color-mix(in srgb, var(--text-3) 14%, transparent); }
+
+.statstrip {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 132px), 1fr));
+  border: 1px solid var(--line); border-radius: 14px; overflow: hidden;
+  background: color-mix(in srgb, var(--text) 3%, transparent);
+}
+.statstrip__c { display: grid; gap: 2px; padding: 12px 16px; border-left: 1px solid var(--line); }
+.statstrip__c:first-child { border-left: 0; }
+.statstrip small { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-2); }
+.statstrip strong { font: 650 1.3rem/1.15 var(--font-display); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.statstrip strong.is-bad { color: var(--danger, #e5484d); }
+@media (max-width: 560px) { .statstrip { grid-template-columns: 1fr 1fr; } .statstrip__c:nth-child(odd) { border-left: 0; } }
+:root[data-theme='light'] .statstrip { background: rgba(9, 9, 15, 0.025); }

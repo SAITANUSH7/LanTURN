@@ -41,9 +41,15 @@ export function analysisView(a) {
 export function roadmapView(r) {
   const p = r.plan;
   return h('div', { class: 'stack' },
-    h('div', { class: 'card card--blue' },
-      h('div', { class: 'row row--between' }, h('div', null, h('p', { class: 'muted' }, `Target: ${r.target.title}`), h('h2', { style: { fontSize: '1.9rem' } }, p.headline)),
-        h('div', { class: 'row' }, h('span', { class: 'badge badge--accent' }, `${p.totalWeeks} weeks at ~8 h/week`), badgeSource(r.source)))),
+    h('div', { class: 'card card--blue rm-plan' },
+      // One column: a headline that runs to two lines next to a right-aligned badge row squeezed both, and the
+      // `16 weeks at ~8 h/week` pill competed with the plan's own title for the same line.
+      h('p', { class: 'rm-plan__target' }, `Target · ${r.target.title}`),
+      h('h2', { class: 'rm-plan__title' }, p.headline),
+      h('div', { class: 'rm-plan__meta' },
+        h('span', { class: 'badge badge--accent' }, icon('clock'), `${p.totalWeeks} weeks at ~8 h/week`),
+        h('span', { class: 'badge' }, icon('route'), `${p.steps.length} step${p.steps.length === 1 ? '' : 's'}`),
+        badgeSource(r.source))),
     p.steps.length
       ? h('div', { class: 'timeline' }, p.steps.map((s) => h('div', { class: 'timeline__item' },
         h('div', { class: 'timeline__dot' }, s.order),

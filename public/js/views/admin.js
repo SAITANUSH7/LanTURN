@@ -1,5 +1,5 @@
 import { get, post, put, del } from '../api.js';
-import { h, clear, icon, empty, errorBox, loadingBlock, toast, verifyBadge, fmtDate, busy, field, input, thinking } from '../ui.js';
+import { h, clear, icon, empty, errorBox, loadingBlock, toast, verifyBadge, fmtDate, busy, field, input, thinking, sparkline } from '../ui.js';
 import { pageHead, wrapPage } from './shared.js';
 
 export async function employers({ query }) {
@@ -131,23 +131,75 @@ export async function aiSettings() {
 }
 
 // ---------------------------------------------------------------- System: queue, circuit breakers, ML, metrics
-const stat = (label, value, tone) => h('div', { class: 'card card--flat stack stack--sm' }, h('small', { class: 'muted' }, label), h('strong', { style: { fontSize: '1.6rem', ...(tone === 'bad' ? { color: 'var(--danger, #e5484d)' } : {}) } }, String(value)));
+// A tile: label, one big number, an optional trend line and an optional footnote. `opts` used to be a bare tone
+// string, and both forms are still accepted so older call sites keep working.
+// Every tile has the same four slots - label, number, chart, footnote - so a row of them lines up even when one has no
+// history to draw. The chart slot renders a hairline when there is nothing to plot yet, which reads as "flat, unknown"
+// rather than as a hole.
+const stat = (label, value, opts = {}) => {
+  const o = typeof opts === 'string' ? { tone: opts } : opts;
+  const bad = o.tone === 'bad';
+  return h('div', { class: 'stat stat--tile' },
+    h('span', { class: 'stat__label' }, label),
+    h('strong', { class: 'stat__value', style: bad ? { background: 'none', color: 'var(--danger, #e5484d)' } : null }, String(value)),
+    h('div', { class: 'stat__spark' }, o.spark || null),
+    h('span', { class: 'stat__hint' }, [o.delta, o.hint].filter(Boolean).join(' \u00b7 ')));
+};
+
+// "6 h" or "7 days": how much ground the sparkline actually covers, so a delta never claims a window it does not have.
+const spanLabel = (at) => {
+  const hours = Math.max(1, Math.round((Date.parse(at[at.length - 1]) - Date.parse(at[0])) / 3600000));
+  return hours >= 48 ? `${Math.round(hours / 24)} days` : `${hours} h`;
+};
+
+// Four cards stacked inside a card read as a card inside a card. One strip with hairline dividers reads as a row of
+// numbers that belong to the section around it, which is what they are.
+const strip = (items) => h('div', { class: 'statstrip' },
+  items.map(([label, value, tone]) => h('div', { class: 'statstrip__c' },
+    h('small', null, label),
+    h('strong', { class: tone === 'bad' ? 'is-bad' : null }, String(value)))));
+
+const signed = (n, unit) => `${n > 0 ? '+' : n < 0 ? '\u2212' : '\u00b1'}${Math.abs(n)}${unit ? ` ${unit}` : ''}`;
+
 const table = (head, rows) => h('div', { class: 'table-wrap' }, h('table', { class: 'table' }, h('thead', null, h('tr', null, ...head.map((x) => h('th', null, x)))), h('tbody', null, ...rows.map((r) => h('tr', null, ...r.map((c) => h('td', null, c)))))));
 
 export async function system() {
   const host = h('div', { class: 'stack stack--lg' });
   let timer = null;
   let includeFeedback = false;
+  let meta = null; // last metrics payload, for the page-head chips
   async function load(first) {
     if (first) clear(host).append(loadingBlock(3));
     try {
       const [m, t, ml, me, bk] = await Promise.all([get('/admin/metrics'), get('/admin/tasks'), get('/admin/ml'), get('/admin/ml/measure'), get('/admin/backups')]);
       const q = m.queue;
+      const hist = m.history || { at: [], rssMb: [], rssPeakMb: [], inflight: [], queued: [], deadLetters: [] };
+      meta = m;
       const failed = t.items.filter((x) => x.status === 'FAILED');
       clear(host).append(
-        h('div', { class: 'grid grid--4' }, stat('Uptime', `${Math.round(m.uptimeSec / 60)} min`), stat('In flight', m.inflight), stat('Memory', `${m.memoryMb.rss} MB`), stat('Match engine', m.matchBackend)),
+        h('div', { class: 'grid grid--4' },
+          stat('Uptime', `${Math.round(m.uptimeSec / 60)} min`, { hint: 'since this process started' }),
+          stat('Memory (RSS)', `${m.memoryMb.rss} MB`, {
+            spark: sparkline(hist.rssMb, { label: 'Memory, last 7 days' }),
+            delta: hist.rssMb.length >= 2 ? `${signed(hist.rssMb[hist.rssMb.length - 1] - hist.rssMb[0], 'MB')} in ${spanLabel(hist.at)}` : null,
+            hint: hist.at.length >= 2 ? `peak ${Math.max(...hist.rssPeakMb)} MB` : 'collecting history, one sample a minute',
+          }),
+          stat('In flight', m.inflight, {
+            spark: sparkline(hist.inflight, { label: 'In-flight requests, busiest minute of each hour' }),
+            hint: hist.at.length >= 2 ? `busiest hour ${Math.max(...hist.inflight)}` : 'requests being served right now',
+          }),
+          stat('Queue depth', q.queued ?? 0, {
+            tone: q.oldestQueuedSec > 300 || q.deadLetters ? 'bad' : '',
+            spark: sparkline(hist.queued, { label: 'Queue depth, last 7 days' }),
+            hint: q.queued ? (q.oldestQueuedSec > 0 ? `oldest waiting ${q.oldestQueuedSec}s` : 'waiting for a worker') : 'queue is empty',
+          })),
         h('div', { class: 'card stack' }, h('h3', null, 'Background queue'),
-          h('div', { class: 'grid grid--4' }, stat('Queued', q.queued ?? 0), stat('Running', q.running), stat('Failed (dead letters)', q.deadLetters, q.deadLetters ? 'bad' : ''), stat('Oldest waiting', `${q.oldestQueuedSec}s`, q.oldestQueuedSec > 300 ? 'bad' : '')),
+          strip([
+            ['Queued', q.queued ?? 0],
+            ['Running', q.running],
+            ['Failed (dead letters)', q.deadLetters, q.deadLetters ? 'bad' : ''],
+            ['Oldest waiting', `${q.oldestQueuedSec}s`, q.oldestQueuedSec > 300 ? 'bad' : ''],
+          ]),
           failed.length ? table(['Task', 'Type', 'Attempts', 'Error', ''], failed.map((x) => [`#${x.id}`, x.type, `${x.attempts}/${x.max_attempts}`, (x.error || '').slice(0, 90), h('button', { class: 'btn btn--secondary btn--sm', onclick: (ev) => busy(ev.currentTarget, async () => { try { await post(`/admin/tasks/${x.id}/retry`); toast('Re-queued', 'success'); await load(); } catch (e) { toast(e.message, 'error'); } }) }, 'Retry')])) : empty('check', 'Nothing failed', 'Tasks that exhaust their attempts land here, with a one-click retry.')),
         h('div', { class: 'card stack' }, h('h3', null, 'Circuit breakers'), h('p', { class: 'muted' }, 'Open means the provider or service is being skipped and the built-in fallback is serving requests.'),
           m.breakers.length ? table(['Service', 'Recent failures', 'State'], m.breakers.map((b) => [b.key, b.fails, h('span', { class: b.open ? 'chip chip--missing' : 'chip chip--matched' }, b.open ? `open, retry in ${Math.ceil(b.retryInMs / 1000)}s` : 'closed')])) : empty('shield', 'No provider traffic yet', 'A breaker opens the moment an AI or mail provider starts failing, and closes again on recovery.')),
@@ -172,5 +224,8 @@ export async function system() {
   }
   await load(true);
   timer = setInterval(() => { if (!host.isConnected) { clearInterval(timer); return; } load(); }, 8000);
-  return wrapPage(pageHead('System', 'Live view of background work, provider health and the ML model. Refreshes every few seconds.'), host);
+  const chips = meta ? h('div', { class: 'row' },
+    h('span', { class: 'chip chip--blue' }, `Match engine: ${meta.matchBackend}`),
+    h('span', { class: meta.email.enabled ? 'chip chip--matched' : 'chip chip--missing' }, `Email: ${meta.email.enabled ? 'on' : 'off'}`)) : null;
+  return wrapPage(pageHead('System', 'Live view of background work, provider health and the ML model. Refreshes every few seconds.', chips), host);
 }
