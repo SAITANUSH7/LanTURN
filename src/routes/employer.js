@@ -144,7 +144,8 @@ export const TRANSITIONS = {
   APPLIED: ['SHORTLISTED', 'REJECTED'],
   SHORTLISTED: ['INTERVIEW', 'REJECTED'],
   INTERVIEW: ['OFFERED', 'REJECTED'],
-  OFFERED: [], REJECTED: [], WITHDRAWN: [],
+  OFFERED: [], WITHDRAWN: [],
+  REJECTED: ['SHORTLISTED'], // a rejection can be reconsidered: the candidate goes back to the shortlist
 };
 
 employerRouter.get('/employer/jobs/:id/candidates', ...employer, wrap(async (req, res) => {
@@ -214,7 +215,7 @@ employerRouter.patch('/employer/applications/:id/status', ...employer, wrap(asyn
     recordEvent(a.id, a.status, targetStatus, req.user.id);
   });
   const jt = db.prepare('SELECT j.title, e.company_name FROM jobs j LEFT JOIN employer_profiles e ON e.user_id = j.employer_id WHERE j.id = ?').get(a.job_id);
-  notify(a.student_id, 'application_status', `Application ${targetStatus.toLowerCase()}`, `${jt?.company_name || 'The employer'} moved your application for ${jt?.title || 'a job'} to ${targetStatus}.`, '#/student/applications');
+  notify(a.student_id, 'application_status', a.status === 'REJECTED' ? 'Application reconsidered' : `Application ${targetStatus.toLowerCase()}`, a.status === 'REJECTED' ? `${jt?.company_name || 'The employer'} is giving your application for ${jt?.title || 'a job'} a second look.` : `${jt?.company_name || 'The employer'} moved your application for ${jt?.title || 'a job'} to ${targetStatus}.`, '#/student/applications');
   res.json({ id: a.id, status: targetStatus, allowedTransitions: TRANSITIONS[targetStatus], events: eventsFor(a.id) });
 }));
 
@@ -611,7 +612,7 @@ employerRouter.post('/employer/applications/bulk-status', ...employer, wrap(asyn
         recordEvent(a.id, a.status, target, req.user.id);
       });
       const jt = db.prepare('SELECT j.title, e.company_name FROM jobs j LEFT JOIN employer_profiles e ON e.user_id = j.employer_id WHERE j.id = ?').get(a.job_id);
-      notify(a.student_id, 'application_status', `Application ${target.toLowerCase()}`, `${jt?.company_name || 'The employer'} moved your application for ${jt?.title || 'a job'} to ${target}.`, '#/student/applications');
+      notify(a.student_id, 'application_status', a.status === 'REJECTED' ? 'Application reconsidered' : `Application ${target.toLowerCase()}`, a.status === 'REJECTED' ? `${jt?.company_name || 'The employer'} is giving your application for ${jt?.title || 'a job'} a second look.` : `${jt?.company_name || 'The employer'} moved your application for ${jt?.title || 'a job'} to ${target}.`, '#/student/applications');
       results.push({ id, ok: true, status: target });
     } catch (e) { results.push({ id, ok: false, error: e.message }); }
   }

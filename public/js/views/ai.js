@@ -196,7 +196,7 @@ export function jdWriter({ getInput, onResult }) {
 
 // ---------------------------------------------------------------- Employer: Kanban board
 const COLS = ['APPLIED', 'SHORTLISTED', 'INTERVIEW', 'OFFERED', 'REJECTED'];
-const NEXT = { APPLIED: ['SHORTLISTED', 'REJECTED'], SHORTLISTED: ['INTERVIEW', 'REJECTED'], INTERVIEW: ['OFFERED', 'REJECTED'], OFFERED: [], REJECTED: [], WITHDRAWN: [] };
+const NEXT = { APPLIED: ['SHORTLISTED', 'REJECTED'], SHORTLISTED: ['INTERVIEW', 'REJECTED'], INTERVIEW: ['OFFERED', 'REJECTED'], OFFERED: [], REJECTED: ['SHORTLISTED'], WITHDRAWN: [] };
 
 export async function board({ params }) {
   const host = h('div', { class: 'board', role: 'group', 'aria-label': 'Applicant board' });
@@ -213,7 +213,7 @@ export async function board({ params }) {
           h('div', { class: 'row', style: { flexWrap: 'nowrap' } }, h('div', { class: 'avatar', 'aria-hidden': 'true' }, initials(c.student.name)), h('a', { href: `#/employer/applications/${c.applicationId}` }, h('strong', null, c.student.name))),
           h('div', { class: 'muted' }, `Match ${c.matchScore}%`),
           // Buttons make every move possible without drag and drop (keyboard and touch).
-          h('div', { class: 'row' }, NEXT[c.status].map((s) => h('button', { class: 'btn btn--secondary btn--sm', type: 'button', onclick: () => move(c.applicationId, s) }, s === 'REJECTED' ? 'Reject' : `→ ${STATUS_META[s].label}`))))));
+          h('div', { class: 'row' }, NEXT[c.status].map((s) => h('button', { class: 'btn btn--secondary btn--sm', type: 'button', onclick: () => move(c.applicationId, s) }, s === 'REJECTED' ? 'Reject' : c.status === 'REJECTED' ? 'Reconsider' : `→ ${STATUS_META[s].label}`))))));
       zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('board__col--over'); });
       zone.addEventListener('dragleave', () => zone.classList.remove('board__col--over'));
       zone.addEventListener('drop', (e) => {

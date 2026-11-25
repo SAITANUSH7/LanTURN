@@ -264,7 +264,7 @@ export async function candidate({ params }) {
     const actions = a.allowedTransitions.map((s) => h('button', { class: `btn ${s === 'REJECTED' ? 'btn--danger' : ''}`, onclick: async (ev) => {
       if (s === 'REJECTED' && !(await confirmDialog({ title: 'Reject this candidate?', body: 'The student will see the new status.', confirmText: 'Reject', danger: true }))) return;
       busy(ev.currentTarget, async () => { try { await patch(`/employer/applications/${a.id}/status`, { status: s }); toast(`Moved to ${STATUS_META[s].label}`, 'success'); await load(); } catch (e) { toast(e.message, 'error'); } });
-    } }, s === 'REJECTED' ? 'Reject' : `Move to ${STATUS_META[s].label}`));
+    } }, s === 'REJECTED' ? 'Reject' : a.status === 'REJECTED' ? 'Reconsider: back to shortlist' : `Move to ${STATUS_META[s].label}`));
     const nb = a.neighbours;
     const mailTo = `mailto:${a.student.email}?subject=${encodeURIComponent(`Your application for ${a.job.title}`)}`;
     let rating = a.rating; const noteBox = textarea({ rows: '4', maxlength: '2000', placeholder: 'Private to your team. Students never see this.', 'aria-label': 'Private note' }, a.note);

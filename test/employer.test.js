@@ -161,3 +161,20 @@ test('candidate CSV export contains rows, escapes formulas and is owner-only', a
   const other = await register('EMPLOYER');
   assert.equal((await api('GET', `/employer/jobs/${jobId}/candidates.csv`, { token: other.accessToken })).status, 404);
 });
+
+test('a rejected candidate can be reconsidered back to the shortlist, and the student is told', async () => {
+  const { emp, apps } = await setup(1);
+  const id = apps[0].id;
+  assert.equal((await api('PATCH', `/employer/applications/${id}/status`, { token: emp.accessToken, body: { status: 'REJECTED' } })).status, 200);
+  const d = (await api('GET', `/employer/applications/${id}`, { token: emp.accessToken })).body;
+  assert.deepEqual(d.allowedTransitions, ['SHORTLISTED']);
+  assert.equal((await api('PATCH', `/employer/applications/${id}/status`, { token: emp.accessToken, body: { status: 'APPLIED' } })).status, 409);
+  const back = await api('PATCH', `/employer/applications/${id}/status`, { token: emp.accessToken, body: { status: 'SHORTLISTED' } });
+  assert.equal(back.status, 200);
+  assert.deepEqual(back.body.allowedTransitions, ['INTERVIEW', 'REJECTED']);
+  const n = await api('GET', '/notifications', { token: apps[0].st.accessToken });
+  assert.ok(JSON.stringify(n.body).includes('reconsidered'));
+  // students still cannot withdraw a rejected application
+  await api('PATCH', `/employer/applications/${id}/status`, { token: emp.accessToken, body: { status: 'REJECTED' } });
+  assert.equal((await api('POST', `/applications/${id}/withdraw`, { token: apps[0].st.accessToken })).status, 409);
+});
