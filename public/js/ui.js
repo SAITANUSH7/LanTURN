@@ -131,7 +131,7 @@ export function meter(label, value, max) {
   return h('div', { class: 'meter' }, h('span', null, label), h('div', { class: 'meter__track', role: 'img', 'aria-label': `${label}: ${value} of ${max}` }, fill), h('span', { class: 'meter__val' }, `${value}/${max}`));
 }
 
-export const weightDots = (w) => h('span', { class: 'weight', title: `Importance ${w} of 3` }, [1, 2, 3].map((i) => h('i', { class: i <= w ? 'on' : '' })));
+export const weightDots = (w) => h('span', { class: 'weight', role: 'img', 'aria-label': `Importance ${w} of 3`, title: `This job weights the skill ${w} of 3` }, [1, 2, 3].map((i) => h('i', { class: i <= w ? 'on' : '' })));
 
 export function skillChip(name, kind, weight) {
   const cls = kind === 'matched' ? 'chip chip--matched' : kind === 'missing' ? 'chip chip--missing' : 'chip chip--blue';
