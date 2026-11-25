@@ -125,7 +125,7 @@ export function seedDemo() {
             employerIds[0]
           ).lastInsertRowid);
 
-          const d2 = Number(insDrive.run(
+          insDrive.run(
             'Microsoft IDC',
             'Full Stack & AI Engineer Placement Drive',
             'Opportunities across Azure Developer Division and Teams core intelligence.',
@@ -134,7 +134,7 @@ export function seedDemo() {
             'B.Tech All Branches (Min. 7.0 CGPA)',
             '20 - 28 LPA',
             employerIds[1] || employerIds[0]
-          ).lastInsertRowid);
+          );
 
           const insDriveReg = db.prepare(`INSERT OR IGNORE INTO drive_registrations (drive_id, student_id, status) VALUES (?, ?, 'REGISTERED')`);
           insDriveReg.run(d1, studentIds[0]);
@@ -274,7 +274,7 @@ export function seedDemo() {
       VALUES (?, ?, ?, ?, ?, datetime('now', ?))`);
     const p1 = Number(insPost.run(studentIds[0], 'Excited to share that I just earned the Gold Medal for Kotlin on the LanTURN Skill Arena! 🏆 Currently refining my native Android Compose showcase.', 'ACHIEVEMENT', 4, 2, '-1 day').lastInsertRowid);
     const p2 = Number(insPost.run(employers[0], 'We are hiring! Example Corp is looking for an Android Developer Intern to build Compose features with our core mobile engineering team in Hyderabad.', 'UPDATE', 6, 1, '-2 days').lastInsertRowid);
-    const p3 = Number(insPost.run(studentIds[2], 'Built a collaborative Kanban task board using React 18, @dnd-kit, and TailwindCSS. Loving the new LanTURN 3.0 platform interface! ✨', 'PROJECT', 3, 0, '-3 hours').lastInsertRowid);
+    insPost.run(studentIds[2], 'Built a collaborative Kanban task board using React 18, @dnd-kit, and TailwindCSS. Loving the new LanTURN 3.0 platform interface! ✨', 'PROJECT', 3, 0, '-3 hours');
 
     // Likes & Comments
     db.prepare(`INSERT INTO post_likes (user_id, post_id) VALUES (?, ?)`).run(studentIds[1], p1);

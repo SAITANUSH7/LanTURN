@@ -18,7 +18,9 @@
     "build:native": "node native/build.mjs",
     "bench": "node scripts/bench.mjs",
     "bench:native": "node --no-warnings scripts/microbench.mjs",
-    "e2e": "node --no-warnings --test --test-concurrency=1 e2e/*.e2e.test.js"
+    "e2e": "node --no-warnings --test --test-concurrency=1 e2e/*.e2e.test.js",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
@@ -33,6 +35,7 @@
   },
   "devDependencies": {
     "axe-core": "^4.14.1",
+    "eslint": "^9.39.5",
     "playwright": "^1.65.1"
   }
 }

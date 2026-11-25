@@ -112,6 +112,11 @@ test('Admin User Management — user listing, account moderation & role manageme
   assert.ok(inDisabled);
   assert.equal(inDisabled.status, 'disabled');
 
+  // A disabled account is actually disabled: its existing access token stops working immediately...
+  assert.equal((await api('GET', '/me', { token: student.accessToken })).status, 401);
+  // ...and it cannot sign in again while disabled.
+  assert.equal((await api('POST', '/auth/login', { body: { email: student.email, password: 'Passw0rd!x' } })).status, 401);
+
   // Restore to active
   const enableRes = await api('PATCH', `/admin/users/${student.user.id}/status`, {
     token: adminToken,
@@ -120,8 +125,9 @@ test('Admin User Management — user listing, account moderation & role manageme
   assert.equal(enableRes.status, 200);
   assert.equal(enableRes.body.status, 'active');
 
-  // 3. Unauthorized access check: Students cannot access admin routes
-  const studentForbidden = await api('GET', '/admin/users', { token: student.accessToken });
+  // 3. Unauthorized access check: Students cannot access admin routes (fresh token: the old one was revoked)
+  const fresh = (await api('POST', '/auth/login', { body: { email: student.email, password: 'Passw0rd!x' } })).body;
+  const studentForbidden = await api('GET', '/admin/users', { token: fresh.accessToken });
   assert.equal(studentForbidden.status, 403);
 });
 

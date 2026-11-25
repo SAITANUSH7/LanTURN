@@ -40,11 +40,9 @@ export default defineConfig({
             handler: 'CacheFirst',
             options: { cacheName: 'gstatic-fonts-cache', expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 }, cacheableResponse: { statuses: [0, 200] } },
           },
-          {
-            urlPattern: ({ url }) => url.pathname.startsWith('/api/'),
-            handler: 'NetworkFirst',
-            options: { cacheName: 'api-cache', networkTimeoutSeconds: 8, expiration: { maxEntries: 80, maxAgeSeconds: 60 * 5 }, cacheableResponse: { statuses: [0, 200] } },
-          },
+          // API responses are never cached. They are per-user, and a shared Cache API would hand one account's
+          // jobs, messages and notifications to the next person on the same device after a refresh.
+          { urlPattern: ({ url }) => url.pathname.startsWith('/api/'), handler: 'NetworkOnly' },
         ],
         navigateFallback: 'index.html',
       },

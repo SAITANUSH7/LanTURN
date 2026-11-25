@@ -1,11 +1,17 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { Router } from 'express';
 import { interviewsFor, cancelOpenInterviews } from './interviews.js';
 import { enqueue } from '../queue.js';
 import { notify } from '../notify.js';
 import { z } from 'zod';
 import { db, tx, parseJson } from '../db.js';
+import { config } from '../config.js';
 import { conflict, notFound, parse, wrap, bad } from '../util.js';
-import { authenticate, requireRole, requireVerifiedEmployer } from '../auth.js';
+import { authenticate, requireRole, requireVerifiedEmployer, revokeAllSessions, bumpTokenVersion } from '../auth.js';
+import { audit, recentAudit } from '../audit.js';
+import { unlockAccount, failedAttempts } from '../security.js';
+import { quotaLimit } from '../ai/index.js';
 import { idParam, loadJobSkills, serializeJob, JOB_SELECT, recordEvent, eventsFor, latestAnalysis, studentSkills } from './common.js';
 import { skillGap } from '../ai/scoring.js';
 import { llmEnabled, providerSummary } from '../ai/providers.js';
@@ -160,6 +166,8 @@ employerRouter.get('/employer/jobs/:id/candidates', ...employer, wrap(async (req
     return {
       applicationId: r.id, status: r.status, matchScore: r.match_score, appliedAt: r.created_at, rating: r.employer_rating, hasNote: !!r.employer_note,
       resumeScore: an?.overallScore ?? null,
+      resumeId: an || r.resume_id ? r.resume_id : null,
+      hasResumeFile: Boolean(r.resume_id && db.prepare('SELECT file_key FROM resumes WHERE id = ?').get(r.resume_id)?.file_key),
       student: { name: r.full_name, college: r.college, degree: r.degree, branch: r.branch, graduationYear: r.graduation_year, location: r.location },
       topSkills: studentSkills(r.student_id).slice(0, 6).map((s) => s.name),
     };
@@ -324,6 +332,25 @@ employerRouter.get('/employer/jobs/:id/recommendations', ...employer, wrap(async
 export const adminRouter = Router();
 const admin = [authenticate, requireRole('ADMIN')];
 
+// The applicant's actual PDF. `/resumes/:id/file` is student-only, which is why "View resume" was dead in both
+// portals: the employer had no way to open the file they were sent.
+function sendApplicationResume(res, applicationId, { anyEmployer }) {
+  const a = anyEmployer
+    ? db.prepare('SELECT * FROM applications WHERE id = ?').get(idParam(applicationId))
+    : ownApplication(res.req.user.id, applicationId);
+  if (!a) throw notFound('Application not found');
+  if (!a.resume_id) throw notFound('No resume is attached to this application');
+  const r = db.prepare('SELECT filename, file_key FROM resumes WHERE id = ?').get(a.resume_id);
+  const file = r?.file_key ? path.join(config.uploadDir, r.file_key) : '';
+  if (!file || !fs.existsSync(file)) throw notFound('The resume file is no longer available');
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `inline; filename="${String(r.filename).replace(/["\\\r\n]/g, '')}"`);
+  res.setHeader('Cache-Control', 'private, no-store');
+  res.sendFile(file);
+}
+employerRouter.get('/employer/applications/:id/resume', ...employer, wrap(async (req, res) => sendApplicationResume(res, req.params.id, { anyEmployer: false })));
+adminRouter.get('/admin/applications/:id/resume', ...admin, wrap(async (req, res) => sendApplicationResume(res, req.params.id, { anyEmployer: true })));
+
 adminRouter.get('/admin/analytics', ...admin, wrap(async (_req, res) => {
   const one = (sql) => (db.prepare(sql).get()?.n || 0);
 
@@ -414,13 +441,8 @@ adminRouter.get('/admin/ai/diagnostics', ...admin, wrap(async (_req, res) => {
     aiMode: llmEnabled() ? 'llm+rules' : 'rules',
     configuredProviders: summary.filter((p) => p.configured).map((p) => p.name),
     allProviders: summary,
-    quotaLimits: {
-      chat: 20,
-      interview: 10,
-      resumeAnalysis: 10,
-      jobDescription: 15,
-      skillArena: 10,
-    },
+    quotaLimits: Object.fromEntries(['chat', 'interview', 'resume_analysis', 'jd', 'arena', 'dna', 'roadmap', 'cover', 'cdna', 'map', 'rank', 'verdict', 'ocr', 'tailor']
+      .map((k) => [k, quotaLimit(k)])),
     systemTime: new Date().toISOString(),
   });
 }));
@@ -468,13 +490,23 @@ adminRouter.patch('/admin/jobs/:id/verify', ...admin, wrap(async (req, res) => {
 
 adminRouter.patch('/admin/jobs/:id/status', ...admin, wrap(async (req, res) => {
   const id = idParam(req.params.id);
-  const job = db.prepare('SELECT id FROM jobs WHERE id = ?').get(id);
+  const job = db.prepare('SELECT id, title, status, employer_id FROM jobs WHERE id = ?').get(id);
   if (!job) throw notFound('Job not found');
-
   const raw = String(req.body?.status || '').toLowerCase().trim();
   const target = (raw === 'active' || raw === 'open') ? 'OPEN' : 'CLOSED';
 
-  db.prepare('UPDATE jobs SET status = ? WHERE id = ?').run(target, id);
+  if (job.status !== target) {
+    db.prepare('UPDATE jobs SET status = ? WHERE id = ?').run(target, id);
+    // Moderation is visible to everyone it affects, and it is recorded: an admin closing a job must not look like a bug.
+    notify(job.employer_id, 'job_moderated', `Your job “${job.title}” was ${target === 'OPEN' ? 'reopened' : 'closed'} by an administrator`,
+      target === 'OPEN' ? 'It is visible to students again.' : 'It is hidden from students. Contact the placement cell if you think this is a mistake.', '#/employer/jobs');
+    if (target === 'CLOSED') {
+      for (const a of db.prepare("SELECT student_id FROM applications WHERE job_id = ? AND status IN ('APPLIED','SHORTLISTED','INTERVIEW')").all(id)) {
+        notify(a.student_id, 'job_removed', `Job closed: ${job.title}`, 'An administrator closed this posting.', '#/student/applications');
+      }
+    }
+    audit(req.user.id, 'job.status', `job:${id}`, { from: job.status, to: target, title: job.title });
+  }
   res.json({ jobId: id, status: target === 'OPEN' ? 'active' : 'closed', rawStatus: target });
 }));
 
@@ -531,28 +563,72 @@ adminRouter.get('/admin/users', ...admin, wrap(async (req, res) => {
 
 adminRouter.patch('/admin/users/:id/status', ...admin, wrap(async (req, res) => {
   const id = idParam(req.params.id);
-  const user = db.prepare('SELECT id, verification FROM users WHERE id = ?').get(id);
+  const user = db.prepare('SELECT id, email, role, verification FROM users WHERE id = ?').get(id);
   if (!user) throw notFound('User not found');
+  if (id === req.user.id) throw bad('You cannot disable your own admin account');
 
   const raw = String(req.body?.status || '').toLowerCase().trim();
-  const newVerif = (raw === 'disabled' || raw === 'rejected') ? 'REJECTED' : 'VERIFIED';
+  const reason = String(req.body?.reason || '').trim().slice(0, 300);
+  const disable = raw === 'disabled' || raw === 'rejected';
+  const newVerif = disable ? 'REJECTED' : 'VERIFIED';
 
-  db.prepare('UPDATE users SET verification = ? WHERE id = ?').run(newVerif, id);
-  res.json({ uid: id, status: newVerif === 'REJECTED' ? 'disabled' : 'active', verification: newVerif });
+  tx(() => {
+    db.prepare("UPDATE users SET verification = ?, disabled_at = CASE WHEN ? THEN datetime('now') ELSE NULL END, disabled_reason = CASE WHEN ? THEN ? ELSE NULL END WHERE id = ?")
+      .run(newVerif, disable ? 1 : 0, disable ? 1 : 0, reason, id);
+    if (disable) {
+      // End every session and invalidate every access token: this is what makes "disabled" mean disabled.
+      bumpTokenVersion(id);
+      revokeAllSessions(id);
+    }
+  });
+  audit(req.user.id, disable ? 'user.disable' : 'user.enable', user.email, { role: user.role, reason });
+  res.json({ uid: id, status: disable ? 'disabled' : 'active', verification: newVerif, reason: disable ? reason : null });
 }));
+
+// Clear a password lockout without waiting for the 15-minute window.
+adminRouter.post('/admin/users/:id/unlock', ...admin, wrap(async (req, res) => {
+  const user = db.prepare('SELECT id, email FROM users WHERE id = ?').get(idParam(req.params.id));
+  if (!user) throw notFound('User not found');
+  unlockAccount(user.email);
+  audit(req.user.id, 'user.unlock', user.email, {});
+  res.json({ uid: user.id, locked: false, failedAttempts: failedAttempts(user.email) });
+}));
+
 
 adminRouter.patch('/admin/users/:id/role', ...admin, wrap(async (req, res) => {
   const id = idParam(req.params.id);
-  const user = db.prepare('SELECT id, role FROM users WHERE id = ?').get(id);
+  const user = db.prepare('SELECT id, email, role FROM users WHERE id = ?').get(id);
   if (!user) throw notFound('User not found');
 
   const raw = String(req.body?.role || '').toUpperCase().trim();
   if (!['STUDENT', 'EMPLOYER', 'ADMIN'].includes(raw)) {
     throw bad('Invalid role. Allowed: STUDENT, EMPLOYER, ADMIN');
   }
+  if (id === req.user.id && raw !== 'ADMIN') throw bad('You cannot remove your own admin role');
 
-  db.prepare('UPDATE users SET role = ? WHERE id = ?').run(raw, id);
+  tx(() => {
+    db.prepare('UPDATE users SET role = ? WHERE id = ?').run(raw, id);
+    // Every role-scoped endpoint assumes its profile row exists. Create it here, or the account 500s everywhere.
+    if (raw === 'STUDENT') {
+      const name = db.prepare('SELECT company_name AS n FROM employer_profiles WHERE user_id = ?').get(id)?.n || user.email.split('@')[0];
+      db.prepare('INSERT OR IGNORE INTO student_profiles (user_id, full_name) VALUES (?,?)').run(id, name);
+    }
+    if (raw === 'EMPLOYER') {
+      const name = db.prepare('SELECT full_name AS n FROM student_profiles WHERE user_id = ?').get(id)?.n || user.email.split('@')[0];
+      db.prepare('INSERT OR IGNORE INTO employer_profiles (user_id, company_name) VALUES (?,?)').run(id, name);
+      db.prepare("UPDATE users SET verification = 'PENDING' WHERE id = ? AND verification != 'REJECTED'").run(id);
+    }
+    // The role is inside the access token: mint new sessions so the change takes effect immediately.
+    db.prepare('UPDATE users SET token_version = token_version + 1 WHERE id = ?').run(id);
+    db.prepare("UPDATE refresh_tokens SET revoked_at = datetime('now') WHERE user_id = ? AND revoked_at IS NULL").run(id);
+  });
+  audit(req.user.id, 'user.role', user.email, { from: user.role, to: raw });
   res.json({ uid: id, role: raw.toLowerCase(), rawRole: raw });
+}));
+
+// Who did what: verification, disabling, role changes, moderation.
+adminRouter.get('/admin/audit', ...admin, wrap(async (req, res) => {
+  res.json({ items: recentAudit(req.query.limit) });
 }));
 
 adminRouter.get('/admin/employers', ...admin, wrap(async (req, res) => {

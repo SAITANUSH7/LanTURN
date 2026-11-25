@@ -32,7 +32,9 @@ import './tasks.js';
 export function createApp() {
   const app = express();
   app.disable('x-powered-by');
-  app.set('trust proxy', 1);
+  // Real proxy hop count from config; 'false' when the container is reachable directly, otherwise a client can forge
+  // X-Forwarded-For and every IP rate limit becomes decorative.
+  app.set('trust proxy', config.trustProxy);
 
   app.use((req, res, next) => {
     req.id = req.headers['x-request-id'] || crypto.randomUUID();
@@ -64,17 +66,8 @@ export function createApp() {
   app.use('/api', apiHeaders);
   app.use('/api/auth', sameOriginGuard);
 
-  if (!config.isTest && process.env.DISABLE_RATE_LIMIT !== '1') { // DISABLE_RATE_LIMIT is for load tests only
-    const limiter = (max, windowMs = 60_000) => rateLimit({ windowMs, max, standardHeaders: true, legacyHeaders: false, message: { error: { code: 'RATE_LIMITED', message: 'Too many requests, slow down.' } } });
-    app.use('/api', limiter(240));
-    app.use('/api/auth/login', limiter(10));
-    app.use('/api/auth/register', limiter(10));
-    app.use('/api/resumes', limiter(30));
-    app.use('/api/career', limiter(20));
-    app.use('/api/chat', limiter(20));
-    app.use('/api/arena', limiter(20));
-  }
-
+  // Liveness/health and the public counters are deliberately outside the rate limiter: a container health check must
+  // never be throttled by traffic, and the landing page reads the counters on every visit.
   app.get('/api/health', (_req, res) => {
     db.prepare('SELECT 1').get();
     res.json({ status: 'ok', ai: llmEnabled() ? 'llm+rules' : 'rules', providers: providerSummary().map((p) => p.name), time: new Date().toISOString() });
@@ -105,6 +98,19 @@ export function createApp() {
     res.json(body);
   });
 
+  if (!config.isTest && process.env.DISABLE_RATE_LIMIT !== '1') { // DISABLE_RATE_LIMIT is for load tests only
+    const limiter = (max, windowMs = 60_000) => rateLimit({ windowMs, max, standardHeaders: true, legacyHeaders: false, message: { error: { code: 'RATE_LIMITED', message: 'Too many requests, slow down.' } } });
+    app.use('/api', limiter(240));
+    app.use('/api/auth/login', limiter(10));
+    app.use('/api/auth/register', limiter(10));
+    app.use('/api/auth/forgot-password', limiter(5));
+    app.use('/api/auth/reset-password', limiter(10));
+    app.use('/api/resumes', limiter(30));
+    app.use('/api/career', limiter(20));
+    app.use('/api/chat', limiter(20));
+    app.use('/api/arena', limiter(20));
+  }
+
   app.use('/api/auth', authRouter);
   app.use('/api/me', meRouter);
   app.use('/api', studentRouter, jobsRouter, interviewsRouter, employerRouter, aiRouter, adminRouter, opsRouter, studentToolsRouter, networkingRouter, careerRoadmapsRouter, careerMapRouter, compatRouter, drivesRouter, realtimeRouter);
@@ -130,7 +136,6 @@ export function createApp() {
     next();
   });
 
-  // eslint-disable-next-line no-unused-vars
   app.use((err, req, res, _next) => {
     let status = 500;
     let code = 'INTERNAL';

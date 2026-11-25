@@ -1,5 +1,5 @@
 import { get, post, patch, del } from '../api.js';
-import { thinking, h, clear, icon, skillChip, statusBadge, fmtDateTime, empty, errorBox, loadingBlock, toast, busy, field, input, select, textarea, badgeSource, STATUS_META, initials, scoreRing } from '../ui.js';
+import { thinking, h, clear, icon, skillChip, fmtDateTime, empty, errorBox, toast, busy, field, select, textarea, badgeSource, STATUS_META, initials } from '../ui.js';
 import { pageHead, wrapPage } from './shared.js';
 import { radar } from '../charts.js';
 import { t } from '../i18n.js';

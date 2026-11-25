@@ -1,4 +1,4 @@
-import { api, get, post, put, patch, openPdf, session, reloadUser } from '../api.js';
+import { get, post, put, patch, openApplicationResume, reloadUser } from '../api.js';
 import { h, clear, icon, scoreRing, skillChip, statusBadge, verifyBadge, fmtDate, fmtDateTime, empty, errorBox, loadingBlock, toast, confirmDialog, busy, field, input, select, textarea, TYPE_LABEL, STATUS_META, initials } from '../ui.js';
 import { pageHead, wrapPage, analysisView, emailPrefsCard, downloadFile, interviewRow, messageThread } from './shared.js';
 import { jdWriter, companyDnaCard } from './ai.js';
@@ -310,7 +310,7 @@ export async function candidate({ params }) {
         h('div', { class: 'stack' },
           interviewCard(a, load), messagesCard(a),
           h('div', { class: 'card stack' }, h('h3', null, 'Resume analysis'), a.resume ? analysisView(a.resume.analysis) : h('p', { class: 'muted' }, 'No resume attached.')),
-          a.resume ? h('div', { class: 'card stack' }, h('div', { class: 'row row--between' }, h('h3', null, 'Resume text'), a.resume.hasFile ? h('button', { class: 'btn btn--secondary btn--sm', onclick: () => openPdf(a.resume.id).catch((e) => toast(e.message, 'error')) }, icon('eye'), 'Open PDF') : null), h('div', { class: 'resume-text', tabindex: '0', 'aria-label': 'Extracted resume text' }, a.resume.text)) : null),
+          a.resume ? h('div', { class: 'card stack' }, h('div', { class: 'row row--between' }, h('h3', null, 'Resume text'), a.resume.hasFile ? h('button', { class: 'btn btn--secondary btn--sm', onclick: () => openApplicationResume(a.id).catch((e) => toast(e.message, 'error')) }, icon('eye'), 'Open PDF') : null), h('div', { class: 'resume-text', tabindex: '0', 'aria-label': 'Extracted resume text' }, a.resume.text)) : null),
         h('aside', { class: 'stack' },
           h('div', { class: 'card stack stack--sm' }, h('h3', null, 'Your notes'), ratingInput(rating, (r) => { rating = r; }), noteBox, h('div', null, saveNote)),
           h('div', { class: 'card stack' }, h('div', { class: 'gap-grid' }, scoreRing(a.matchScore), h('div', null, h('h3', null, 'Match for this job'), h('p', { class: 'muted' }, 'Snapshot taken when they applied'))),

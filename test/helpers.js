@@ -6,6 +6,8 @@ process.env.ADMIN_PASSWORD = 'Admin@12345';
 for (const k of ['DEEPSEEK','MOONSHOT','NVIDIA','OPENCODE','GEMINI','GROQ','OPENROUTER','OPENAI','ANTHROPIC']) process.env[`${k}_API_KEY`] = '';
 for (const k of ['NVIDIA_MODEL', 'LLM_BASE_URL', 'LLM_API_KEY', 'LLM_MODEL']) process.env[k] = '';
 process.env.UPLOAD_DIR = './data/test-uploads';
+// Deterministic replay detection: any reuse of a rotated refresh token is treated as a replay in tests.
+process.env.REFRESH_REUSE_GRACE_MS = process.env.REFRESH_REUSE_GRACE_MS || '0';
 
 const { createApp } = await import('../src/app.js');
 const { seedTaxonomy, seedAdmin } = await import('../src/seed.js');

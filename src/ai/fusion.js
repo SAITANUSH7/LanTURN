@@ -11,7 +11,7 @@ import crypto from 'node:crypto';
 import { z } from 'zod';
 import { db } from '../db.js';
 import { callJson, llmEnabled } from './providers.js';
-import { checkQuota } from './index.js';
+import { checkQuota, refundQuota } from './index.js';
 import { classifyDomains, semanticRank, nlpEnabled } from '../nlp.js';
 import { openJobsBundle } from '../routes/common.js';
 import { CAREER_DOMAINS } from '../data/careerRoadmaps.js';
@@ -39,11 +39,9 @@ export async function buildEvidence(userId, setup) {
     if (c) ev.ml.classifier = { modelVersion: c.version, top: c.top.map((t) => ({ id: t.id, title: title(t.id), probability: t.prob })) };
     const b = openJobsBundle();
     const sem = await semanticRank(resume.extracted_text, b.rows.map((r) => ({ id: r.id, text: `${r.title}\n${r.description}\n${(b.skills.get(r.id) || []).map((s) => s.name).join(' ')}` })), String(b.v));
-    const byId = new Map((setup.jobs || []).map((j) => [j.id, j]));
     if (sem) {
       ev.ml.jobs = (setup.jobs || []).slice(0, 4).map((j) => ({ title: j.title, company: j.company, skillMatchPercent: j.match, missingSkills: j.missing?.slice(0, 4) || [], textRelevance: sem.get(j.id) ? { score: sem.get(j.id).score, sharedTerms: sem.get(j.id).shared, missingTerms: sem.get(j.id).missing } : null }));
     }
-    void byId;
   }
   if (!ev.ml.jobs.length) ev.ml.jobs = (setup.jobs || []).slice(0, 4).map((j) => ({ title: j.title, company: j.company, skillMatchPercent: j.match, missingSkills: j.missing?.slice(0, 4) || [], textRelevance: null }));
   return ev;
@@ -127,7 +125,8 @@ export async function concludeVerdict(userId, { force = false, useLlm = true } =
   if (!force && setup.verdict?.evidenceHash === h && (setup.verdict.sources.llm || !useLlm || !llmEnabled())) return setup.verdict;
   let verdict = { ...fuseDeterministic(ev), evidenceHash: h, at: new Date().toISOString() };
   if (useLlm && llmEnabled()) {
-    try { checkQuota(userId, 'verdict'); verdict = { ...(await fuseWithLlm(ev)), evidenceHash: h, at: new Date().toISOString() }; } catch (e) { verdict.llmSkipped = String(e.message).slice(0, 120); }
+    let ticket = null;
+    try { ticket = checkQuota(userId, 'verdict'); verdict = { ...(await fuseWithLlm(ev)), evidenceHash: h, at: new Date().toISOString() }; } catch (e) { refundQuota(ticket); verdict.llmSkipped = String(e.message).slice(0, 120); }
   }
   store(userId, verdict);
   return verdict;

@@ -47,8 +47,18 @@ test('API responses are not cacheable and set hardening headers', async () => {
   assert.equal(r.headers.get('x-content-type-options'), 'nosniff');
 });
 
+// Routes that are meant to answer without a token. Everything else must say 401/403 — a 404 is no longer accepted as
+// proof of protection, because "not found" can also mean "the handler ran before any auth check" (that is exactly how
+// the unauthenticated upload server hid here for months).
+const PUBLIC = new Set([
+  'GET /api/health', 'GET /api/platform/stats', 'GET /api/health/live', 'GET /api/health/ready',
+  'GET /api/email/unsubscribe', 'GET /api/uploads/file/1', // avatars/logos are public; other upload kinds need a signed URL
+  'POST /api/auth/register', 'POST /api/auth/login', 'POST /api/auth/session', 'POST /api/auth/logout',
+  'POST /api/auth/refresh', 'POST /api/auth/forgot-password', 'POST /api/auth/reset-password',
+  'POST /api/auth/admin-login', // answers 410 Gone on purpose, so old clients get a clear message
+]);
+
 test('every API route except the public allowlist requires a token', async () => {
-  const PUBLIC = new Set(['GET /api/health', 'GET /api/platform/stats', 'GET /api/health/live', 'GET /api/health/ready', 'GET /api/email/unsubscribe', 'POST /api/auth/register', 'POST /api/auth/login', 'POST /api/auth/session', 'POST /api/auth/logout', 'POST /api/auth/refresh']);
   const { createApp } = await import('../src/app.js');
   const routes = [];
   const walk = (stack, prefix = '') => {
@@ -67,7 +77,7 @@ test('every API route except the public allowlist requires a token', async () =>
     if (!path.startsWith('/api')) continue;
     if (PUBLIC.has(`${m} ${path}`)) continue;
     const r = await fetch(`${getOrigin()}${path}`, { method: m });
-    if (![401, 404, 410].includes(r.status)) open.push(`${m} ${path} -> ${r.status}`);
+    if (![401, 403].includes(r.status)) open.push(`${m} ${path} -> ${r.status}`);
   }
   assert.ok(routes.length > 50, `expected to enumerate routes, got ${routes.length}`);
   assert.deepEqual(open, []);

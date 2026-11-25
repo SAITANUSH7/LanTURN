@@ -10,9 +10,11 @@ LanTURN 3.0 is a balanced full-stack platform connecting students, colleges, and
 
 ```
                       ┌───────────────────────────────────────────────┐
-                      │             React 18 + Vite SPA               │
-                      │  (Tailwind, Framer Motion, TanStack Query,    │
-                      │   Recharts, Dnd-Kit, Lucide, PWA, i18n)       │
+                      │        Shipped SPA — public/ (no build)        │
+                      │  vanilla ES modules, hash router, one CSS      │
+                      │  design system, PWA, i18n (EN/HI/TE)           │
+                      │  optional: frontend/ React app behind          │
+                      │  USE_REACT=true (experimental, needs a build)  │
                       └──────────────────────┬────────────────────────┘
                                              │
                        HTTP / Cookies / SSE  │  Vite Dev Proxy (:5173 -> :3000)
@@ -67,14 +69,13 @@ LanTURN 3.0 is a balanced full-stack platform connecting students, colleges, and
 ### 1. Installation
 ```bash
 # Clone repository
-git clone https://github.com/maytay-aravind/LanTURN.git
+git clone https://github.com/SAITANUSH7/LanTURN.git
 cd LanTURN
 
-# Install backend dependencies
+# Install dependencies (one command — the shipped UI needs no build)
 npm install
 
-# Install frontend dependencies
-cd frontend && npm install && cd ..
+# Optional, only for the experimental React frontend: cd frontend && npm ci
 ```
 
 ### 2. Environment Setup
@@ -91,23 +92,19 @@ npm run seed
 
 ### 4. Running the Application
 
-#### Option A: Unified Production Mode (Recommended)
-Builds the React frontend and starts Express serving both API and the SPA on port 3000:
+#### Option A: one process (the normal way)
+Express serves the API and the shipped SPA (`public/`) from the same origin — there is no build step:
 ```bash
-npm run build:frontend
-npm start
+npm start          # or: npm run dev  (same, with --watch)
 ```
-Open **`http://localhost:3000`** in your browser.
+Open **`http://localhost:3000`**. Sign in with the admin account from `.env`, or with a demo account if `SEED_DEMO=true`.
 
-#### Option B: Development Mode (Hot Reloading)
+#### Option B: the experimental React frontend (`frontend/`, off by default)
+It is a partly finished rewrite: several screens exist only there, several only in `public/`. To look at it:
 ```bash
-# Terminal 1: Start Express API server (port 3000)
-npm run dev
-
-# Terminal 2: Start Vite Dev Server (port 5173, proxies /api to 3000)
-cd frontend
-npm run dev
+cd frontend && npm ci && npm run dev     # http://localhost:5173, proxies /api to :3000
 ```
+To *serve* it instead of the shipped UI, build it and set `USE_REACT=true` (see `docs/ARCHITECTURE.md`).
 Open **`http://localhost:5173`** in your browser.
 
 ---
@@ -147,7 +144,7 @@ LanTURN 3.0 includes a comprehensive automated test suite executed with Node's n
 npm test
 ```
 
-### Complete Test Coverage Overview (39 Tests, 0 Failures):
+### Complete Test Coverage Overview (138 tests: 131 pass, 7 skipped without the optional C++ engine):
 1. **`test/api.test.js`**: Core authentication, JWT rotation, reuse detection, RBAC, ownership boundaries, upload validation, prompt-injection defense, quota limits, and professional networking.
 2. **`test/ai.test.js`**: AI multi-provider fallback chain, JSON extraction, rules engine equivalence, and web UI encrypted key configuration.
 3. **`test/spa.test.js`**: Express SPA static hosting, HTML5 history routing fallback, and API endpoint preservation.
@@ -157,6 +154,10 @@ npm test
 7. **`test/phase7.test.js`**: Admin platform operations (summary KPIs, job moderation, job verification, user lifecycle management), campus leaderboard, and Skill Arena 2.0 with proctoring telemetry.
 8. **`test/phase8.test.js`**: Student job bookmarks/saved jobs, resume ATS keyword scanner & tailoring assistant, and campus placement drives with student registrations.
 9. **`test/phase9.test.js`**: 17-table demo seeder validation, public platform transparency metrics (`GET /api/platform/stats`), and admin AI diagnostics & model telemetry.
+10. **`test/hardening.test.js`**: the security contract — a disabled account is really locked out, lockout cannot be used to freeze someone out, reset/export/delete work, role changes leave a usable account, uploads belong to their owner, feeds carry no email addresses, drives have a lifecycle.
+11. **`test/security.test.js`**: every API route is enumerated and must answer 401/403 without a token (404 no longer counts as "protected").
+12. **`test/config.test.js`**: production boot fails on a default admin password or `SEED_DEMO=true`.
+13. **`e2e/app.e2e.test.js`**: Playwright journeys (landing, sign-in, student, roadmap, employer, RBAC, phone layout, axe accessibility). Run with `npm run e2e` after `npx playwright install chromium`.
 
 ---
 
@@ -208,9 +209,28 @@ npm test
 
 ## 📄 License
 
-Proprietary — Developed for LanTURN.
+Proprietary — see [`LICENSE`](LICENSE). (If the project is meant to be open source, replace that file with the
+licence you want; nothing in the code depends on it.)
+
+## 🔐 Security
+
+Found a vulnerability? Please read [`SECURITY.md`](SECURITY.md) — report it privately, not in a public issue.
+
+## 🤝 Contributing
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the local workflow, the coding rules this codebase follows and what a PR
+needs to pass (`npm run lint`, `npm test`).
+
+## 🎨 Design system
+
+One CSS file, no build step: `public/css/lanturn.css`. The last layer ("Prism") defines the product look — deep
+graphite canvas, layered glass surfaces, an indigo→violet action accent, a full light theme, and motion that honours
+`prefers-reduced-motion`. Interactions live in `public/js/polish.js`. Open `/design-system.html` on a running instance
+to see every component in one page; `docs/ARCHITECTURE.md` explains how to extend it without breaking the e2e suite.
 
 ## Platform notes
+- Shipped UI: `public/` (vanilla, no build). Optional React rewrite: `frontend/` behind `USE_REACT=true`.
+- `npm run lint` — ESLint (flat config, `eslint.config.js`); `npm run lint:fix` to apply.
 - Optional **C++ core** (`npm run build:native`) and **Python NLP sidecar** (`services/nlp`) speed up and enrich matching; the app works without both. See `docs/ARCHITECTURE.md`.
 - Health: `/api/health/ready`. Metrics (admin): `/api/admin/metrics`. Load test: `npm run bench`. Tests: `npm test`.
 - In production set `ADMIN_PASSWORD` (the default is public) and keep `SEED_DEMO` off for real users.
