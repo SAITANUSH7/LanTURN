@@ -110,3 +110,54 @@ test('dashboard returns a status funnel and a zero-filled 14-day applicant serie
   assert.equal(d.daily.reduce((n, x) => n + x.count, 0), 2);
   assert.equal(d.daily.at(-1).count, 2);
 });
+
+test('dashboard attention counts applicants still waiting for a first look', async () => {
+  const { emp } = await setup(2);
+  const d = (await api('GET', '/employer/dashboard', { token: emp.accessToken })).body;
+  assert.equal(d.attention.waiting, 2);
+  assert.equal(d.attention.stale, 0);
+  assert.ok(Array.isArray(d.attention.closingSoon));
+  const list = (await api('GET', '/employer/jobs', { token: emp.accessToken })).body.items[0];
+  assert.equal(list.awaitingReview, 2);
+});
+
+test('closed jobs can be reopened, but not past their apply-by date', async () => {
+  const { emp, jobId } = await setup(0);
+  await api('POST', `/employer/jobs/${jobId}/close`, { token: emp.accessToken });
+  const re = await api('POST', `/employer/jobs/${jobId}/reopen`, { token: emp.accessToken });
+  assert.equal(re.status, 200);
+  assert.equal(re.body.status, 'OPEN');
+  const past = await api('POST', '/employer/jobs', { token: emp.accessToken, body: { title: 'Old role', description: 'A role with a date in the past.', type: 'INTERNSHIP', deadline: '2020-01-01', skills: [{ skillId: 1, weight: 2 }] } });
+  assert.equal(past.status, 400);
+  const other = await register('EMPLOYER');
+  assert.ok([403, 404].includes((await api('POST', `/employer/jobs/${jobId}/reopen`, { token: other.accessToken })).status));
+});
+
+test('private note and rating are saved, validated, owner-only and hidden from students', async () => {
+  const { emp, apps } = await setup(2);
+  const id = apps[0].id;
+  const put = await api('PUT', `/employer/applications/${id}/note`, { token: emp.accessToken, body: { note: 'Strong portfolio', rating: 4 } });
+  assert.equal(put.status, 200);
+  const one = (await api('GET', `/employer/applications/${id}`, { token: emp.accessToken })).body;
+  assert.equal(one.note, 'Strong portfolio');
+  assert.equal(one.rating, 4);
+  assert.equal(one.neighbours.total, 2);
+  assert.equal((await api('PUT', `/employer/applications/${id}/note`, { token: emp.accessToken, body: { note: 'x', rating: 9 } })).status, 400);
+  const other = await register('EMPLOYER');
+  assert.equal((await api('PUT', `/employer/applications/${id}/note`, { token: other.accessToken, body: { note: 'x' } })).status, 404);
+  const mine = await api('GET', '/applications', { token: apps[0].st.accessToken });
+  assert.ok(!JSON.stringify(mine.body).includes('Strong portfolio'));
+});
+
+test('candidate CSV export contains rows, escapes formulas and is owner-only', async () => {
+  const { emp, jobId, apps } = await setup(2);
+  await api('PUT', `/employer/applications/${apps[0].id}/note`, { token: emp.accessToken, body: { note: '=HYPERLINK("x"),bad', rating: 5 } });
+  const r = await api('GET', `/employer/jobs/${jobId}/candidates.csv`, { token: emp.accessToken });
+  assert.equal(r.status, 200);
+  assert.match(r.headers.get('content-type'), /text\/csv/);
+  const lines = r.text.replace(/^﻿/, '').trim().split('\r\n');
+  assert.equal(lines.length, 3);
+  assert.ok(r.text.includes(`"'=HYPERLINK(""x""),bad"`));
+  const other = await register('EMPLOYER');
+  assert.equal((await api('GET', `/employer/jobs/${jobId}/candidates.csv`, { token: other.accessToken })).status, 404);
+});

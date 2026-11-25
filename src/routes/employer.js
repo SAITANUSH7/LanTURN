@@ -66,6 +66,7 @@ const ownJob = (userId, id) => {
 
 employerRouter.post('/employer/jobs', ...employer, requireVerifiedEmployer, wrap(async (req, res) => {
   const b = parse(JobSchema, req.body);
+  if (b.deadline && b.deadline < new Date().toISOString().slice(0, 10)) throw bad('deadline: must not be in the past');
   const id = tx(() => {
     const jid = Number(db.prepare('INSERT INTO jobs (employer_id, title, description, type, location, remote, compensation, deadline) VALUES (?,?,?,?,?,?,?,?)')
       .run(req.user.id, b.title, b.description, b.type, b.location, b.remote ? 1 : 0, b.compensation, b.deadline ?? null).lastInsertRowid);
@@ -80,8 +81,8 @@ employerRouter.post('/employer/jobs', ...employer, requireVerifiedEmployer, wrap
 employerRouter.get('/employer/jobs', ...employer, wrap(async (req, res) => {
   const rows = db.prepare(`${JOB_SELECT} WHERE j.employer_id = ? ORDER BY j.created_at DESC, j.id DESC`).all(req.user.id);
   const skills = loadJobSkills(rows.map((r) => r.id));
-  const counts = new Map(db.prepare(`SELECT a.job_id, COUNT(*) AS n FROM applications a JOIN jobs j ON j.id = a.job_id WHERE j.employer_id = ? GROUP BY a.job_id`).all(req.user.id).map((r) => [r.job_id, r.n]));
-  res.json({ items: rows.map((r) => ({ ...serializeJob(r, skills.get(r.id)), applicantCount: counts.get(r.id) || 0 })) });
+  const counts = new Map(db.prepare(`SELECT a.job_id, COUNT(*) AS n, SUM(a.status = 'APPLIED') AS fresh FROM applications a JOIN jobs j ON j.id = a.job_id WHERE j.employer_id = ? GROUP BY a.job_id`).all(req.user.id).map((r) => [r.job_id, r]));
+  res.json({ items: rows.map((r) => ({ ...serializeJob(r, skills.get(r.id)), applicantCount: counts.get(r.id)?.n || 0, awaitingReview: counts.get(r.id)?.fresh || 0 })) });
 }));
 
 employerRouter.put('/employer/jobs/:id', ...employer, requireVerifiedEmployer, wrap(async (req, res) => {
@@ -101,6 +102,14 @@ employerRouter.post('/employer/jobs/:id/close', ...employer, wrap(async (req, re
   for (const a of db.prepare("SELECT student_id FROM applications WHERE job_id = ? AND status IN ('APPLIED','SHORTLISTED','INTERVIEW')").all(j.id)) {
     notify(a.student_id, 'job_removed', `Job closed: ${j.title}`, 'The employer closed this position.', '#/student/applications');
   }
+  res.json(serializeJob(ownJob(req.user.id, j.id), loadJobSkills([j.id]).get(j.id)));
+}));
+
+employerRouter.post('/employer/jobs/:id/reopen', ...employer, requireVerifiedEmployer, wrap(async (req, res) => {
+  const j = ownJob(req.user.id, req.params.id);
+  if (j.status === 'OPEN') return res.json(serializeJob(j, loadJobSkills([j.id]).get(j.id)));
+  if (j.deadline && j.deadline < new Date().toISOString().slice(0, 10)) throw conflict('The apply-by date has passed. Edit the job to set a new date first.', 'DEADLINE_PASSED');
+  db.prepare("UPDATE jobs SET status = 'OPEN' WHERE id = ?").run(j.id);
   res.json(serializeJob(ownJob(req.user.id, j.id), loadJobSkills([j.id]).get(j.id)));
 }));
 
@@ -142,12 +151,12 @@ employerRouter.get('/employer/jobs/:id/candidates', ...employer, wrap(async (req
   const job = ownJob(req.user.id, req.params.id);
   const status = STATUSES.includes(req.query.status) ? req.query.status : null;
   const sort = req.query.sort === 'resume' ? 'resume' : 'match';
-  const rows = db.prepare(`SELECT a.id, a.status, a.match_score, a.created_at, a.resume_id, p.full_name, p.college, p.degree, p.branch, p.graduation_year, p.location, a.student_id
+  const rows = db.prepare(`SELECT a.id, a.status, a.match_score, a.created_at, a.resume_id, a.employer_rating, a.employer_note, p.full_name, p.college, p.degree, p.branch, p.graduation_year, p.location, a.student_id
     FROM applications a JOIN student_profiles p ON p.user_id = a.student_id WHERE a.job_id = ? ${status ? 'AND a.status = ?' : ''}`).all(...(status ? [job.id, status] : [job.id]));
   const items = rows.map((r) => {
     const an = r.resume_id ? latestAnalysis(r.resume_id) : null;
     return {
-      applicationId: r.id, status: r.status, matchScore: r.match_score, appliedAt: r.created_at,
+      applicationId: r.id, status: r.status, matchScore: r.match_score, appliedAt: r.created_at, rating: r.employer_rating, hasNote: !!r.employer_note,
       resumeScore: an?.overallScore ?? null,
       student: { name: r.full_name, college: r.college, degree: r.degree, branch: r.branch, graduationYear: r.graduation_year, location: r.location },
       topSkills: studentSkills(r.student_id).slice(0, 6).map((s) => s.name),
@@ -175,6 +184,8 @@ employerRouter.get('/employer/applications/:id', ...employer, wrap(async (req, r
   const resume = a.resume_id ? db.prepare('SELECT id, filename, file_key, extracted_text FROM resumes WHERE id = ?').get(a.resume_id) : null;
   res.json({
     id: a.id, status: a.status, matchScore: a.match_score, coverNote: a.cover_note, appliedAt: a.created_at,
+    note: a.employer_note || '', rating: a.employer_rating,
+    neighbours: (() => { const ids = db.prepare('SELECT id FROM applications WHERE job_id = ? ORDER BY match_score DESC, id').all(a.jid).map((r) => r.id); const i = ids.indexOf(a.id); return { prev: ids[i - 1] ?? null, next: ids[i + 1] ?? null, position: i + 1, total: ids.length }; })(),
     allowedTransitions: TRANSITIONS[a.status],
     job: { id: a.jid, title: a.job_title },
     student: {
@@ -207,6 +218,33 @@ employerRouter.patch('/employer/applications/:id/status', ...employer, wrap(asyn
   res.json({ id: a.id, status: targetStatus, allowedTransitions: TRANSITIONS[targetStatus], events: eventsFor(a.id) });
 }));
 
+// Private recruiter notes and a 1-5 rating. Students never see these.
+employerRouter.put('/employer/applications/:id/note', ...employer, wrap(async (req, res) => {
+  const b = parse(z.object({ note: z.string().trim().max(2000).default(''), rating: z.number().int().min(1).max(5).nullable().default(null) }).strict(), req.body);
+  const a = ownApplication(req.user.id, req.params.id);
+  db.prepare('UPDATE applications SET employer_note = ?, employer_rating = ? WHERE id = ?').run(b.note, b.rating, a.id);
+  res.json({ id: a.id, note: b.note, rating: b.rating });
+}));
+
+const csvCell = (v) => {
+  let s = v == null ? '' : String(v);
+  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`; // spreadsheet formula injection guard
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+};
+employerRouter.get('/employer/jobs/:id/candidates.csv', ...employer, wrap(async (req, res) => {
+  const job = ownJob(req.user.id, req.params.id);
+  const rows = db.prepare(`SELECT a.id, a.status, a.match_score, a.created_at, a.resume_id, a.employer_rating, a.employer_note, p.full_name, p.college, p.degree, p.branch, p.graduation_year, u.email
+    FROM applications a JOIN student_profiles p ON p.user_id = a.student_id JOIN users u ON u.id = a.student_id WHERE a.job_id = ? ORDER BY a.match_score DESC, a.id`).all(job.id);
+  const head = ['Name', 'Email', 'College', 'Degree', 'Branch', 'Graduation year', 'Status', 'Match %', 'Resume score', 'Your rating', 'Your note', 'Applied'];
+  const lines = [head.map(csvCell).join(',')];
+  for (const r of rows) {
+    const an = r.resume_id ? latestAnalysis(r.resume_id) : null;
+    lines.push([r.full_name, r.email, r.college, r.degree, r.branch, r.graduation_year, r.status, r.match_score, an?.overallScore ?? '', r.employer_rating ?? '', r.employer_note, r.created_at].map(csvCell).join(','));
+  }
+  res.set({ 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="candidates-job-${job.id}.csv"`, 'Cache-Control': 'no-store' });
+  res.send(`\ufeff${lines.join('\r\n')}\r\n`);
+}));
+
 /** Applicants per day for the last `days` days (oldest first), zero-filled, in UTC. */
 function dailyApplicants(employerId, days) {
   const rows = db.prepare(`SELECT date(a.created_at) AS d, COUNT(*) AS n FROM applications a JOIN jobs j ON j.id = a.job_id
@@ -229,6 +267,11 @@ employerRouter.get('/employer/dashboard', ...employer, wrap(async (req, res) => 
     offers: one(`SELECT COUNT(*) AS n ${base} AND a.status = 'OFFERED'`, req.user.id),
     funnel: Object.fromEntries(['APPLIED', 'SHORTLISTED', 'INTERVIEW', 'OFFERED', 'REJECTED', 'WITHDRAWN'].map((st) => [st, one(`SELECT COUNT(*) AS n ${base} AND a.status = ?`, req.user.id, st)])),
     daily: dailyApplicants(req.user.id, 14),
+    attention: {
+      waiting: one(`SELECT COUNT(*) AS n ${base} AND a.status = 'APPLIED'`, req.user.id),
+      stale: one(`SELECT COUNT(*) AS n ${base} AND a.status = 'APPLIED' AND a.created_at <= datetime('now', '-3 days')`, req.user.id),
+      closingSoon: db.prepare("SELECT id, title, deadline FROM jobs WHERE employer_id = ? AND status = 'OPEN' AND deadline IS NOT NULL AND deadline BETWEEN date('now') AND date('now', '+7 days') ORDER BY deadline LIMIT 5").all(req.user.id),
+    },
   });
 }));
 
