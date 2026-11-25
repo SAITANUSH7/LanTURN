@@ -70,7 +70,9 @@ export function createApp() {
   // never be throttled by traffic, and the landing page reads the counters on every visit.
   app.get('/api/health', (_req, res) => {
     db.prepare('SELECT 1').get();
-    res.json({ status: 'ok', ai: llmEnabled() ? 'llm+rules' : 'rules', providers: providerSummary().map((p) => p.name), time: new Date().toISOString() });
+    // `build` answers the only question anyone asks during a deploy: is the thing I am looking at the thing I pushed?
+    const build = (process.env.RAILWAY_GIT_COMMIT_SHA || process.env.GIT_COMMIT || process.env.RENDER_GIT_COMMIT || '').slice(0, 7) || 'dev';
+    res.json({ status: 'ok', build, ai: llmEnabled() ? 'llm+rules' : 'rules', providers: providerSummary().map((p) => p.name), time: new Date().toISOString() });
   });
 
   let statsCache = { at: 0, body: null };
@@ -119,10 +121,21 @@ export function createApp() {
   const frontendDist = path.join(ROOT, 'frontend', 'dist');
   const publicDir = path.join(ROOT, 'public');
 
+  // Nothing in public/ has a content hash in its filename, so a long max-age pins a stale design inside every open
+  // browser after a deploy - which is exactly what happened when this redesign shipped and reviewers kept seeing the
+  // previous stylesheet. `max-age=0, must-revalidate` sends every visitor through a conditional request; Express answers
+  // it with an empty 304 (a few hundred bytes) unless the file really changed, so a deploy is visible on the next click.
+  // (The `no-cache` token would be even stricter, but Express's `fresh` check then refuses to answer 304 at all.)
+  const assetCache = (res, filePath) => {
+    const ext = path.extname(filePath).toLowerCase();
+    const immutable = ext === '.woff2' || ext === '.woff' || ext === '.ttf';
+    res.setHeader('Cache-Control', immutable ? 'public, max-age=604800, immutable' : 'max-age=0, must-revalidate');
+  };
+
   if (config.useReact && fs.existsSync(frontendDist)) {
-    app.use(express.static(frontendDist, { maxAge: config.isProd ? '1h' : 0 }));
+    app.use(express.static(frontendDist, { setHeaders: assetCache }));
   }
-  app.use(express.static(publicDir, { extensions: ['html'], maxAge: config.isProd ? '1h' : 0 }));
+  app.use(express.static(publicDir, { extensions: ['html'], setHeaders: assetCache }));
 
   // SPA fallback for frontend client-side routes
   app.get('*', (req, res, next) => {
