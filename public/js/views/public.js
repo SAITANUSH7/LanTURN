@@ -1,4 +1,4 @@
-import { login as doLogin, register as doRegister } from '../api.js';
+import { login as doLogin, register as doRegister, get } from '../api.js';
 import { h, icon, field, input, busy, skillChip, toast, passwordField, lantern } from '../ui.js';
 
 const home = (u) => (u.role === 'STUDENT' ? '/student' : u.role === 'EMPLOYER' ? '/employer' : '/admin');
@@ -65,13 +65,24 @@ export function landing({ navigate, user }) {
 
 function authLayout(title, subtitle, form) {
   const pt = (b, t) => h('li', null, icon('check'), h('div', null, h('b', null, b), t));
+  // The right-hand panel used to be three bullets in a very large empty box. It now carries the platform's real,
+  // live numbers (the same public endpoint the landing page reads) so the space says something true instead of lorem.
+  const pulse = h('div', { class: 'auth2__pulse', hidden: true, 'aria-label': 'Platform activity' });
+  get('/platform/stats').then((s) => {
+    const cell = (n, label) => h('div', null, h('b', null, Number(n || 0).toLocaleString()), h('span', null, label));
+    pulse.append(cell(s.studentsCount, 'students'), cell(s.employersCount, 'employers'), cell(s.openJobsCount, 'open roles'));
+    pulse.hidden = false;
+  }).catch(() => { /* the panel works without numbers */ });
+
   return h('div', { class: 'auth2' },
     h('section', { class: 'auth2__form' },
       h('a', { class: 'brand', href: '#/', 'aria-label': 'LanTURN home' }, lantern(), h('span', null, 'Lan', h('b', null, 'TURN'))),
       h('div', { class: 'auth2__box' }, h('div', null, h('h1', null, title), h('p', null, subtitle)), form)),
     h('aside', { class: 'auth2__side', 'aria-hidden': 'true' },
       h('h2', null, 'From skills to opportunity, with a plan.'),
-      h('ul', { class: 'auth2__list' }, pt('Resume score in seconds', 'Know exactly what to fix before you apply.'), pt('Roadmaps from your own profile', 'Stages, topics and guides you can finish.'), pt('Ranked candidates for employers', 'Every ranking comes with the reason.'))));
+      h('ul', { class: 'auth2__list' }, pt('Resume score in seconds', 'Know exactly what to fix before you apply.'), pt('Roadmaps from your own profile', 'Stages, topics and guides you can finish.'), pt('Ranked candidates for employers', 'Every ranking comes with the reason.')),
+      pulse,
+      h('p', { class: 'auth2__foot' }, icon('shield'), 'Free for students. Employer accounts are reviewed before they can post.')));
 }
 
 export function login({ navigate }) {

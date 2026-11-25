@@ -294,7 +294,7 @@ export async function career({ query }) {
     });
     return h('div', { class: 'card stack' },
       h('div', { class: 'gap-grid' }, scoreRing(g.matchPercent, { accent: true }), h('div', null, h('h2', { style: { fontSize: '1.8rem' } }, g.target.title), h('p', { class: 'muted' }, `Weighted skill match based on the ${g.studentSkillCount} skills on your profile.`))),
-      h('div', null, h('h4', null, 'You have'), h('div', { class: 'chips', style: { marginTop: '8px' } }, g.matched.length ? g.matched.map((s) => skillChip(s.skill, 'matched', s.weight)) : h('span', { class: 'muted' }, 'Nothing yet. Add skills in your profile or upload a resume.'))),
+      h('div', null, h('h4', null, 'You have'), h('p', { class: 'chips-legend' }, 'Each dot is how heavily this job weights the skill — three dots means it matters most.'), h('div', { class: 'chips', style: { marginTop: '8px' } }, g.matched.length ? g.matched.map((s) => skillChip(s.skill, 'matched', s.weight)) : h('span', { class: 'muted' }, 'Nothing yet. Add skills in your profile or upload a resume.'))),
       h('div', null, h('h4', null, 'Still missing (most important first)'), h('div', { class: 'chips', style: { marginTop: '8px' } }, g.missing.length ? g.missing.map((s) => skillChip(s.skill, 'missing', s.weight)) : h('span', { class: 'muted' }, 'No gaps. You cover every listed skill.'))),
       g.missing.length ? h('div', null, planBtn) : null);
   }

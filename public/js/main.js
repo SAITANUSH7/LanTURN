@@ -1,4 +1,4 @@
-import { restoreSession, session, logout, onSessionChange, post } from './api.js';
+import { restoreSession, session, logout, onSessionChange, post, get } from './api.js';
 import { h, clear, icon, lantern, errorBox, loadingBlock, pageSkeleton, toast } from './ui.js';
 import * as pub from './views/public.js';
 import * as stu from './views/student.js';
@@ -114,7 +114,7 @@ function shell() {
     h('a', { class: 'brand', href: `#${homeFor(user.role)}`, 'aria-label': 'LanTURN home' }, lantern(), h('span', null, 'Lan', h('b', null, 'TURN'))),
     h('nav', { class: 'nav', 'aria-label': 'Main' }, groups.map(([title, items]) => h('div', { class: 'side__group' },
       h('div', { class: 'side__label' }, t(title)),
-      items.map(([to, name, ic]) => h('a', { href: `#${to}`, 'data-s': sectionOf(to), 'aria-current': active(to) }, icon(ic), t(name)))))),
+      items.map(([to, name, ic]) => h('a', { href: `#${to}`, 'data-s': sectionOf(to), 'aria-current': active(to), id: to.endsWith('/messages') ? 'nav-messages' : null }, icon(ic), t(name)))))),
     h('div', { class: 'side__foot' },
       h('div', { class: 'me' }, h('span', { class: 'me__av', 'aria-hidden': 'true' }, (user.name || user.email || '?').trim()[0].toUpperCase()),
         h('div', { class: 'me__t' }, h('strong', null, user.name || user.email), h('small', null, user.role.toLowerCase()))),
@@ -153,6 +153,7 @@ async function connectLive() {
     try { detail = JSON.parse(ev.data); } catch { /* keep the bell refresh anyway */ }
     window.dispatchEvent(new CustomEvent('lan:notification', { detail }));
     ai.refreshBell();
+    refreshNavBadge();
     if (detail?.title) toast(detail.title, 'success');
   });
   es.onerror = () => {
@@ -161,6 +162,20 @@ async function connectLive() {
     live = null; liveFor = null;
     liveRetry = setTimeout(connectLive, 15000);
   };
+}
+
+export async function refreshNavBadge() {
+  if (!session.user || session.user.role === 'ADMIN') return;
+  try {
+    const { unread } = await get('/messages/unread');
+    const link = document.getElementById('nav-messages');
+    if (!link) return;
+    let badge = link.querySelector('.nav__n');
+    if (!unread) { badge?.remove(); link.removeAttribute('aria-description'); return; }
+    if (!badge) { badge = h('span', { class: 'nav__n' }); link.append(badge); }
+    badge.textContent = unread > 9 ? '9+' : String(unread);
+    link.setAttribute('aria-description', `${unread} unread message${unread === 1 ? '' : 's'}`);
+  } catch { /* signed out or offline */ }
 }
 
 let renderId = 0;
@@ -186,7 +201,7 @@ async function render() {
   const main = document.getElementById('main');
   document.title = `${route.title} · LanTURN`;
   main.append(pageSkeleton());
-  if (user && user.role !== 'ADMIN') { ai.refreshBell(); connectLive(); } else closeLive();
+  if (user && user.role !== 'ADMIN') { ai.refreshBell(); connectLive(); refreshNavBadge(); } else closeLive();
   const ctx = { params, query: parseQuery(), navigate, onLeave: (fn) => leave.push(fn), user };
   try {
     const node = await route.view(ctx);

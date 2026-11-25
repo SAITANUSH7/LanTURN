@@ -3064,3 +3064,159 @@ a.card:hover, .card--hover:hover, .card--link:hover {
 :root[data-theme='light'] .inbox__item:hover { background: rgba(9, 9, 15, 0.055); }
 :root[data-theme='light'] .inbox__item.is-open { background: rgba(79, 70, 229, 0.1); }
 :root[data-theme='light'] .inbox__placeholder { color: var(--text-3); }
+
+/* ---------- Design pass II: sidebar structure, auth rhythm, roadmap frames ---------------------------------------
+   Three defects visible on the deployed build:
+   1. The sidebar was a flex column with a grid inside it, and CSS grid's default `align-content: stretch` made the
+      nav rows grow to fill the viewport - the admin sidebar (one group, three links) spread its items ~120px apart,
+      while the student sidebar (five groups) looked fine. Nobody notices a bug that only shows on one role.
+   2. `overflow-y: auto` on the sidebar turns the x axis into `auto` as well, so any child a pixel too wide produced a
+      horizontal scrollbar inside the nav (visible as a grey bar under "Sign out").
+   3. The whole sidebar scrolled, including the account footer, so scrolling a long nav pushed "Student One / Sign out"
+      up into the middle of the screen. The footer belongs pinned; the nav is what scrolls.                          */
+
+.side {
+  display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 8px;
+  overflow: hidden; /* kills the phantom horizontal bar; the nav scrolls inside its own row */
+  padding: 14px 10px 14px 12px;
+}
+.side .brand { padding: 4px 8px 8px; }
+.side .nav {
+  display: grid; grid-auto-rows: min-content; align-content: start; gap: 12px;
+  overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain;
+  padding-right: 6px; margin-right: -4px;
+  scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+}
+.side .nav::-webkit-scrollbar { width: 8px; }
+.side .nav::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.16); border-radius: 99px; }
+.side .nav::-webkit-scrollbar-track { background: transparent; }
+.side__group { align-content: start; grid-auto-rows: min-content; margin-bottom: 0; }
+.side .nav a { min-height: 40px; }
+.side__foot { margin-top: 0; padding-top: 12px; }
+/* Fade the nav's own overflow instead of a hard cut where it meets the pinned footer. */
+.side .nav { mask-image: linear-gradient(180deg, #000 calc(100% - 18px), transparent); -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 18px), transparent); }
+
+/* ---- Auth: the split page was 100vh tall under a 60px bar, so it always scrolled and left a dead band at the
+   bottom; and the primary action was a plain white slab that read as a default <button>. ---- */
+.auth2 { min-height: calc(100dvh - var(--nav-h)); }
+.auth2__side { padding: clamp(32px, 4.5vw, 60px); gap: 26px; }
+.auth2__side h2 { max-width: 18ch; }
+.auth2__box { gap: 26px; }
+.auth2__box .btn--block, .auth2 form .btn--block {
+  background: var(--accent-grad); border-color: transparent; color: #fff;
+  box-shadow: 0 14px 34px -16px rgba(99, 102, 241, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  transition: transform 0.18s var(--ease-out), box-shadow 0.22s var(--ease-out), filter 0.18s;
+}
+.auth2__box .btn--block:hover, .auth2 form .btn--block:hover { transform: translateY(-1px); filter: saturate(1.08); box-shadow: 0 20px 44px -18px rgba(124, 58, 237, 1), inset 0 1px 0 rgba(255, 255, 255, 0.3); }
+.auth2__pulse { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; max-width: 470px; }
+.auth2__pulse > div { padding: 12px 14px; border-radius: 14px; border: 1px solid var(--line); background: color-mix(in srgb, var(--text) 4%, transparent); }
+.auth2__pulse b { display: block; font: 600 1.4rem/1.1 var(--font-display); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.auth2__pulse span { font-size: 0.78rem; color: var(--text-3); }
+.auth2__foot { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 0.82rem; color: var(--text-3); }
+.auth2__foot .icon { width: 15px; height: 15px; flex: none; }
+/* The auth pages carry their own sign-in / sign-up affordances; repeating them in the top bar is noise. */
+body:has(#main .auth2) .topbar__user > a.btn { display: none; }
+
+/* ---- Roadmap: the stage was framed twice (a panel on .rm-stage, another border on .rm-stage__card), which read as
+   a box inside a box with the step number floating in the gutter. One frame, and the number owns the gutter. ---- */
+.rm-stage { border: 0; background: none; box-shadow: none; padding: 0 0 26px; }
+.rm-stage:hover, .rm-stage.is-open { border: 0; box-shadow: none; }
+.rm-stage::before { left: 23px; top: 52px; bottom: -4px; background: linear-gradient(180deg, var(--line-2), transparent 92%); }
+.rm-stage::after { left: 23px; top: 52px; }
+.rm-stage__card {
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.012)), var(--panel);
+  border-color: var(--line); box-shadow: var(--shadow-sm);
+  transition: transform 0.22s var(--ease-out), border-color 0.22s, box-shadow 0.28s;
+}
+.rm-stage:hover .rm-stage__card { transform: translateY(-2px); border-color: var(--line-2); }
+.rm-stage.is-open .rm-stage__card { border-color: rgba(129, 140, 248, 0.45); box-shadow: 0 30px 70px -48px rgba(99, 102, 241, 0.95); }
+.rm-stage__card .btn--secondary { justify-self: start; padding-inline: 14px; }
+.rm-dot { box-shadow: 0 0 0 6px var(--void); }
+.rm-stage--current .rm-dot, .rm-stage.is-open .rm-dot { box-shadow: 0 0 0 6px var(--void), 0 0 0 7px var(--sec-line); }
+.rm-bar { height: 6px; }
+.rm-meta { display: flex; flex-wrap: wrap; gap: 12px; font-size: 0.9rem; color: var(--text-3); }
+
+/* ---- Anchors and headings must clear the sticky bar when the browser jumps to them. ---- */
+:root { scroll-padding-top: calc(var(--nav-h) + 14px); }
+#main :is(h1, h2, h3, h4), .rm-stage, .card, .bento__c, section { scroll-margin-top: calc(var(--nav-h) + 16px); }
+
+@media (prefers-reduced-motion: reduce) {
+  .rm-stage__card, .rm-stage:hover .rm-stage__card, .auth2__box .btn--block:hover { transform: none; }
+}
+@media (max-width: 1024px) {
+  /* The off-canvas sidebar keeps the same three-row structure, so the footer stays pinned there too. */
+  .side { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
+}
+:root[data-theme='light'] .side .nav { scrollbar-color: rgba(9, 9, 15, 0.2) transparent; }
+:root[data-theme='light'] .side .nav::-webkit-scrollbar-thumb { background: rgba(9, 9, 15, 0.2); }
+:root[data-theme='light'] .auth2__pulse > div { background: rgba(9, 9, 15, 0.03); }
+:root[data-theme='light'] .rm-stage__card { background: linear-gradient(165deg, #ffffff, #fbfbfd); border-color: var(--line-2); }
+:root[data-theme='light'] .rm-dot { box-shadow: 0 0 0 6px var(--void); }
+
+/* ---- Small truths that make a page feel finished ---------------------------------------------------------------
+   Chrome paints its own blue slab over an autofilled field, which is why the email box on the sign-in page looked
+   like a rendering bug. The inset-shadow trick repaints it in the theme's own colour without disabling autofill. */
+.input:-webkit-autofill, .input:-webkit-autofill:hover, .input:-webkit-autofill:focus,
+.auth2 input:-webkit-autofill, input:-webkit-autofill {
+  -webkit-text-fill-color: var(--text);
+  -webkit-box-shadow: 0 0 0 1000px var(--panel) inset;
+  caret-color: var(--text);
+  transition: background-color 9999s ease-out 0s;
+}
+::selection { background: color-mix(in srgb, var(--brand) 42%, transparent); color: var(--white); }
+.side .nav a:focus-visible, .topbar a:focus-visible, .topbar button:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 10px; }
+/* Unread count on the Messages nav item: the only place a person checks without being told to. */
+.side .nav a .nav__n {
+  margin-left: auto; min-width: 19px; height: 19px; padding: 0 5px; border-radius: 999px;
+  display: grid; place-items: center; font: 700 0.68rem/1 var(--font-body); color: #fff;
+  background: var(--accent-grad); box-shadow: 0 4px 12px -6px rgba(99, 102, 241, 1);
+}
+
+/* ---- Modules that were legible but not explained --------------------------------------------------------------
+   The career page showed a bare "21" inside a ring: a number with no unit and no name. The ring is always 0-100, so
+   say so; small rings in dense lists keep their space. */
+.ring::after {
+  content: '/ 100'; position: absolute; left: 50%; transform: translateX(-50%);
+  top: calc(50% + var(--size, 96px) * 0.135);
+  font: 600 calc(var(--size, 96px) * 0.105)/1 var(--font-body);
+  color: var(--text-3); letter-spacing: 0.04em; pointer-events: none;
+}
+.ring--sm::after { display: none; }
+
+/* Stat tiles: an accent hairline on the leading edge and a numeral that owns the card, so a row of four reads as one
+   system instead of four identical boxes. */
+/* Layered backgrounds rather than a pseudo-element: .stat::before/::after already carry the specular highlight and the
+   indigo wash, and overriding either would cost more than the rule adds. */
+.stat {
+  background-image:
+    linear-gradient(90deg, var(--brand), var(--accent-hi)) top / 100% 2px no-repeat,
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 46%);
+}
+.stat .stat__value { font-variant-numeric: tabular-nums; }
+
+/* The importance dots sit inside coloured chips, where 25% opacity vanished. Give the empty dots a visible baseline. */
+.weight { align-items: center; }
+.weight i { width: 6px; height: 6px; box-shadow: 0 0 0 1px color-mix(in srgb, currentColor 45%, transparent); opacity: 0.45; }
+.weight i.on { opacity: 1; box-shadow: none; }
+.chips-legend { margin: 6px 0 0; font-size: 0.82rem; color: var(--text-3); max-width: 46ch; }
+
+:root[data-theme='light'] .stat { background-image: linear-gradient(90deg, var(--brand), var(--accent-hi)) top / 100% 2px no-repeat, linear-gradient(180deg, #ffffff, #fbfbfd); }
+
+/* ---- One active indicator, system-wide --------------------------------------------------------------------------
+   The current route was drawn three ways at once: a filled pill (base layer), a second fill from the theme layer, and
+   a 3px bar floated 12px outside the item in the sidebar gutter. Two fills of different colours plus a detached bar
+   read as a rendering glitch. Keep the fill and pin a short bar to the item's own leading edge. */
+.side .nav a { position: relative; }
+.side .nav a[aria-current='page'] {
+  background: color-mix(in srgb, var(--sec) 14%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sec) 28%, transparent);
+  border-color: transparent; color: var(--white); font-weight: 650;
+}
+.side .nav a[aria-current='page']::before {
+  content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+  width: 3px; height: 18px; border-radius: 0 3px 3px 0; background: var(--sec-hi);
+}
+.side .nav a[aria-current='page'] .icon { color: var(--sec-hi); }
+.side .nav a:hover { background: color-mix(in srgb, var(--text) 6%, transparent); }
+:root[data-theme='light'] .side .nav a[aria-current='page'] { background: color-mix(in srgb, var(--sec) 16%, #fff); color: #111; }
+:root[data-theme='light'] .side .nav a[aria-current='page'] .icon { color: var(--sec); }
