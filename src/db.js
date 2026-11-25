@@ -484,6 +484,40 @@ migrate(4, 'audit-log', () => {
   CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_log(created_at DESC);`);
 });
 
+// 5: the inbox. A per-application thread already existed, but neither side could tell what it had not read: the read
+// marker is one row per (user, application) holding the highest message id they have seen, so unread counts are a
+// single indexed comparison instead of a per-message flag.
+migrate(5, 'message-reads', () => {
+  db.exec(`CREATE TABLE IF NOT EXISTS message_reads (
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    application_id INTEGER NOT NULL REFERENCES applications(id) ON DELETE CASCADE,
+    last_read_id INTEGER NOT NULL DEFAULT 0,
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (user_id, application_id)
+  );
+  CREATE INDEX IF NOT EXISTS idx_appmsg_sender ON application_messages(sender_id, created_at);`);
+});
+
+// 6: saved searches. A filter set plus the minimum match score worth an alert; the alert task reads these on every
+// new job, so the index matters more than the row count suggests.
+migrate(6, 'saved-searches', () => {
+  db.exec(`CREATE TABLE IF NOT EXISTS saved_searches (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name TEXT NOT NULL DEFAULT '',
+    q TEXT NOT NULL DEFAULT '',
+    type TEXT NOT NULL DEFAULT '',
+    location TEXT NOT NULL DEFAULT '',
+    remote INTEGER NOT NULL DEFAULT 0,
+    skill_id INTEGER,
+    min_match INTEGER NOT NULL DEFAULT 70,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_saved_searches_uniq
+    ON saved_searches(user_id, q, type, location, remote, COALESCE(skill_id, 0));
+  CREATE INDEX IF NOT EXISTS idx_saved_searches_user ON saved_searches(user_id, id DESC);`);
+});
+
 db.exec(`PRAGMA user_version = ${Math.max(0, ...db.prepare('SELECT version FROM schema_migrations').all().map((r) => r.version))}`);
 
 // Change counters: triggers bump these on ANY write (routes, seed, scripts), so in-process caches can validate

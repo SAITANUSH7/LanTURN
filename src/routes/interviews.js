@@ -6,6 +6,7 @@ import { HttpError, bad, conflict, notFound, parse, wrap, forbidden } from '../u
 import { authenticate, requireRole } from '../auth.js';
 import { idParam, recordEvent } from './common.js';
 import { notify } from '../notify.js';
+import { markRead } from './engagement.js';
 
 export const interviewsRouter = Router();
 
@@ -54,7 +55,7 @@ interviewsRouter.post('/employer/applications/:id/interviews', authenticate, req
     }
     return iid;
   });
-  notify(a.student_id, 'interview_scheduled', `Interview scheduled: ${a.title}`, `${a.company_name || 'The employer'} invited you: ${MODE[b.mode]}, ${when(b.startsAt)}.`, '#/student/applications');
+  notify(a.student_id, 'interview_scheduled', `Interview scheduled: ${a.title}`, `${a.company_name || 'The employer'} invited you: ${MODE[b.mode]}, ${when(b.startsAt)}.`, `#/student/messages?thread=${a.id}`);
   res.status(201).json({ interview: interviewsFor(a.id).find((x) => x.id === id), interviews: interviewsFor(a.id) });
 }));
 
@@ -64,7 +65,7 @@ interviewsRouter.post('/employer/applications/:id/interviews/:iid/cancel', authe
   if (!it) throw notFound('Interview not found');
   if (it.status === 'CANCELLED') return res.json({ interviews: interviewsFor(a.id) });
   db.prepare("UPDATE interviews SET status = 'CANCELLED' WHERE id = ?").run(it.id);
-  notify(a.student_id, 'interview_cancelled', `Interview cancelled: ${a.title}`, `${a.company_name || 'The employer'} cancelled the ${when(it.starts_at)} interview. They may send a new time.`, '#/student/applications');
+  notify(a.student_id, 'interview_cancelled', `Interview cancelled: ${a.title}`, `${a.company_name || 'The employer'} cancelled the ${when(it.starts_at)} interview. They may send a new time.`, `#/student/messages?thread=${a.id}`);
   res.json({ interviews: interviewsFor(a.id) });
 }));
 
@@ -87,10 +88,29 @@ interviewsRouter.get('/interviews/:id/ics', authenticate, wrap(async (req, res) 
 
 // ---------- Messages ----------
 const msgOut = (m) => ({ id: m.id, from: m.sender_role, body: m.body, at: m.created_at });
+const systemEntry = (it) => ({
+  id: `interview-${it.id}`,
+  from: 'SYSTEM',
+  kind: it.status === 'CANCELLED' ? 'interview_cancelled' : 'interview',
+  body: it.status === 'CANCELLED'
+    ? `Interview cancelled: ${when(it.starts_at)}`
+    : `Interview scheduled: ${MODE[it.mode]}, ${when(it.starts_at)}${it.location ? ` · ${it.location}` : ''}${it.note ? ` · ${it.note}` : ''}`,
+  at: it.starts_at,
+});
+
 interviewsRouter.get('/applications/:id/messages', authenticate, requireRole('STUDENT', 'EMPLOYER'), wrap(async (req, res) => {
   const { a, side } = accessible(req, req.params.id);
-  const items = db.prepare('SELECT * FROM application_messages WHERE application_id = ? ORDER BY id').all(a.id).map(msgOut);
-  res.json({ items, you: side, canReply: side === 'EMPLOYER' ? a.status !== 'WITHDRAWN' : items.some((m) => m.from === 'EMPLOYER') && a.status !== 'WITHDRAWN' });
+  const messages = db.prepare('SELECT * FROM application_messages WHERE application_id = ? ORDER BY id').all(a.id).map(msgOut);
+  // An interview is part of the conversation: showing it in the thread means nobody has to cross-reference a
+  // separate page to answer "when was I invited, and did they cancel?".
+  const system = interviewsFor(a.id).map(systemEntry);
+  const items = [...messages, ...system].sort((x, y) => (x.at === y.at ? 0 : x.at < y.at ? -1 : 1));
+  markRead(req.user.id, a.id); // reading the thread is what "read" means
+  res.json({
+    items,
+    you: side,
+    canReply: side === 'EMPLOYER' ? a.status !== 'WITHDRAWN' : messages.some((m) => m.from === 'EMPLOYER') && a.status !== 'WITHDRAWN',
+  });
 }));
 
 interviewsRouter.post('/applications/:id/messages', authenticate, requireRole('STUDENT', 'EMPLOYER'), wrap(async (req, res) => {
@@ -103,7 +123,7 @@ interviewsRouter.post('/applications/:id/messages', authenticate, requireRole('S
   if (recent >= 20) throw new HttpError(429, 'RATE_LIMITED', 'Too many messages this hour. Please wait a little.');
   const id = Number(db.prepare('INSERT INTO application_messages (application_id, sender_id, sender_role, body) VALUES (?,?,?,?)').run(a.id, req.user.id, side, b.body).lastInsertRowid);
   const preview = b.body.length > 140 ? `${b.body.slice(0, 137)}...` : b.body;
-  if (side === 'EMPLOYER') notify(a.student_id, 'message_received', `${a.company_name || 'An employer'} sent you a message`, `About ${a.title}: ${preview}`, '#/student/applications');
-  else notify(a.employer_id, 'message_received', `${a.student_name || 'A candidate'} replied`, `About ${a.title}: ${preview}`, `#/employer/applications/${a.id}`);
+  if (side === 'EMPLOYER') notify(a.student_id, 'message_received', `${a.company_name || 'An employer'} sent you a message`, `About ${a.title}: ${preview}`, `#/student/messages?thread=${a.id}`);
+  else notify(a.employer_id, 'message_received', `${a.student_name || 'A candidate'} replied`, `About ${a.title}: ${preview}`, `#/employer/messages?thread=${a.id}`);
   res.status(201).json({ message: msgOut(db.prepare('SELECT * FROM application_messages WHERE id = ?').get(id)) });
 }));

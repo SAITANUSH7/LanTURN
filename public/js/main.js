@@ -1,5 +1,5 @@
-import { restoreSession, session, logout, onSessionChange } from './api.js';
-import { h, clear, icon, lantern, errorBox, loadingBlock, pageSkeleton } from './ui.js';
+import { restoreSession, session, logout, onSessionChange, post } from './api.js';
+import { h, clear, icon, lantern, errorBox, loadingBlock, pageSkeleton, toast } from './ui.js';
 import * as pub from './views/public.js';
 import * as stu from './views/student.js';
 import * as emp from './views/employer.js';
@@ -9,6 +9,7 @@ import { careerMap } from './views/careermap.js';
 import { setupPage } from './views/setup.js';
 import { roadmapPage } from './views/roadmap.js';
 import * as ai from './views/ai.js';
+import { inbox } from './views/messages.js';
 import './fx.js';
 import { initPolish } from './polish.js';
 import { t, LANGS, getLang, setLang } from './i18n.js';
@@ -36,6 +37,7 @@ const ROUTES = [
   ['/student/jobs', ['STUDENT'], stu.jobs, 'Jobs'],
   ['/student/jobs/:id', ['STUDENT'], stu.jobDetail, 'Job'],
   ['/student/applications', ['STUDENT'], stu.applications, 'Applications'],
+  ['/student/messages', ['STUDENT'], inbox, 'Messages'],
   ['/student/resume', ['STUDENT'], stu.resume, 'Resume'],
   ['/student/career', ['STUDENT'], stu.career, 'Career'],
   ['/student/profile', ['STUDENT'], stu.profile, 'Profile'],
@@ -54,6 +56,7 @@ const ROUTES = [
   ['/employer/jobs/:id/edit', ['EMPLOYER'], emp.jobForm, 'Edit job'],
   ['/employer/jobs/:id/candidates', ['EMPLOYER'], emp.candidates, 'Candidates'],
   ['/employer/applications/:id', ['EMPLOYER'], emp.candidate, 'Candidate'],
+  ['/employer/messages', ['EMPLOYER'], inbox, 'Messages'],
   ['/employer/company', ['EMPLOYER'], emp.company, 'Company'],
   ['/admin', ['ADMIN'], adm.employers, 'Employers'],
   ['/admin/ai', ['ADMIN'], adm.aiSettings, 'AI providers'],
@@ -67,12 +70,12 @@ const ROUTES = [
 const NAV = {
   STUDENT: [
     ['Overview', [['/student', 'Home', 'home']]],
-    ['Opportunities', [['/student/jobs', 'Jobs', 'briefcase'], ['/student/applications', 'Applications', 'clock']]],
+    ['Opportunities', [['/student/jobs', 'Jobs', 'briefcase'], ['/student/applications', 'Applications', 'clock'], ['/student/messages', 'Messages', 'mail']]],
     ['Documents', [['/student/resume', 'Resume', 'file'], ['/student/builder', 'Builder', 'file']]],
     ['Grow', [['/student/roadmap', 'Roadmap', 'route'], ['/student/career', 'Career', 'route'], ['/student/dna', 'DNA', 'sparkle'], ['/student/arena', 'Arena', 'bolt'], ['/student/coach', 'Coach', 'users']]],
     ['Account', [['/student/profile', 'Profile', 'user']]],
   ],
-  EMPLOYER: [['Hiring', [['/employer', 'Dashboard', 'chart'], ['/employer/jobs', 'Jobs', 'briefcase'], ['/employer/assistant', 'Assistant', 'sparkle'], ['/employer/company', 'Company', 'building']]]],
+  EMPLOYER: [['Hiring', [['/employer', 'Dashboard', 'chart'], ['/employer/jobs', 'Jobs', 'briefcase'], ['/employer/messages', 'Messages', 'mail'], ['/employer/assistant', 'Assistant', 'sparkle'], ['/employer/company', 'Company', 'building']]]],
   ADMIN: [['Administration', [['/admin', 'Employers', 'shield'], ['/admin/ai', 'AI providers', 'sparkle'], ['/admin/system', 'System', 'chart']]]],
 };
 export const homeFor = (role) => (role === 'STUDENT' ? '/student' : role === 'EMPLOYER' ? '/employer' : role === 'ADMIN' ? '/admin' : '/');
@@ -129,6 +132,37 @@ function shell() {
   return app;
 }
 
+// Live notifications. EventSource cannot send an Authorization header, so the client trades its bearer token for a
+// single-use ticket (POST /api/realtime/ticket) and connects with that. The ticket dies after a minute, so a dropped
+// connection is not re-subscribed to: it is re-ticketed.
+let live = null; let liveFor = null; let liveRetry = null;
+function closeLive() { try { live?.close(); } catch { /* already closed */ } live = null; liveFor = null; clearTimeout(liveRetry); }
+async function connectLive() {
+  const user = session.user;
+  if (!user || user.role === 'ADMIN') { closeLive(); return; }
+  if (live && liveFor === user.id) return;
+  closeLive();
+  liveFor = user.id;
+  let ticket = null;
+  try { ticket = (await post('/realtime/ticket')).ticket; } catch { return; }
+  if (!ticket || liveFor !== user.id) return;
+  const es = new EventSource(`/api/realtime/stream?ticket=${encodeURIComponent(ticket)}`);
+  live = es;
+  es.addEventListener('notification', (ev) => {
+    let detail = {};
+    try { detail = JSON.parse(ev.data); } catch { /* keep the bell refresh anyway */ }
+    window.dispatchEvent(new CustomEvent('lan:notification', { detail }));
+    ai.refreshBell();
+    if (detail?.title) toast(detail.title, 'success');
+  });
+  es.onerror = () => {
+    try { es.close(); } catch { /* ignore */ }
+    if (live !== es) return;
+    live = null; liveFor = null;
+    liveRetry = setTimeout(connectLive, 15000);
+  };
+}
+
 let renderId = 0;
 async function render() {
   const id = ++renderId;
@@ -152,7 +186,7 @@ async function render() {
   const main = document.getElementById('main');
   document.title = `${route.title} · LanTURN`;
   main.append(pageSkeleton());
-  if (user && user.role !== 'ADMIN') ai.refreshBell();
+  if (user && user.role !== 'ADMIN') { ai.refreshBell(); connectLive(); } else closeLive();
   const ctx = { params, query: parseQuery(), navigate, onLeave: (fn) => leave.push(fn), user };
   try {
     const node = await route.view(ctx);
@@ -168,7 +202,7 @@ async function render() {
   main.focus({ preventScroll: true });
 }
 
-onSessionChange(() => { /* shell is rebuilt on every render */ });
+onSessionChange(() => { if (!session.user) closeLive(); });
 window.addEventListener('hashchange', render);
 // Liquid-glass specular highlight follows the pointer over any card.
 document.addEventListener('pointermove', (e) => {

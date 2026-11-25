@@ -50,7 +50,13 @@ LanTURN 3.0 is a balanced full-stack platform connecting students, colleges, and
 - **Candidate Match Scoring:** Deterministic percentage matching comparing job skill requirements against student profile and resume.
 - **Public Profile Inspector:** Detailed candidate profile viewing (personal, education, verified skills, medals, and Career DNA).
 
-### 3. AI Career Intelligence & Learning Ecosystem
+### 3. Two-sided engagement
+
+A shared **inbox** (every candidate conversation in one place, unread counts, live over SSE), **saved searches** with
+match alerts, **interviews inline in the thread**, and **reply-time statistics** shown to both sides: "usually replies
+in about 3 h" on the student's application, and the same number on the employer's dashboard.
+
+### 4. AI Career Intelligence & Learning Ecosystem
 - **Career AIsle:** 40+ curated industry career domains (Frontend, Backend, AI/ML, DevOps, Cloud Security, etc.) with 5 progressive stages, topics, resources, and hands-on stage projects.
 - **AI Resume Gap Analyzer:** Upload resume PDF to automatically detect covered vs. missing topics for any career domain and batch-sync progress.
 - **Career DNA:** Multi-dimensional skill radar visualizing Technical Depth, System Design, Execution Speed, and Collaboration with archetype analysis.

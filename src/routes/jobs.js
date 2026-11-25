@@ -9,6 +9,7 @@ import { db, tx } from '../db.js';
 import { conflict, notFound, forbidden, parse, wrap, page } from '../util.js';
 import { authenticate, requireRole } from '../auth.js';
 import { idParam, studentContext, loadJobSkills, serializeJob, JOB_SELECT, matchFor, recordEvent, eventsFor, openJobsBundle } from './common.js';
+import { replyStats, replyLabel } from '../replyStats.js';
 
 export const jobsRouter = Router();
 const open = "j.status = 'OPEN' AND (j.deadline IS NULL OR j.deadline >= date('now'))";
@@ -166,6 +167,8 @@ function applicationOut(id) {
     events: eventsFor(a.id),
     interviews: interviewsFor(a.id),
     messageCount: db.prepare('SELECT COUNT(*) n FROM application_messages WHERE application_id = ?').get(a.id).n,
+    // "Will anyone answer me?" - answered from the employer's own history, not from a promise on a careers page.
+    employerReply: replyLabel(replyStats(db.prepare('SELECT employer_id FROM jobs WHERE id = ?').get(a.job_id)?.employer_id ?? 0)),
   };
 }
 
