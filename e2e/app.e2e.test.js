@@ -117,7 +117,8 @@ test('admin system: stat tiles carry their own trend, and the queue is a strip n
   // Every tile says what its number means. On a fresh process there is only one sample, so the sparkline is absent
   // by design and the hint explains that instead of drawing a flat line through a single point.
   assert.equal(await page.locator('.stat--tile .stat__hint').count(), 4);
-  assert.match(await page.locator('.stat--tile').nth(1).innerText(), /Memory/);
+  // textContent, not innerText: the label is uppercased by CSS and innerText reflects that.
+  assert.match(await page.locator('.stat--tile').nth(1).textContent(), /Memory \(RSS\)/);
 
   const queueCard = page.locator('.card').filter({ has: page.locator('h3', { hasText: 'Background queue' }) });
   assert.equal(await queueCard.count(), 1);
