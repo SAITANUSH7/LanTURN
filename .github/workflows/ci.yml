@@ -39,7 +39,16 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - name: End-to-end and accessibility tests
-        run: npm run e2e
+        run: |
+          set -o pipefail
+          npm run e2e 2>&1 | tee e2e.log
+      # Annotations go through api.github.com and are readable from any environment; the Actions log archive is not.
+      - name: Report failures as annotations
+        if: failure()
+        run: node scripts/ci-annotate.mjs e2e.log
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with: { name: e2e-log, path: e2e.log, retention-days: 5 }
 
   python:
     runs-on: ubuntu-latest

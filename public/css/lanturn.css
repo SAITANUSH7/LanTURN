@@ -1683,7 +1683,10 @@ body[data-section='dna'] li:nth-child(6n+6) .meter__fill { background: var(--c-i
 }
 
 /* ---------- 2. Canvas ---------------------------------------------------------------------------------------- */
-html { background: #07070a; }
+/* The canvas must come from the token, not a literal: with a hardcoded #07070a the light theme kept a dark html
+   background behind the light .bg layer, so every page mixed dark-canvas assumptions with light text - a
+   colour-contrast failure on 14 routes (found by the light-theme axe audit) and a dark overscroll band. */
+html { background: var(--void); }
 body {
   background: transparent;
   color: var(--text);
