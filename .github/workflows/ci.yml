@@ -23,9 +23,16 @@ jobs:
         if: matrix.native == 'with C++ core'
         run: npm run build:native
       - name: Tests
-        run: npm test
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee unit.log
         env:
           DISABLE_NATIVE: ${{ matrix.native == 'JS only' && '1' || '' }}
+      # Same reason as the browser job: the Actions log archive is not reachable from every environment, check-run
+      # annotations are. A failing matrix cell should name the test, not just the node version.
+      - name: Report failures as annotations
+        if: failure()
+        run: node scripts/ci-annotate.mjs unit.log
       - name: Verify demo seeder
         run: npm run seed
 
