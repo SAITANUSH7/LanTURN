@@ -2098,6 +2098,7 @@ a.card:hover, .card--hover:hover, .card--link:hover {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0)), rgba(10, 10, 14, 0.72) !important;
   -webkit-backdrop-filter: blur(22px); backdrop-filter: blur(22px);
   border-right: 1px solid var(--line);
+  overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin;
 }
 .side::after {
   content: ''; position: absolute; top: 0; right: -1px; width: 1px; height: 100%;
