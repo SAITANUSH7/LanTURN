@@ -89,8 +89,49 @@ export async function jobs({ query }) {
     h('div', { class: 'form-grid' }, field('Search', qEl), field('Type', typeEl), field('Location', locEl),
       h('div', { class: 'field' }, h('span', { class: 'label' }, 'Work mode'), h('label', { class: 'check', style: { minHeight: '46px', alignItems: 'center' } }, remoteEl, 'Remote only'))),
     h('div', { class: 'form-actions', style: { marginTop: '16px' } }, h('button', { class: 'btn', type: 'submit' }, icon('search'), 'Search')));
+  // Saved searches: the filters you always type again, plus an alert when a job finally matches.
+  const savedBar = h('section', { class: 'saved', hidden: true, 'aria-label': 'Saved searches' }, h('div', { class: 'chips' }));
+  async function loadSaved() {
+    try {
+      const d = await get('/student/saved-searches');
+      const chips = savedBar.querySelector('.chips');
+      clear(chips);
+      savedBar.hidden = !d.items.length;
+      if (!d.items.length) return;
+      chips.append(h('span', { class: 'saved__label' }, icon('star'), 'Saved searches'));
+      for (const sv of d.items) {
+        chips.append(h('span', { class: 'chip chip--saved' },
+          h('button', {
+            type: 'button', class: 'chip__go', title: `Apply "${sv.label}"`,
+            onclick: () => {
+              Object.assign(f, { q: sv.q, type: sv.type, location: sv.location, remote: sv.remote, page: 1 });
+              qEl.value = sv.q; typeEl.value = sv.type; locEl.value = sv.location; remoteEl.checked = sv.remote;
+              load();
+            },
+          }, `${sv.label} · ${sv.matches}`),
+          h('button', {
+            type: 'button', class: 'chip__x', 'aria-label': `Delete saved search ${sv.label}`,
+            onclick: async () => { try { await del(`/student/saved-searches/${sv.id}`); await loadSaved(); toast('Saved search removed'); } catch (e) { toast(e.message, 'error'); } },
+          }, '×')));
+      }
+    } catch { /* the panel is a convenience, never a blocker */ }
+  }
+  const saveBtn = h('button', {
+    type: 'button', class: 'btn btn--secondary',
+    onclick: (ev) => busy(ev.currentTarget, async () => {
+      const filters = { q: qEl.value.trim(), type: typeEl.value, location: locEl.value.trim(), remote: remoteEl.checked, minMatch: 70 };
+      if (!filters.q && !filters.type && !filters.location && !filters.remote) { toast('Add a filter first - an empty search would match every job', 'error'); return; }
+      try {
+        const r = await post('/student/saved-searches', filters);
+        toast(r.duplicate ? 'That search is already saved' : 'Saved - we will alert you when a job matches', 'success');
+        await loadSaved();
+      } catch (e) { toast(e.message, 'error'); }
+    }),
+  }, icon('star'), 'Save search');
+  form.querySelector('.form-actions')?.append(saveBtn);
+  await loadSaved();
   load();
-  return wrapPage(pageHead('Jobs', 'Every card shows how well your skills match.'), form, results, liveJobs(() => qEl.value.trim() || f.q, () => locEl.value.trim()));
+  return wrapPage(pageHead('Jobs', 'Every card shows how well your skills match.'), form, savedBar, results, liveJobs(() => qEl.value.trim() || f.q, () => locEl.value.trim()));
 }
 
 export async function jobDetail({ params }) {
@@ -169,7 +210,7 @@ function appCard(a, reload) {
   } }, 'Withdraw');
   return h('div', { class: 'card stack' },
     h('div', { class: 'row row--between' },
-      h('div', null, h('h3', null, a.job.title), h('p', { class: 'muted' }, `${a.job.company} · applied ${fmtDate(a.createdAt)}`)),
+      h('div', null, h('h3', null, a.job.title), h('p', { class: 'muted' }, `${a.job.company} · applied ${fmtDate(a.createdAt)}`), a.employerReply ? h('p', { class: 'muted reply-hint' }, icon('clock'), a.employerReply) : null),
       h('div', { class: 'row' }, h('div', { class: 'job__score' }, scoreRing(a.matchScore, { size: 'sm' }), 'match'), statusBadge(a.status))),
     h('ol', { class: 'timeline', 'aria-label': 'Status history' }, a.events.map((e, i) => h('li', { class: 'timeline__item' },
       h('span', { class: `timeline__dot ${i < a.events.length - 1 ? 'timeline__dot--done' : ''}` }, icon(i < a.events.length - 1 ? 'check' : 'clock')),

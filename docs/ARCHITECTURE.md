@@ -114,6 +114,34 @@ friends. Interactions that need JavaScript live in `public/js/polish.js` (ripple
 tooltips, reveal stagger) and degrade to nothing without a fine pointer. `public/design-system.html` renders the same
 components for a visual check.
 
+## The engagement layer (inbox, alerts, reply time)
+
+Both sides of a hiring pipeline previously met inside a single application page: a message existed only there, and a
+student had to open every application to find out that an employer had written back. Three additions close that gap
+without adding infrastructure:
+
+- **One inbox over the existing threads** (`src/routes/engagement.js`, `public/js/views/messages.js`). No second
+  messaging stack: `application_messages` stays the only message table, and `message_reads` adds one row per
+  (user, application) holding the highest message id that person has seen. Unread is then a single indexed
+  comparison, and "opening a thread" is what marks it read - including on the student's own application card, which
+  uses the same component.
+- **Saved searches with alerts** (`saved_searches`, task `alerts.saved_search`). A filter set plus a minimum match
+  score; on every new job the task evaluates each subscription against the cached job bundle and notifies only the
+  people whose threshold it clears. Idempotent through the `(type, link)` pair already in `notifications`, so a
+  retried task never double-alerts.
+- **Reply-time statistics** (`src/replyStats.js`). Median and p90 hours from a candidate's first message to the
+  employer's first reply, computed from the threads that already exist. Students see it on their application
+  ("Usually replies in about 3 h"); employers see it on the dashboard, because a number candidates can see belongs
+  where it can be improved.
+
+Interviews are part of the conversation: `GET /applications/:id/messages` interleaves scheduled and cancelled
+interviews as `SYSTEM` entries, so "when was I invited, and did they cancel?" is answered in the thread.
+
+The browser cannot open an `EventSource` with an `Authorization` header, and the refresh cookie is deliberately scoped
+to `/api/auth`. So `POST /api/realtime/ticket` trades a bearer token for a **single-use, 60-second** ticket that opens
+only `/api/realtime/stream`. The client re-tickets after any drop rather than reconnecting with a dead ticket, and a
+45-second poll keeps the inbox honest if the stream is blocked entirely.
+
 ## Why there are two frontends
 
 `public/` is the shipped client: vanilla ES modules, one CSS file, no build step, and the only client the
