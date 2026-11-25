@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import readline from 'node:readline';
-import { ROOT, config } from './config.js';
+import { ROOT } from './config.js';
 import { allow, success, failure } from './ai/breaker.js';
 
 // Supervisor for native/build/Release/lanturn-search, the C++ full-text engine (BM25, prefix match, field weights).
@@ -100,5 +100,4 @@ export async function searchJobs(bundle, query, limit = 1000) {
 export function stopSearch() {
   try { proc?.stdin.write('QUIT\n'); } catch { /* ignore */ }
   setTimeout(() => { try { proc?.kill(); } catch { /* ignore */ } }, 300).unref();
-  void config;
 }

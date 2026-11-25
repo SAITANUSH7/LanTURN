@@ -9,7 +9,7 @@ import { db, tx, parseJson } from '../db.js';
 import { config } from '../config.js';
 import { HttpError, bad, notFound, parse, wrap } from '../util.js';
 import { authenticate, requireRole } from '../auth.js';
-import { analyzeResume, buildRoadmap, checkQuota } from '../ai/index.js';
+import { analyzeResume, buildRoadmap, checkQuota, refundQuota } from '../ai/index.js';
 import { tailorResume } from '../ai/features.js';
 import { autoSetup, attachMl } from '../ai/autoSetup.js';
 import { startVerdict } from '../ai/fusion.js';
@@ -134,9 +134,11 @@ function ownedResume(userId, id) {
 
 /** Run an analysis and persist it, also merging recognised skills into the profile. */
 async function runAnalysis(userId, resume) {
-  checkQuota(userId, 'resume_analysis');
+  // Reserved up front so parallel uploads cannot overspend; handed back when the rules engine answers for free.
+  const ticket = checkQuota(userId, 'resume_analysis');
   try {
     const out = await analyzeResume(resume.extracted_text);
+    if (out.source !== 'llm') refundQuota(ticket);
     tx(() => {
       db.prepare(`INSERT INTO resume_analyses (resume_id, status, overall_score, deterministic_score, ai_score, breakdown, extracted_skills, strengths, improvements, summary, source)
         VALUES (?, 'COMPLETED', ?,?,?,?,?,?,?,?,?)`)
@@ -227,7 +229,7 @@ studentRouter.post('/resumes/:id/tailor', ...student, wrap(async (req, res) => {
     skills: z.array(z.string().trim().max(60)).max(15).optional(),
   }).strict(), req.body);
 
-  checkQuota(req.user.id, 'resume_analysis');
+  const tailorTicket = checkQuota(req.user.id, 'resume_analysis');
 
   let target = {
     title: b.title || 'Target Role',
@@ -246,6 +248,7 @@ studentRouter.post('/resumes/:id/tailor', ...student, wrap(async (req, res) => {
   }
 
   const result = await tailorResume(r.extracted_text, target);
+  if (result.source !== 'llm') refundQuota(tailorTicket);
   res.json({
     resumeId: r.id,
     targetRole: target.title,
@@ -255,7 +258,11 @@ studentRouter.post('/resumes/:id/tailor', ...student, wrap(async (req, res) => {
 
 studentRouter.delete('/resumes/:id', ...student, wrap(async (req, res) => {
   const r = ownedResume(req.user.id, req.params.id);
-  if (r.file_key) fs.rmSync(path.join(config.uploadDir, r.file_key), { force: true });
+  if (r.file_key) {
+    fs.rmSync(path.join(config.uploadDir, r.file_key), { force: true });
+    // The upload row (created by the signed-upload path) points at the same bytes.
+    db.prepare('DELETE FROM uploads WHERE key = ? AND user_id = ?').run(r.file_key, req.user.id);
+  }
   db.prepare('DELETE FROM resumes WHERE id = ?').run(r.id);
   res.json({ ok: true });
 }));
@@ -307,8 +314,9 @@ studentRouter.post('/career/roadmaps', ...student, wrap(async (req, res) => {
   const target = resolveTarget(req.body);
   const ctx = studentContext(req.user.id);
   const gap = skillGap(target.required, ctx.skillIds);
-  checkQuota(req.user.id, 'roadmap');
+  const ticket = checkQuota(req.user.id, 'roadmap');
   const { plan, source } = await buildRoadmap(target.title, ctx.skills.map((s) => s.name), gap);
+  if (source !== 'llm') refundQuota(ticket);
   const id = Number(db.prepare('INSERT INTO roadmaps (student_id, target_type, target_id, target_title, gap, plan, source) VALUES (?,?,?,?,?,?,?)')
     .run(req.user.id, target.type, target.id, target.title, JSON.stringify(gapOut(target, gap, ctx.skills.length)), JSON.stringify(plan), source).lastInsertRowid);
   res.status(201).json(roadmapOut(db.prepare('SELECT * FROM roadmaps WHERE id = ?').get(id)));

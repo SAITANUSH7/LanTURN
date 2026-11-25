@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { db, tx } from '../db.js';
-import { notFound, conflict, bad, parse, wrap, page } from '../util.js';
+import { HttpError, notFound, conflict, bad, parse, wrap, page } from '../util.js';
 import { authenticate } from '../auth.js';
 import { notify } from '../notify.js';
 import { emitToUser } from '../realtime.js';
@@ -27,7 +27,9 @@ function userSummary(userId) {
     name = 'LanTURN Admin';
     headline = 'Platform Administrator';
   }
-  return { id: u.id, name, role: u.role, headline, email: u.email };
+  // Deliberately no email: it is shown on the feed, in connections and in DM lists to every signed-in user.
+  // Contact happens through LanTURN's own messaging.
+  return { id: u.id, name, role: u.role, headline };
 }
 
 // ==========================================
@@ -80,8 +82,8 @@ networkingRouter.get('/networking/connections', ...auth, wrap(async (req, res) =
 networkingRouter.post('/networking/connect/:userId', ...auth, wrap(async (req, res) => {
   const targetId = idParam(req.params.userId);
   if (targetId <= 0 || targetId === req.user.id) throw bad('Invalid recipient');
-  const target = db.prepare('SELECT id, role FROM users WHERE id = ?').get(targetId);
-  if (!target) throw notFound('User not found');
+  const target = db.prepare('SELECT id, role, verification FROM users WHERE id = ?').get(targetId);
+  if (!target || target.verification === 'REJECTED') throw notFound('User not found');
 
   const existing = db.prepare(`
     SELECT * FROM connections
@@ -197,6 +199,15 @@ networkingRouter.post('/networking/posts', ...auth, wrap(async (req, res) => {
   });
 }));
 
+// Delete a post: the author, or an admin moderating the feed.
+networkingRouter.delete('/networking/posts/:id', ...auth, wrap(async (req, res) => {
+  const post = db.prepare('SELECT id, author_id FROM posts WHERE id = ?').get(idParam(req.params.id));
+  if (!post) throw notFound('Post not found');
+  if (post.author_id !== req.user.id && req.user.role !== 'ADMIN') throw notFound('Post not found');
+  db.prepare('DELETE FROM posts WHERE id = ?').run(post.id);
+  res.json({ ok: true });
+}));
+
 // Like / unlike post
 networkingRouter.post('/networking/posts/:id/like', ...auth, wrap(async (req, res) => {
   const postId = idParam(req.params.id);
@@ -222,6 +233,7 @@ networkingRouter.post('/networking/posts/:id/like', ...auth, wrap(async (req, re
 // Get comments for a post
 networkingRouter.get('/networking/posts/:id/comments', ...auth, wrap(async (req, res) => {
   const postId = idParam(req.params.id);
+  if (!db.prepare('SELECT 1 FROM posts WHERE id = ?').get(postId)) throw notFound('Post not found');
   const rows = db.prepare('SELECT * FROM post_comments WHERE post_id = ? ORDER BY id ASC').all(postId);
   res.json({
     items: rows.map((c) => ({
@@ -332,8 +344,13 @@ networkingRouter.get('/messages/:userId', ...auth, wrap(async (req, res) => {
 networkingRouter.post('/messages/:userId', ...auth, wrap(async (req, res) => {
   const peerId = idParam(req.params.userId);
   if (peerId <= 0 || peerId === req.user.id) throw bad('Invalid recipient');
+  const peer = db.prepare('SELECT id, verification FROM users WHERE id = ?').get(peerId);
+  if (!peer || peer.verification === 'REJECTED') throw notFound('That person is not on LanTURN');
 
   const { content } = parse(z.object({ content: z.string().trim().min(1).max(2000) }).strict(), req.body);
+  // A first message from a stranger is limited, so one account cannot spam the whole campus.
+  const fresh = db.prepare("SELECT COUNT(*) n FROM direct_messages WHERE sender_id = ? AND created_at >= datetime('now','-1 day')").get(req.user.id).n;
+  if (fresh >= 60) throw new HttpError(429, 'RATE_LIMITED', 'You have started a lot of conversations today. Try again tomorrow.');
 
   const id = Number(
     db.prepare('INSERT INTO direct_messages (sender_id, recipient_id, content) VALUES (?, ?, ?)')

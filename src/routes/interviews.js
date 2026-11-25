@@ -47,10 +47,10 @@ interviewsRouter.post('/employer/applications/:id/interviews', authenticate, req
   if (db.prepare("SELECT COUNT(*) n FROM interviews WHERE application_id = ? AND status = 'SCHEDULED'").get(a.id).n >= 5) throw conflict('This candidate already has 5 scheduled interviews. Cancel one first.');
   const id = tx(() => {
     const iid = Number(db.prepare('INSERT INTO interviews (application_id, starts_at, duration_min, mode, location, note, created_by) VALUES (?,?,?,?,?,?,?)')
-      .run(a.id, new Date(b.startsAt).toISOString(), b.durationMin, b.mode, b.location, b.note, req.actorId ?? req.user.id).lastInsertRowid);
+      .run(a.id, new Date(b.startsAt).toISOString(), b.durationMin, b.mode, b.location, b.note, req.user.id).lastInsertRowid);
     if (a.status === 'SHORTLISTED') {
       db.prepare("UPDATE applications SET status = 'INTERVIEW', updated_at = datetime('now') WHERE id = ?").run(a.id);
-      recordEvent(a.id, 'SHORTLISTED', 'INTERVIEW', req.actorId ?? req.user.id);
+      recordEvent(a.id, 'SHORTLISTED', 'INTERVIEW', req.user.id);
     }
     return iid;
   });
@@ -99,9 +99,9 @@ interviewsRouter.post('/applications/:id/messages', authenticate, requireRole('S
   if (a.status === 'WITHDRAWN') throw conflict('This application was withdrawn');
   const prior = db.prepare('SELECT sender_role FROM application_messages WHERE application_id = ?').all(a.id);
   if (side === 'STUDENT' && !prior.some((m) => m.sender_role === 'EMPLOYER')) throw forbidden('You can reply once the employer has written to you', 'EMPLOYER_MUST_START');
-  const recent = db.prepare("SELECT COUNT(*) n FROM application_messages WHERE sender_id = ? AND created_at >= datetime('now','-1 hour')").get(req.actorId ?? req.user.id).n;
+  const recent = db.prepare("SELECT COUNT(*) n FROM application_messages WHERE sender_id = ? AND created_at >= datetime('now','-1 hour')").get(req.user.id).n;
   if (recent >= 20) throw new HttpError(429, 'RATE_LIMITED', 'Too many messages this hour. Please wait a little.');
-  const id = Number(db.prepare('INSERT INTO application_messages (application_id, sender_id, sender_role, body) VALUES (?,?,?,?)').run(a.id, req.actorId ?? req.user.id, side, b.body).lastInsertRowid);
+  const id = Number(db.prepare('INSERT INTO application_messages (application_id, sender_id, sender_role, body) VALUES (?,?,?,?)').run(a.id, req.user.id, side, b.body).lastInsertRowid);
   const preview = b.body.length > 140 ? `${b.body.slice(0, 137)}...` : b.body;
   if (side === 'EMPLOYER') notify(a.student_id, 'message_received', `${a.company_name || 'An employer'} sent you a message`, `About ${a.title}: ${preview}`, '#/student/applications');
   else notify(a.employer_id, 'message_received', `${a.student_name || 'A candidate'} replied`, `About ${a.title}: ${preview}`, `#/employer/applications/${a.id}`);

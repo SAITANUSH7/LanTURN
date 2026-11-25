@@ -5,11 +5,57 @@ import { extractSkills, skillByName } from './skills.js';
 import { deterministicResume, rubricFromRules, narrativeFromRules, roadmapFromRules } from './scoring.js';
 import { llmEnabled, llmResume, llmRoadmap } from './llm.js';
 
-/** Count AI actions per user per day and refuse past the quota. */
+/**
+ * AI quota. Each feature has its own daily allowance (a chat message should not cost the same as a verdict), and an
+ * action is only charged when a language model was actually called: the rules engine answers for free.
+ *
+ *   const ticket = checkQuota(userId, 'resume_analysis');   // throws when the day's allowance is spent
+ *   ... run the feature ...
+ *   if (result.source !== 'llm') refundQuota(ticket);       // rules answered: give the allowance back
+ */
+const LIMITS = {
+  chat: 20,
+  interview: 10,
+  resume_analysis: 10,
+  jd: 15,
+  arena: 10,
+  dna: 5,
+  roadmap: 5,
+  cover: 5,
+  cdna: 5,
+  map: 10,
+  rank: 20,
+  verdict: 5,
+  ocr: 3,
+  tailor: 5,
+};
+export const quotaLimit = (kind) => LIMITS[kind] ?? config.aiDailyQuota;
+export const quotaSnapshot = (userId) => Object.fromEntries(
+  [...new Set(Object.keys(LIMITS).concat(db.prepare('SELECT DISTINCT kind FROM ai_usage WHERE user_id = ?').all(userId).map((r) => r.kind)))]
+    .map((kind) => [kind, { used: usedToday(userId, kind), limit: quotaLimit(kind) }]),
+);
+const usedToday = (userId, kind) => db.prepare("SELECT COUNT(*) AS n FROM ai_usage WHERE user_id = ? AND kind = ? AND date(created_at) = date('now')").get(userId, kind).n;
+
+export function assertQuota(userId, kind) {
+  const limit = quotaLimit(kind);
+  if (usedToday(userId, kind) >= limit) {
+    throw new HttpError(429, 'AI_QUOTA_EXCEEDED', `Daily limit of ${limit} for this AI feature reached. It resets at midnight UTC.`, { kind, limit });
+  }
+}
+
+/** Reserve one unit. Returns the row id so a rules-engine answer can hand it back. */
+export function spendQuota(userId, kind) {
+  return Number(db.prepare('INSERT INTO ai_usage (user_id, kind) VALUES (?,?)').run(userId, kind).lastInsertRowid);
+}
+
+export function refundQuota(ticket) {
+  if (!ticket) return;
+  try { db.prepare('DELETE FROM ai_usage WHERE id = ?').run(ticket); } catch { /* already gone */ }
+}
+
 export function checkQuota(userId, kind) {
-  const used = db.prepare("SELECT COUNT(*) AS n FROM ai_usage WHERE user_id = ? AND created_at >= datetime('now','-1 day')").get(userId).n;
-  if (used >= config.aiDailyQuota) throw new HttpError(429, 'AI_QUOTA_EXCEEDED', `Daily AI limit of ${config.aiDailyQuota} reached. Try again tomorrow.`);
-  db.prepare('INSERT INTO ai_usage (user_id, kind) VALUES (?,?)').run(userId, kind);
+  assertQuota(userId, kind);
+  return spendQuota(userId, kind);
 }
 
 /**

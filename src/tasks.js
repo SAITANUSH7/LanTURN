@@ -1,4 +1,7 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { db } from './db.js';
+import { config } from './config.js';
 import { registerTask, enqueue } from './queue.js';
 import { matchMany, pack } from './match.js';
 import { notify } from './notify.js';
@@ -27,12 +30,17 @@ registerTask('job.match_notify', async ({ jobId }) => {
 
 /** Housekeeping: expired sessions, old failed-login rows, finished tasks; keep the SQLite file healthy. */
 registerTask('maintenance.cleanup', async () => {
-  const del = (sql) => Number(db.prepare(sql).run().changes);
+  const del = (sql) => Number(db.prepare(sql).run().changes).valueOf();
+  // Files on disk are not covered by any cascade: drop signed-but-never-uploaded rows, and the bytes behind them.
+  const orphans = db.prepare("SELECT key FROM uploads WHERE size_bytes = 0 AND created_at < datetime('now','-1 day')").all();
+  for (const o of orphans) { try { fs.rmSync(path.join(config.uploadDir, o.key), { force: true }); } catch { /* gone */ } }
   const out = {
     refreshTokens: del("DELETE FROM refresh_tokens WHERE expires_at < datetime('now', '-1 day') OR revoked_at < datetime('now', '-7 days')"),
     loginAttempts: del("DELETE FROM login_attempts WHERE at < datetime('now', '-1 day')"),
     doneTasks: del("DELETE FROM tasks WHERE status = 'DONE' AND finished_at < datetime('now', '-7 days')"),
     failedTasks: del("DELETE FROM tasks WHERE status = 'FAILED' AND finished_at < datetime('now', '-30 days')"),
+    expiredResets: del("DELETE FROM password_resets WHERE expires_at < datetime('now', '-30 days')"),
+    orphanUploads: del("DELETE FROM uploads WHERE size_bytes = 0 AND created_at < datetime('now','-1 day')"),
   };
   db.exec('PRAGMA optimize');
   db.exec('PRAGMA wal_checkpoint(PASSIVE)');

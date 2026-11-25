@@ -59,7 +59,7 @@ careerMapRouter.post('/career/map/insight', ...student, wrap(async (req, res) =>
   const b = parse(z.object({ domain: z.string().trim().max(40).optional() }).strict(), req.body ?? {});
   const { map } = computeCareerMap(req.user.id, b.domain);
   if (map.needsInput) throw bad('Upload a resume or add skills first');
-  checkQuota(req.user.id, 'map');
+  const ticket = checkQuota(req.user.id, 'map');
   const f = map.focus;
   const facts = { direction: f.title, fitPercent: f.fit, skills: map.evidence.skills.slice(0, 25), currentStage: f.stages.find((s) => s.status === 'current')?.title, nextActions: map.nextActions.map((a) => a.title), alternatives: map.domains.filter((d) => d.id !== f.id).slice(0, 3).map((d) => `${d.title} (${d.fit}%)`) };
   const fallback = () => ({
@@ -73,6 +73,7 @@ careerMapRouter.post('/career/map/insight', ...student, wrap(async (req, res) =>
       return res.json({ ...out, source: 'llm' });
     } catch { /* fall back */ }
   }
+  refundQuota(ticket);
   res.json({ ...fallback(), source: 'rules' });
 }));
 

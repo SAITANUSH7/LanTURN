@@ -29,6 +29,7 @@ test('register, login, refresh rotation and reuse detection', async () => {
   const ref = await api('POST', '/auth/refresh', { cookie: s.cookie });
   assert.equal(ref.status, 200);
   const newCookie = ref.headers.get('set-cookie').split(';')[0];
+  // Outside the grace window a replay is an attack: the family dies, including the token it just issued.
   const reuse = await api('POST', '/auth/refresh', { cookie: s.cookie });
   assert.equal(reuse.status, 401);
   const afterReuse = await api('POST', '/auth/refresh', { cookie: newCookie });
@@ -210,13 +211,25 @@ test('prompt-injection text inside a resume cannot inflate the score', async () 
   assert.ok(up.body.analysis.overallScore < 60, `score was ${up.body.analysis.overallScore}`);
 });
 
-test('AI quota is enforced', async () => {
+test('AI quota is per feature, and the rules engine never spends it', async () => {
+  const { db } = await import('../src/db.js');
   const s = await register('STUDENT');
   const up = await api('POST', '/resumes', { token: s.accessToken, form: pdfForm(RESUME_LINES, { consent: 'true' }) });
+  assert.equal(up.status, 201);
+
+  // No provider is configured in tests, so every analysis is answered by the rules engine and refunded: 25 of them
+  // must all succeed instead of the 11th hitting a limit that was never earned.
   let last;
   for (let i = 0; i < 25; i++) last = await api('POST', `/resumes/${up.body.id}/analyze`, { token: s.accessToken });
-  assert.equal(last.status, 429);
-  assert.equal(last.body.error.code, 'AI_QUOTA_EXCEEDED');
+  assert.equal(last.status, 200);
+  assert.equal(last.body.analysis.source, 'rules');
+
+  // The allowance is real per feature: spend the chat allowance and the next message is refused.
+  for (let i = 0; i < 20; i++) db.prepare("INSERT INTO ai_usage (user_id, kind) VALUES (?, 'chat')").run(s.user.id);
+  const chat = await api('POST', '/chat/messages', { token: s.accessToken, body: { message: 'hello' } });
+  assert.equal(chat.status, 429);
+  assert.equal(chat.body.error.code, 'AI_QUOTA_EXCEEDED');
+  assert.equal(chat.body.error.details.kind, 'chat');
 });
 
 test('validation errors use the error envelope', async () => {

@@ -406,6 +406,86 @@ CREATE INDEX IF NOT EXISTS idx_appmsg_app ON application_messages(application_id
 db.exec("CREATE TABLE IF NOT EXISTS ml_feedback (user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, domain TEXT NOT NULL, consent_at TEXT NOT NULL)");
 db.exec('CREATE TABLE IF NOT EXISTS app_flags (key TEXT PRIMARY KEY, value TEXT NOT NULL)');
 
+// ---- Account lifecycle: password resets, upload ownership, and an audit trail for privileged actions. ----
+db.exec(`
+-- Every stored upload gets an owner and a kind, so files are never protected by "unguessable name" alone.
+-- Privileged actions (verification, role changes, unlocks, moderation) leave a trace.
+`);
+
+// ---- Migrations ----------------------------------------------------------------------------------------------
+// The CREATE TABLE block above is an idempotent bootstrap: it brings any database, old or new, to the current shape
+// without failing. Everything that cannot be expressed that way (ALTER TABLE ADD COLUMN) is a numbered migration, so
+// a deployment knows exactly what has been applied, in which order, and a future change never re-runs an old one.
+db.exec(`CREATE TABLE IF NOT EXISTS schema_migrations (
+  version INTEGER PRIMARY KEY,
+  name TEXT NOT NULL,
+  applied_at TEXT NOT NULL DEFAULT (datetime('now'))
+);`);
+
+const applied = new Set(db.prepare('SELECT version FROM schema_migrations').all().map((r) => r.version));
+function migrate(version, name, up) {
+  if (applied.has(version)) return false;
+  db.exec(`SAVEPOINT m${version}`); // a failed step leaves the database exactly as it was
+  try {
+    up();
+    db.prepare('INSERT INTO schema_migrations (version, name) VALUES (?, ?)').run(version, name);
+    db.exec(`RELEASE m${version}`);
+    return true;
+  } catch (e) {
+    db.exec(`ROLLBACK TO m${version}; RELEASE m${version}`);
+    throw new Error(`Migration ${version} (${name}) failed: ${e.message}`);
+  }
+}
+
+// 1: account lockout / forced sign-out. token_version invalidates every issued access token (disable, password change,
+// role change) without waiting for the 15-minute expiry. Rows created before this column existed read as 0.
+migrate(1, 'users-token-version-and-disable', () => {
+  for (const col of ['token_version INTEGER NOT NULL DEFAULT 0', 'disabled_at TEXT', 'disabled_reason TEXT']) {
+    try { db.exec(`ALTER TABLE users ADD COLUMN ${col}`); } catch (err) { if (!/duplicate column/i.test(err.message)) throw err; }
+  }
+});
+
+// 2: uploads get an owner + kind, so a file is never protected by "hard to guess" alone.
+migrate(2, 'uploads-ownership', () => {
+  db.exec(`CREATE TABLE IF NOT EXISTS uploads (
+    key TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    kind TEXT NOT NULL,
+    mime TEXT NOT NULL DEFAULT '',
+    size_bytes INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_uploads_user ON uploads(user_id, created_at DESC);`);
+});
+
+// 3: password reset tokens.
+migrate(3, 'password-resets', () => {
+  db.exec(`CREATE TABLE IF NOT EXISTS password_resets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token_hash TEXT NOT NULL UNIQUE,
+    expires_at TEXT NOT NULL,
+    used_at TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_password_resets_user ON password_resets(user_id, id DESC);`);
+});
+
+// 4: privileged-action audit trail.
+migrate(4, 'audit-log', () => {
+  db.exec(`CREATE TABLE IF NOT EXISTS audit_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    actor_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    action TEXT NOT NULL,
+    target TEXT NOT NULL DEFAULT '',
+    meta TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_log(created_at DESC);`);
+});
+
+db.exec(`PRAGMA user_version = ${Math.max(0, ...db.prepare('SELECT version FROM schema_migrations').all().map((r) => r.version))}`);
+
 // Change counters: triggers bump these on ANY write (routes, seed, scripts), so in-process caches can validate
 // themselves with one primary-key lookup instead of relying on every call site to remember to invalidate.
 db.exec(`
@@ -429,17 +509,36 @@ CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
 `);
 export const dataVersion = (name) => db.prepare('SELECT v FROM data_versions WHERE name = ?').get(name)?.v ?? 0;
 
-/** Run fn inside a transaction; rolls back on throw. */
+/** Transaction helpers: a nested tx() becomes a savepoint of the outer one, so a route can call another helper that
+ * already opens a transaction without "cannot start a transaction within a transaction". */
+let txDepth = 0;
+
+/**
+ * Run fn inside a transaction; rolls back on throw. Nested calls use SAVEPOINTs, and a promise-returning fn is awaited
+ * before commit, so `await tx(async () => ...)` cannot commit half its work. On the one shared connection, do not
+ * interleave two async transactions.
+ */
 export function tx(fn) {
-  db.exec('BEGIN');
+  const depth = txDepth++;
+  const name = `tx_${depth}`;
+  db.exec(depth === 0 ? 'BEGIN IMMEDIATE' : `SAVEPOINT ${name}`);
+  const finish = (err) => {
+    txDepth--;
+    if (err) db.exec(depth === 0 ? 'ROLLBACK' : `ROLLBACK TO ${name}; RELEASE ${name}`);
+    else db.exec(depth === 0 ? 'COMMIT' : `RELEASE ${name}`);
+  };
+  let out;
   try {
-    const out = fn();
-    db.exec('COMMIT');
-    return out;
+    out = fn();
   } catch (e) {
-    db.exec('ROLLBACK');
+    finish(e);
     throw e;
   }
+  if (out && typeof out.then === 'function') {
+    return out.then((v) => { finish(); return v; }, (e) => { finish(e); throw e; });
+  }
+  finish();
+  return out;
 }
 
 export const parseJson = (s, fallback = null) => {

@@ -5,7 +5,7 @@ import { config } from '../config.js';
 import { db, tx, parseJson } from '../db.js';
 import { HttpError, bad, notFound, parse, wrap } from '../util.js';
 import { authenticate, requireRole } from '../auth.js';
-import { checkQuota } from '../ai/index.js';
+import { checkQuota, refundQuota, quotaSnapshot } from '../ai/index.js';
 import { providerSummary, llmEnabled, PRESETS, resolveProvider, sealKey, testProvider, listModels, recentCalls } from '../ai/providers.js';
 import { GROUPS, currentRoutes, saveRoute, resetRoutes } from '../ai/routing.js';
 import * as F from '../ai/features.js';
@@ -60,8 +60,9 @@ aiRouter.get('/career/dna', ...student, wrap(async (req, res) => {
 aiRouter.post('/career/dna', ...student, wrap(async (req, res) => {
   const c = dnaContext(req.user.id);
   if (!c.skills.length) throw bad('Add at least one skill on your profile first');
-  checkQuota(req.user.id, 'dna');
+  const ticket = checkQuota(req.user.id, 'dna');
   const d = await F.careerDna(c);
+  if (d.source !== 'llm') refundQuota(ticket);
   db.prepare(`INSERT INTO career_dna (user_id, archetype, summary, dimensions, strengths, source, updated_at) VALUES (?,?,?,?,?,?,datetime('now'))
     ON CONFLICT(user_id) DO UPDATE SET archetype=excluded.archetype, summary=excluded.summary, dimensions=excluded.dimensions, strengths=excluded.strengths, source=excluded.source, updated_at=excluded.updated_at`)
     .run(req.user.id, d.archetype, d.summary, JSON.stringify(d.dimensions), JSON.stringify(d.strengths || []), d.source);
@@ -111,8 +112,9 @@ aiRouter.get('/arena/leaderboard', authenticate, wrap(async (_req, res) => {
 
 aiRouter.post('/arena/tests', ...student, wrap(async (req, res) => {
   const b = parse(z.object({ skill: z.string().trim().min(1).max(60), selfRating: z.number().int().min(1).max(3) }).strict(), req.body);
-  checkQuota(req.user.id, 'arena');
+  const ticket = checkQuota(req.user.id, 'arena');
   const g = await F.generateSkillTest(b.skill, b.selfRating);
+  if (g.source !== 'llm') refundQuota(ticket);
   const id = Number(db.prepare('INSERT INTO skill_tests (user_id, skill, tier, questions, source) VALUES (?,?,?,?,?)').run(req.user.id, b.skill, b.selfRating, JSON.stringify(g.questions), g.source).lastInsertRowid);
   res.status(201).json(testOut(db.prepare('SELECT * FROM skill_tests WHERE id = ?').get(id)));
 }));
@@ -129,8 +131,9 @@ aiRouter.post('/arena/tests/:id/submit', ...student, wrap(async (req, res) => {
   const t = db.prepare('SELECT * FROM skill_tests WHERE id = ? AND user_id = ?').get(idParam(req.params.id), req.user.id);
   if (!t) throw notFound('Test not found');
   if (t.status !== 'OPEN') throw new HttpError(409, 'ALREADY_SUBMITTED', 'This test was already submitted');
-  checkQuota(req.user.id, 'arena');
+  const ticket = checkQuota(req.user.id, 'arena');
   const ev = await F.evaluateSkillTest(t.skill, t.tier, parseJson(t.questions, []), b.answers);
+  if (ev.source !== 'llm') refundQuota(ticket);
   const correct = ev.results.filter((r) => r.correct).length;
   const medal = F.medalFor(t.tier, correct);
   const id = tx(() => {
@@ -152,14 +155,16 @@ function jobFor(userId, jobId) {
 aiRouter.post('/jobs/:id/cover-letter', ...student, wrap(async (req, res) => {
   const { row, gap } = jobFor(req.user.id, req.params.id);
   const p = db.prepare('SELECT * FROM student_profiles WHERE user_id = ?').get(req.user.id);
-  checkQuota(req.user.id, 'cover');
+  const ticket = checkQuota(req.user.id, 'cover');
   const out = await F.coverLetter({ name: p.full_name, degree: p.degree, college: p.college, jobTitle: row.title, company: row.company_name || '', matched: gap.matched.map((m) => m.skill), missing: gap.missing.map((m) => m.skill) });
+  if (out.source !== 'llm') refundQuota(ticket);
   res.json({ letter: out.letter, source: out.source });
 }));
 aiRouter.post('/jobs/:id/interview-prep', ...student, wrap(async (req, res) => {
   const { row, skills } = jobFor(req.user.id, req.params.id);
-  checkQuota(req.user.id, 'interview');
+  const ticket = checkQuota(req.user.id, 'interview');
   const out = await F.interviewPrep({ title: row.title, skills: skills.map((s) => s.name) });
+  if (out.source !== 'llm') refundQuota(ticket);
   res.json({ questions: out.questions, source: out.source });
 }));
 
@@ -194,11 +199,12 @@ aiRouter.post('/interviews/start', ...student, wrap(async (req, res) => {
     skills: z.array(z.string().trim().min(1).max(60)).max(10).optional(),
   }).strict(), req.body);
 
-  checkQuota(req.user.id, 'interview');
+  const ticket = checkQuota(req.user.id, 'interview');
   const ctx = studentContext(req.user.id);
   const candidateSkills = b.skills || ctx.skills.map((s) => s.name);
 
   const generated = await F.generateMockInterview(b.roleTitle, candidateSkills);
+  if (generated.source !== 'llm') refundQuota(ticket);
   const id = Number(
     db.prepare('INSERT INTO mock_interviews (student_id, role_title, questions, source) VALUES (?, ?, ?, ?)')
       .run(req.user.id, b.roleTitle, JSON.stringify(generated.questions), generated.source).lastInsertRowid
@@ -216,9 +222,10 @@ aiRouter.post('/interviews/:id/submit', ...student, wrap(async (req, res) => {
     answers: z.array(z.string().trim().max(4000)).min(1).max(10),
   }).strict(), req.body);
 
-  checkQuota(req.user.id, 'interview');
+  const ticket = checkQuota(req.user.id, 'interview');
   const questions = parseJson(r.questions, []);
   const evaluation = await F.evaluateMockInterview(r.role_title, questions, b.answers);
+  if (evaluation.source !== 'llm') refundQuota(ticket);
 
   db.prepare(`UPDATE mock_interviews SET answers = ?, feedback = ?, overall_score = ?, status = 'COMPLETED', source = ?, updated_at = datetime('now') WHERE id = ?`)
     .run(JSON.stringify(b.answers), JSON.stringify(evaluation), evaluation.overallScore, evaluation.source, r.id);
@@ -267,7 +274,7 @@ aiRouter.delete('/chat/threads/:id', ...chatRoles, wrap(async (req, res) => {
 }));
 aiRouter.post('/chat/messages', ...chatRoles, wrap(async (req, res) => {
   const b = parse(z.object({ threadId: z.number().int().positive().optional(), message: z.string().trim().min(1).max(1000) }).strict(), req.body);
-  checkQuota(req.user.id, 'chat');
+  const ticket = checkQuota(req.user.id, 'chat');
   const scope = scopeOf(req.user);
   let t;
   if (b.threadId) t = myThread(req.user, b.threadId);
@@ -278,6 +285,7 @@ aiRouter.post('/chat/messages', ...chatRoles, wrap(async (req, res) => {
   db.prepare("INSERT INTO chat_messages (thread_id, role, content) VALUES (?, 'user', ?)").run(t.id, b.message);
   const history = db.prepare('SELECT role, content FROM chat_messages WHERE thread_id = ? ORDER BY id').all(t.id);
   const reply = await F.chatReply(scope, chatContext(req.user), history);
+  if (reply.source !== 'llm') refundQuota(ticket);
   db.prepare("INSERT INTO chat_messages (thread_id, role, content, source) VALUES (?, 'assistant', ?, ?)").run(t.id, reply.text, reply.source);
   db.prepare("UPDATE chat_threads SET updated_at = datetime('now') WHERE id = ?").run(t.id);
   res.status(201).json({ threadId: t.id, reply: { role: 'assistant', content: reply.text, source: reply.source } });
@@ -287,8 +295,9 @@ aiRouter.post('/chat/messages', ...chatRoles, wrap(async (req, res) => {
 aiRouter.post('/employer/ai/job-description', ...employer, wrap(async (req, res) => {
   const b = parse(z.object({ title: z.string().trim().min(2).max(120), type: z.enum(['INTERNSHIP', 'FULL_TIME', 'PART_TIME', 'CONTRACT']).default('FULL_TIME'), location: z.string().trim().max(120).default(''), skills: z.array(z.string().trim().min(1).max(60)).max(15).default([]) }).strict(), req.body);
   const co = db.prepare('SELECT company_name, industry FROM employer_profiles WHERE user_id = ?').get(req.user.id);
-  checkQuota(req.user.id, 'jd');
+  const ticket = checkQuota(req.user.id, 'jd');
   const out = await F.jobDescription({ ...b, company: co?.company_name || '', industry: co?.industry || '' });
+  if (out.source !== 'llm') refundQuota(ticket);
   res.json(out);
 }));
 const cdnaOut = (r) => r && ({ personality: r.personality, summary: r.summary, dimensions: parseJson(r.dimensions, []), source: r.source, updatedAt: r.updated_at });
@@ -299,11 +308,12 @@ aiRouter.post('/employer/ai/company-dna', ...employer, wrap(async (req, res) => 
   const jobs = db.prepare('SELECT id, title, status, type FROM jobs WHERE employer_id = ?').all(req.user.id);
   const sk = loadJobSkills(jobs.map((j) => j.id));
   const co = db.prepare('SELECT company_name, industry, size, description FROM employer_profiles WHERE user_id = ?').get(req.user.id);
-  checkQuota(req.user.id, 'cdna');
+  const ticket = checkQuota(req.user.id, 'cdna');
   const d = await F.companyDna({ company: co, jobs: jobs.map((j) => ({ title: j.title, status: j.status, type: j.type, skills: sk.get(j.id).map((s) => ({ name: s.name, category: s.category })) })) });
   db.prepare(`INSERT INTO company_dna (user_id, personality, summary, dimensions, source, updated_at) VALUES (?,?,?,?,?,datetime('now'))
     ON CONFLICT(user_id) DO UPDATE SET personality=excluded.personality, summary=excluded.summary, dimensions=excluded.dimensions, source=excluded.source, updated_at=excluded.updated_at`)
     .run(req.user.id, d.personality, d.summary, JSON.stringify(d.dimensions), d.source);
+  if (d.source !== 'llm') refundQuota(ticket);
   res.status(201).json(cdnaOut(db.prepare('SELECT * FROM company_dna WHERE user_id = ?').get(req.user.id)));
 }));
 
@@ -318,7 +328,8 @@ function providerRow(name) {
 }
 aiRouter.get('/admin/ai/routes', ...admin, wrap(async (_req, res) => {
   const cur = currentRoutes();
-  res.json({ active: resolveProvider('nvidia') !== null, groups: Object.entries(GROUPS).map(([key, g]) => ({ key, label: g.label, hint: g.hint, model: cur[key], default: g.fallback })) });
+  const configured = Object.keys(PRESETS).filter((n) => resolveProvider(n) !== null);
+  res.json({ active: configured.length > 0, providers: configured, groups: Object.entries(GROUPS).map(([key, g]) => ({ key, label: g.label, hint: g.hint, model: cur[key], default: g.fallback })) });
 }));
 aiRouter.put('/admin/ai/routes', ...admin, wrap(async (req, res) => {
   const b = parse(z.object({ code: z.string().regex(/^[\w./:-]{1,120}$/).optional(), write: z.string().regex(/^[\w./:-]{1,120}$/).optional(), json: z.string().regex(/^[\w./:-]{1,120}$/).optional() }).strict(), req.body ?? {});

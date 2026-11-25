@@ -27,23 +27,37 @@ export const PRESETS = {
 
 const up = (n) => n.toUpperCase();
 
-// ---- Keys saved from the admin screen. Encrypted at rest (AES-256-GCM) with a key derived from the server secret.
-const vaultKey = () => crypto.createHash('sha256').update(`lanturn-ai-vault:${config.refreshSecret}`).digest();
+// ---- Keys saved from the admin screen. Encrypted at rest (AES-256-GCM).
+// The wrapping key comes from AI_VAULT_SECRET when it is set, so rotating JWT_REFRESH_SECRET (which is a normal thing
+// to do) does not silently make every saved vendor key unreadable. Derivation is scrypt, not a bare SHA-256, because
+// the input is a human-chosen secret on self-hosted boxes. Rows sealed by the old derivation still open.
+const vaultKeys = () => {
+  const secret = config.aiVaultSecret || config.refreshSecret;
+  const keys = [crypto.scryptSync(secret, 'lanturn-ai-vault-v2', 32)];
+  if (!config.aiVaultSecret) keys.push(crypto.createHash('sha256').update(`lanturn-ai-vault:${config.refreshSecret}`).digest());
+  return keys;
+};
+let cachedKeys = null;
+const vaultKey = () => (cachedKeys ||= vaultKeys());
+export const vaultNeedsSecret = () => !config.aiVaultSecret;
 export function sealKey(plain) {
   if (!plain) return '';
   const iv = crypto.randomBytes(12);
-  const c = crypto.createCipheriv('aes-256-gcm', vaultKey(), iv);
+  const c = crypto.createCipheriv('aes-256-gcm', vaultKey()[0], iv);
   const enc = Buffer.concat([c.update(plain, 'utf8'), c.final()]);
   return [iv, c.getAuthTag(), enc].map((b) => b.toString('base64')).join('.');
 }
 function openKey(sealed) {
   if (!sealed) return '';
-  try {
-    const [iv, tag, enc] = sealed.split('.').map((x) => Buffer.from(x, 'base64'));
-    const d = crypto.createDecipheriv('aes-256-gcm', vaultKey(), iv);
-    d.setAuthTag(tag);
-    return Buffer.concat([d.update(enc), d.final()]).toString('utf8');
-  } catch { return ''; } // secret rotated or row corrupted: treat as not set
+  const [iv, tag, enc] = sealed.split('.').map((x) => Buffer.from(x, 'base64'));
+  for (const key of vaultKey()) {
+    try {
+      const d = crypto.createDecipheriv('aes-256-gcm', key, iv);
+      d.setAuthTag(tag);
+      return Buffer.concat([d.update(enc), d.final()]).toString('utf8');
+    } catch { /* try the next derivation */ }
+  }
+  return ''; // secret rotated or row corrupted: treat as not set
 }
 const saved = (name) => {
   try { return db.prepare('SELECT * FROM ai_settings WHERE provider = ?').get(name) || null; } catch { return null; }

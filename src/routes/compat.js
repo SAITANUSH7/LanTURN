@@ -7,11 +7,12 @@ import pdfParse from 'pdf-parse/lib/pdf-parse.js';
 import { z } from 'zod';
 import { db } from '../db.js';
 import { config } from '../config.js';
-import { HttpError, bad, notFound, parse, wrap } from '../util.js';
+import { HttpError, bad, conflict, notFound, parse, wrap } from '../util.js';
 import { authenticate, requireRole, signAccess } from '../auth.js';
 import { publicUser } from './auth.js';
 import { skillByName } from '../ai/skills.js';
 import { searchLive, liveSources } from '../jobsExternal.js';
+import { imageMime } from '../ai/ocr.js';
 
 export const compatRouter = Router();
 const admin = [authenticate, requireRole('ADMIN')];
@@ -94,57 +95,94 @@ compatRouter.get('/admin/analytics/series', ...admin, wrap(async (req, res) => {
 }));
 
 // ---- Uploads: sign -> PUT raw bytes -> commit ----
+// Every upload gets an owner row in `uploads`, so authorization never rests on "the name is hard to guess" alone.
 const KINDS = { resume: ['application/pdf'], profilePhoto: ['image/png', 'image/jpeg', 'image/webp'], companyLogo: ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'], certificate: ['application/pdf', 'image/png', 'image/jpeg'] };
 const EXT = { 'application/pdf': 'pdf', 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/svg+xml': 'svg' };
-const pending = new Map(); // objectPath -> {userId, kind, mime, at}
-const sweep = () => { for (const [k, v] of pending) if (Date.now() - v.at > 15 * 60e3) pending.delete(k); };
+// Avatars and logos are meant to be seen by other people; everything else is private to its owner.
+const PUBLIC_KINDS = new Set(['profilePhoto', 'companyLogo']);
+const UPLOAD_TTL_MS = 3600_000;
+
+const sig = (key, exp) => crypto.createHmac('sha256', config.accessSecret).update(`${key}:${exp}`).digest('base64url').slice(0, 32);
+/** Short-lived signed URL: works in <img src> and download links, which cannot carry an Authorization header. */
+export function signedUploadUrl(key, ttlMs = UPLOAD_TTL_MS) {
+  const exp = Date.now() + ttlMs;
+  return `/api/uploads/file/${key}?e=${exp}&t=${sig(key, exp)}`;
+}
+const sigOk = (key, exp, token) => {
+  const e = Number(exp);
+  if (!Number.isFinite(e) || e < Date.now() || e > Date.now() + 7 * 86400_000) return false;
+  const want = Buffer.from(sig(key, e));
+  const got = Buffer.from(String(token || ''));
+  return want.length === got.length && crypto.timingSafeEqual(want, got);
+};
 
 compatRouter.post('/uploads/sign', authenticate, wrap(async (req, res) => {
   const b = parse(z.object({ kind: z.enum(['resume', 'profilePhoto', 'companyLogo', 'certificate']), mimeType: z.string().max(80), sizeBytes: z.number().int().min(1) }), req.body ?? {});
   if (!KINDS[b.kind].includes(b.mimeType)) throw new HttpError(415, 'UNSUPPORTED_MEDIA_TYPE', `Allowed: ${KINDS[b.kind].join(', ')}`);
   if (b.sizeBytes > config.maxUploadBytes) throw new HttpError(413, 'PAYLOAD_TOO_LARGE', 'File is too large');
-  sweep();
+  // Students own resumes and certificates, employers own logos, both own profile photos.
+  if (b.kind === 'resume' && req.user.role !== 'STUDENT') throw new HttpError(403, 'FORBIDDEN', 'Students only');
+  if (b.kind === 'certificate' && req.user.role !== 'STUDENT') throw new HttpError(403, 'FORBIDDEN', 'Students only');
+  if (b.kind === 'companyLogo' && req.user.role !== 'EMPLOYER') throw new HttpError(403, 'FORBIDDEN', 'Employers only');
   const objectPath = `${crypto.randomUUID()}.${EXT[b.mimeType]}`;
-  pending.set(objectPath, { userId: req.user.id, kind: b.kind, mime: b.mimeType, at: Date.now() });
-  res.json({ uploadUrl: `/api/uploads/put/${objectPath}`, token: (req.headers.authorization || '').replace(/^Bearer /, ''), objectPath });
+  db.prepare('INSERT INTO uploads (key, user_id, kind, mime, size_bytes) VALUES (?,?,?,?,0)').run(objectPath, req.user.id, b.kind, b.mimeType);
+  res.json({ uploadUrl: `/api/uploads/put/${objectPath}`, objectPath });
 }));
 
 compatRouter.put('/uploads/put/:key', authenticate, express.raw({ type: () => true, limit: config.maxUploadBytes }), wrap(async (req, res) => {
-  const meta = pending.get(req.params.key);
-  if (!meta || meta.userId !== req.user.id) throw notFound('Upload not signed');
+  const row = db.prepare('SELECT * FROM uploads WHERE key = ?').get(String(req.params.key));
+  if (!row || row.user_id !== req.user.id) throw notFound('Upload not signed');
+  if (row.size_bytes !== 0) throw conflict('This upload was already stored');
   if (!Buffer.isBuffer(req.body) || !req.body.length) throw bad('Empty body');
-  if (meta.mime === 'application/pdf' && req.body.subarray(0, 5).toString('latin1') !== '%PDF-') throw new HttpError(415, 'UNSUPPORTED_MEDIA_TYPE', 'Not a PDF');
-  fs.writeFileSync(path.join(config.uploadDir, req.params.key), req.body, { mode: 0o600 });
-  meta.stored = true;
+  if (req.body.length > config.maxUploadBytes) throw new HttpError(413, 'PAYLOAD_TOO_LARGE', 'File is too large');
+  if (row.mime === 'application/pdf' && req.body.subarray(0, 5).toString('latin1') !== '%PDF-') throw new HttpError(415, 'UNSUPPORTED_MEDIA_TYPE', 'Not a PDF');
+  if (row.mime.startsWith('image/')) {
+    const sniff = imageMime(req.body);
+    if (!sniff || sniff !== row.mime) throw new HttpError(415, 'UNSUPPORTED_MEDIA_TYPE', 'That image does not match the signed type');
+  }
+  fs.writeFileSync(path.join(config.uploadDir, row.key), req.body, { mode: 0o600 });
+  db.prepare('UPDATE uploads SET size_bytes = ? WHERE key = ?').run(req.body.length, row.key);
   res.json({ ok: true });
 }));
 
 compatRouter.post('/uploads/commit', authenticate, wrap(async (req, res) => {
   const b = parse(z.object({ kind: z.string(), objectPath: z.string().regex(/^[0-9a-f-]{36}\.\w{3,4}$/), fileName: z.string().max(200).optional() }), req.body ?? {});
-  const meta = pending.get(b.objectPath);
-  if (!meta || meta.userId !== req.user.id || !meta.stored || meta.kind !== b.kind) throw notFound('Upload not found');
-  pending.delete(b.objectPath);
-  const file = path.join(config.uploadDir, b.objectPath);
-  const url = `/api/uploads/file/${b.objectPath}`;
-  if (meta.kind === 'resume') {
-    if (req.user.role !== 'STUDENT') throw new HttpError(403, 'FORBIDDEN', 'Students only');
+  const row = db.prepare('SELECT * FROM uploads WHERE key = ?').get(b.objectPath);
+  if (!row || row.user_id !== req.user.id || row.size_bytes === 0 || row.kind !== b.kind) throw notFound('Upload not found');
+  const file = path.join(config.uploadDir, row.key);
+  const url = PUBLIC_KINDS.has(row.kind) ? `/api/uploads/file/${row.key}` : signedUploadUrl(row.key);
+  if (row.kind === 'resume') {
     const buf = fs.readFileSync(file);
     let parsed;
     try { parsed = await pdfParse(new Uint8Array(buf)); } catch { throw new HttpError(422, 'UNREADABLE_PDF', 'This PDF could not be read.'); }
     const text = (parsed.text || '').replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
     if (text.length < 200) throw new HttpError(422, 'UNREADABLE_PDF', 'We could not find enough text. Upload a text-based PDF, not a scan.');
     if (!req.user.consent_at) db.prepare("UPDATE users SET consent_at = datetime('now') WHERE id = ?").run(req.user.id);
-    const id = Number(db.prepare('INSERT INTO resumes (student_id, filename, file_key, size_bytes, page_count, extracted_text) VALUES (?,?,?,?,?,?)').run(req.user.id, path.basename(b.fileName || 'resume.pdf').slice(0, 120), b.objectPath, buf.length, parsed.numpages || 1, text).lastInsertRowid);
+    const id = Number(db.prepare('INSERT INTO resumes (student_id, filename, file_key, size_bytes, page_count, extracted_text) VALUES (?,?,?,?,?,?)').run(req.user.id, path.basename(b.fileName || 'resume.pdf').slice(0, 120), row.key, buf.length, parsed.numpages || 1, text).lastInsertRowid);
     return res.status(201).json({ url, attachedTo: 'resume', resumeId: id });
   }
-  res.json({ url, attachedTo: meta.kind });
+  res.json({ url, attachedTo: row.kind });
 }));
 
-// Images are served by their unguessable name (needed for <img src>); PDFs only to their owner via /resumes.
+// Avatars and logos: any signed-in user (they are shown on profiles and the feed). Everything else: the owner, or a
+// signed URL minted by /uploads/commit. No unauthenticated path serves a file any more.
 compatRouter.get('/uploads/file/:key', wrap(async (req, res) => {
-  if (!/^[0-9a-f-]{36}\.(png|jpg|webp|svg)$/.test(req.params.key)) throw notFound();
-  const f = path.join(config.uploadDir, req.params.key);
+  const key = String(req.params.key);
+  if (!/^[0-9a-f-]{36}\.(png|jpg|webp|svg|pdf)$/.test(key)) throw notFound();
+  const row = db.prepare('SELECT * FROM uploads WHERE key = ?').get(key);
+  if (!row) throw notFound();
+  const f = path.join(config.uploadDir, key);
   if (!fs.existsSync(f)) throw notFound();
-  res.setHeader('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'");
-  res.sendFile(f);
+  if (!sigOk(key, req.query.e, req.query.t) && !PUBLIC_KINDS.has(row.kind)) {
+    // Otherwise the session must be the owner's. A miss is a flat 404 — never "401, so this file exists".
+    authenticate(req, res, () => {});
+    if (!req.user || req.user.id !== row.user_id) throw notFound();
+  }
+  sendFile();
+  function sendFile() {
+    res.setHeader('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'");
+    res.setHeader('Cache-Control', PUBLIC_KINDS.has(row.kind) ? 'public, max-age=300' : 'private, no-store');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.sendFile(f);
+  }
 }));
