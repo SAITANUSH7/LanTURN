@@ -14,8 +14,8 @@ const apiUrl = () => process.env.EMAIL_API_URL || 'https://api.resend.com/emails
 const publicUrl = () => (process.env.PUBLIC_URL || `http://localhost:${config.port || 3000}`).replace(/\/$/, '');
 
 // Only these notification types become emails. Chat, connection and comment noise stays in-app.
-const EMAILED = new Set(['application_status', 'application_received', 'strong_applicant', 'job_match', 'job_removed']);
-const DAILY_CAP = { job_match: 3 };
+const EMAILED = new Set(['application_status', 'application_received', 'strong_applicant', 'job_match', 'job_removed', 'interview_scheduled', 'interview_cancelled', 'message_received']);
+const DAILY_CAP = { job_match: 3, message_received: 5 };
 
 db.exec(`CREATE TABLE IF NOT EXISTS email_prefs (user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, enabled INTEGER NOT NULL DEFAULT 1);
 CREATE TABLE IF NOT EXISTS email_log (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, type TEXT NOT NULL, status TEXT NOT NULL, error TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')));

@@ -379,6 +379,30 @@ for (const col of ['headline TEXT NOT NULL DEFAULT \'\'', 'target_domain TEXT', 
 for (const col of ["employer_note TEXT NOT NULL DEFAULT ''", 'employer_rating INTEGER']) {
   try { db.exec(`ALTER TABLE applications ADD COLUMN ${col}`); } catch { /* column already exists */ }
 }
+db.exec(`
+CREATE TABLE IF NOT EXISTS interviews (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  application_id INTEGER NOT NULL REFERENCES applications(id) ON DELETE CASCADE,
+  starts_at TEXT NOT NULL,
+  duration_min INTEGER NOT NULL DEFAULT 30,
+  mode TEXT NOT NULL CHECK (mode IN ('VIDEO','PHONE','ONSITE')),
+  location TEXT NOT NULL DEFAULT '',
+  note TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'SCHEDULED' CHECK (status IN ('SCHEDULED','CANCELLED')),
+  created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_interviews_app ON interviews(application_id);
+CREATE TABLE IF NOT EXISTS application_messages (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  application_id INTEGER NOT NULL REFERENCES applications(id) ON DELETE CASCADE,
+  sender_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  sender_role TEXT NOT NULL CHECK (sender_role IN ('STUDENT','EMPLOYER')),
+  body TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_appmsg_app ON application_messages(application_id, id);
+`);
 db.exec("CREATE TABLE IF NOT EXISTS ml_feedback (user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, domain TEXT NOT NULL, consent_at TEXT NOT NULL)");
 db.exec('CREATE TABLE IF NOT EXISTS app_flags (key TEXT PRIMARY KEY, value TEXT NOT NULL)');
 

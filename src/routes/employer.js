@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { interviewsFor, cancelOpenInterviews } from './interviews.js';
 import { enqueue } from '../queue.js';
 import { notify } from '../notify.js';
 import { z } from 'zod';
@@ -197,6 +198,7 @@ employerRouter.get('/employer/applications/:id', ...employer, wrap(async (req, r
     gap: { matchPercent: gap.matchPercent, matched: gap.matched, missing: gap.missing },
     resume: resume ? { id: resume.id, filename: resume.filename, hasFile: !!resume.file_key, text: resume.extracted_text, analysis: latestAnalysis(resume.id) } : null,
     events: eventsFor(a.id),
+    interviews: interviewsFor(a.id),
   });
 }));
 
@@ -213,6 +215,7 @@ employerRouter.patch('/employer/applications/:id/status', ...employer, wrap(asyn
   tx(() => {
     db.prepare("UPDATE applications SET status = ?, updated_at = datetime('now') WHERE id = ?").run(targetStatus, a.id);
     recordEvent(a.id, a.status, targetStatus, req.user.id);
+    if (targetStatus === 'REJECTED') cancelOpenInterviews(a.id);
   });
   const jt = db.prepare('SELECT j.title, e.company_name FROM jobs j LEFT JOIN employer_profiles e ON e.user_id = j.employer_id WHERE j.id = ?').get(a.job_id);
   notify(a.student_id, 'application_status', a.status === 'REJECTED' ? 'Application reconsidered' : `Application ${targetStatus.toLowerCase()}`, a.status === 'REJECTED' ? `${jt?.company_name || 'The employer'} is giving your application for ${jt?.title || 'a job'} a second look.` : `${jt?.company_name || 'The employer'} moved your application for ${jt?.title || 'a job'} to ${targetStatus}.`, '#/student/applications');
@@ -610,6 +613,7 @@ employerRouter.post('/employer/applications/bulk-status', ...employer, wrap(asyn
       tx(() => {
         db.prepare("UPDATE applications SET status = ?, updated_at = datetime('now') WHERE id = ?").run(target, a.id);
         recordEvent(a.id, a.status, target, req.user.id);
+        if (target === 'REJECTED') cancelOpenInterviews(a.id);
       });
       const jt = db.prepare('SELECT j.title, e.company_name FROM jobs j LEFT JOIN employer_profiles e ON e.user_id = j.employer_id WHERE j.id = ?').get(a.job_id);
       notify(a.student_id, 'application_status', a.status === 'REJECTED' ? 'Application reconsidered' : `Application ${target.toLowerCase()}`, a.status === 'REJECTED' ? `${jt?.company_name || 'The employer'} is giving your application for ${jt?.title || 'a job'} a second look.` : `${jt?.company_name || 'The employer'} moved your application for ${jt?.title || 'a job'} to ${target}.`, '#/student/applications');

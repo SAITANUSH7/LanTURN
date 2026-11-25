@@ -1,3 +1,4 @@
+import { interviewsFor, cancelOpenInterviews } from './interviews.js';
 import { Router } from 'express';
 import { recordAction } from '../streak.js';
 import { notify } from '../notify.js';
@@ -163,6 +164,8 @@ function applicationOut(id) {
     createdAt: a.created_at, updatedAt: a.updated_at, resumeId: a.resume_id,
     job: { title: a.title, type: a.type, location: a.location, remote: !!a.remote, company: a.company_name || '' },
     events: eventsFor(a.id),
+    interviews: interviewsFor(a.id),
+    messageCount: db.prepare('SELECT COUNT(*) n FROM application_messages WHERE application_id = ?').get(a.id).n,
   };
 }
 
@@ -184,6 +187,7 @@ jobsRouter.post('/applications/:id/withdraw', authenticate, requireRole('STUDENT
   tx(() => {
     db.prepare("UPDATE applications SET status = 'WITHDRAWN', updated_at = datetime('now') WHERE id = ?").run(a.id);
     recordEvent(a.id, a.status, 'WITHDRAWN', req.user.id);
+    cancelOpenInterviews(a.id);
   });
   res.json(applicationOut(a.id));
 }));

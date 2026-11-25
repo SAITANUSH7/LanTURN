@@ -178,3 +178,55 @@ test('a rejected candidate can be reconsidered back to the shortlist, and the st
   await api('PATCH', `/employer/applications/${id}/status`, { token: emp.accessToken, body: { status: 'REJECTED' } });
   assert.equal((await api('POST', `/applications/${id}/withdraw`, { token: apps[0].st.accessToken })).status, 409);
 });
+
+const inDays = (d, h = 10) => { const t = new Date(Date.now() + d * 86400000); t.setUTCHours(h, 0, 0, 0); return t.toISOString(); };
+
+test('interviews: schedule moves SHORTLISTED to INTERVIEW, student is notified, ICS works, cancel and rejection clear it', async () => {
+  const { emp, apps } = await setup(1);
+  const id = apps[0].id; const st = apps[0].st.accessToken;
+  const body = { startsAt: inDays(3), durationMin: 45, mode: 'VIDEO', location: 'https://meet.example.test/abc', note: 'Bring your laptop' };
+  // must be shortlisted first
+  assert.equal((await api('POST', `/employer/applications/${id}/interviews`, { token: emp.accessToken, body })).status, 409);
+  await api('PATCH', `/employer/applications/${id}/status`, { token: emp.accessToken, body: { status: 'SHORTLISTED' } });
+  assert.equal((await api('POST', `/employer/applications/${id}/interviews`, { token: emp.accessToken, body: { ...body, startsAt: inDays(-1) } })).status, 400);
+  assert.equal((await api('POST', `/employer/applications/${id}/interviews`, { token: emp.accessToken, body: { ...body, location: '' } })).status, 400);
+  const ok = await api('POST', `/employer/applications/${id}/interviews`, { token: emp.accessToken, body });
+  assert.equal(ok.status, 201);
+  const d = (await api('GET', `/employer/applications/${id}`, { token: emp.accessToken })).body;
+  assert.equal(d.status, 'INTERVIEW');
+  assert.equal(d.interviews.length, 1);
+  const mine = (await api('GET', '/applications', { token: st })).body.items[0];
+  assert.equal(mine.interviews[0].status, 'SCHEDULED');
+  assert.ok(JSON.stringify((await api('GET', '/notifications', { token: st })).body).includes('interview_scheduled'));
+  const ics = await api('GET', `/interviews/${ok.body.interview.id}/ics`, { token: st });
+  assert.equal(ics.status, 200);
+  assert.match(ics.text, /BEGIN:VEVENT[\s\S]*DTSTART:\d{8}T\d{6}Z[\s\S]*END:VCALENDAR/);
+  const stranger = await register('STUDENT');
+  assert.equal((await api('GET', `/interviews/${ok.body.interview.id}/ics`, { token: stranger.accessToken })).status, 404);
+  const c = await api('POST', `/employer/applications/${id}/interviews/${ok.body.interview.id}/cancel`, { token: emp.accessToken });
+  assert.equal(c.body.interviews[0].status, 'CANCELLED');
+  await api('POST', `/employer/applications/${id}/interviews`, { token: emp.accessToken, body });
+  await api('PATCH', `/employer/applications/${id}/status`, { token: emp.accessToken, body: { status: 'REJECTED' } });
+  const after = (await api('GET', `/employer/applications/${id}`, { token: emp.accessToken })).body;
+  assert.ok(after.interviews.every((x) => x.status === 'CANCELLED'));
+});
+
+test('messages: employer writes first, student can then reply, strangers are blocked, no messages after withdrawal', async () => {
+  const { emp, apps } = await setup(1);
+  const id = apps[0].id; const st = apps[0].st.accessToken;
+  assert.equal((await api('POST', `/applications/${id}/messages`, { token: st, body: { body: 'hello?' } })).status, 403);
+  assert.equal((await api('POST', `/applications/${id}/messages`, { token: emp.accessToken, body: { body: '   ' } })).status, 400);
+  const sent = await api('POST', `/applications/${id}/messages`, { token: emp.accessToken, body: { body: 'Can you start in January?' } });
+  assert.equal(sent.status, 201);
+  const reply = await api('POST', `/applications/${id}/messages`, { token: st, body: { body: 'Yes, I can.' } });
+  assert.equal(reply.status, 201);
+  const thread = (await api('GET', `/applications/${id}/messages`, { token: st })).body;
+  assert.deepEqual(thread.items.map((m) => m.from), ['EMPLOYER', 'STUDENT']);
+  assert.equal(thread.you, 'STUDENT');
+  assert.ok(JSON.stringify((await api('GET', '/notifications', { token: emp.accessToken })).body).includes('replied'));
+  const other = await register('EMPLOYER'); const stranger = await register('STUDENT');
+  assert.equal((await api('GET', `/applications/${id}/messages`, { token: other.accessToken })).status, 404);
+  assert.equal((await api('GET', `/applications/${id}/messages`, { token: stranger.accessToken })).status, 404);
+  await api('POST', `/applications/${id}/withdraw`, { token: st });
+  assert.equal((await api('POST', `/applications/${id}/messages`, { token: emp.accessToken, body: { body: 'late' } })).status, 409);
+});

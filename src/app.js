@@ -12,6 +12,7 @@ import { db } from './db.js';
 import { HttpError } from './util.js';
 import { authRouter, meRouter } from './routes/auth.js';
 import { studentRouter } from './routes/student.js';
+import { interviewsRouter } from './routes/interviews.js';
 import { aiRouter } from './routes/ai.js';
 import { jobsRouter } from './routes/jobs.js';
 import { employerRouter, adminRouter } from './routes/employer.js';
@@ -106,7 +107,7 @@ export function createApp() {
 
   app.use('/api/auth', authRouter);
   app.use('/api/me', meRouter);
-  app.use('/api', studentRouter, jobsRouter, employerRouter, aiRouter, adminRouter, opsRouter, studentToolsRouter, networkingRouter, careerRoadmapsRouter, careerMapRouter, compatRouter, drivesRouter, realtimeRouter);
+  app.use('/api', studentRouter, jobsRouter, interviewsRouter, employerRouter, aiRouter, adminRouter, opsRouter, studentToolsRouter, networkingRouter, careerRoadmapsRouter, careerMapRouter, compatRouter, drivesRouter, realtimeRouter);
   app.use('/api', (_req, _res, next) => next(new HttpError(404, 'NOT_FOUND', 'Unknown API route')));
 
   const frontendDist = path.join(ROOT, 'frontend', 'dist');

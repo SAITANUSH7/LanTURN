@@ -1,7 +1,7 @@
 import { api, get, post, put, del, openPdf, session, reloadUser } from '../api.js';
 import { h, clear, icon, scoreRing, skillChip, meter, statusBadge, fmtDate, fmtDateTime, empty, errorBox, loadingBlock, toast, confirmDialog, busy, field, input, select, textarea, TYPE_LABEL, STATUS_META, weightDots } from '../ui.js';
 import { todayCard } from './studentTools.js';
-import { pageHead, wrapPage, jobCard, analysisView, roadmapView, emailPrefsCard } from './shared.js';
+import { pageHead, wrapPage, jobCard, analysisView, roadmapView, emailPrefsCard, interviewRow, messageThread } from './shared.js';
 import { jobTools } from './ai.js';
 
 const TERMINAL = ['OFFERED', 'REJECTED', 'WITHDRAWN'];
@@ -150,7 +150,9 @@ export async function applications({ onLeave, query = {} }) {
   async function load(quiet) {
     try {
       const d = await get('/applications');
-      all = d.items; paint();
+      all = d.items;
+      if (quiet && (list.querySelector('details[open]') || list.contains(document.activeElement))) { stamp.textContent = `Updated ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`; return; } // do not wipe an open thread or a half-written reply
+      paint();
       stamp.textContent = `Updated ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · refreshes every 30 s`;
     } catch (e) { if (!quiet) clear(list).append(errorBox(e, () => load())); }
   }
@@ -172,6 +174,8 @@ function appCard(a, reload) {
     h('ol', { class: 'timeline', 'aria-label': 'Status history' }, a.events.map((e, i) => h('li', { class: 'timeline__item' },
       h('span', { class: `timeline__dot ${i < a.events.length - 1 ? 'timeline__dot--done' : ''}` }, icon(i < a.events.length - 1 ? 'check' : 'clock')),
       h('strong', null, STATUS_META[e.to]?.label || e.to), ' ', h('span', { class: 'muted' }, fmtDateTime(e.at))))),
+    a.interviews?.some((x) => x.status === 'SCHEDULED') ? h('div', { class: 'stack stack--sm' }, h('h4', null, 'Interview'), ...a.interviews.filter((x) => x.status === 'SCHEDULED').map((x) => interviewRow(x))) : null,
+    a.status !== 'WITHDRAWN' ? h('details', { class: 'fold', ontoggle: (e) => { if (e.target.open && !e.target.dataset.loaded) { e.target.dataset.loaded = '1'; e.target.append(messageThread(a.id)); } } }, h('summary', null, a.messageCount ? `Messages (${a.messageCount})` : 'Messages')) : null,
     !TERMINAL.includes(a.status) ? h('div', null, withdraw) : null);
 }
 

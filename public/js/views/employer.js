@@ -1,6 +1,6 @@
 import { api, get, post, put, patch, openPdf, session, reloadUser } from '../api.js';
 import { h, clear, icon, scoreRing, skillChip, statusBadge, verifyBadge, fmtDate, fmtDateTime, empty, errorBox, loadingBlock, toast, confirmDialog, busy, field, input, select, textarea, TYPE_LABEL, STATUS_META, initials } from '../ui.js';
-import { pageHead, wrapPage, analysisView, emailPrefsCard } from './shared.js';
+import { pageHead, wrapPage, analysisView, emailPrefsCard, downloadFile, interviewRow, messageThread } from './shared.js';
 import { jdWriter, companyDnaCard } from './ai.js';
 
 const pendingBanner = (v) => v === 'VERIFIED' ? null
@@ -22,14 +22,6 @@ function ratingInput(value, onChange) {
   return box;
 }
 const ratingTag = (r) => (r ? h('span', { class: 'chip chip--amber', title: `Your rating: ${r} of 5` }, icon('star'), String(r)) : null);
-
-async function downloadFile(path, filename) {
-  const res = await api('GET', path, { raw: true });
-  const url = URL.createObjectURL(await res.blob());
-  const a = h('a', { href: url, download: filename });
-  document.body.append(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 4000);
-}
 
 function attentionCard(a, jobs) {
   if (!a) return null;
@@ -256,6 +248,39 @@ export async function candidates({ params, query }) {
   return wrapPage(h('a', { class: 'crumb', href: '#/employer/jobs' }, icon('arrow-left'), 'My jobs'), pageHead('Candidates', null, h('div', { class: 'row row--wrap' }, h('button', { class: 'btn btn--ghost btn--sm', onclick: (ev) => busy(ev.currentTarget, async () => { try { await downloadFile(`/employer/jobs/${params.id}/candidates.csv`, `candidates-job-${params.id}.csv`); } catch (e) { toast(e.message, 'error'); } }) }, icon('download'), 'Export CSV'), h('a', { class: 'btn btn--secondary btn--sm', href: `#/employer/jobs/${params.id}/board` }, icon('target'), 'Board view'))), titleEl, bar, list);
 }
 
+
+function interviewCard(a, reload) {
+  const canSchedule = ['SHORTLISTED', 'INTERVIEW'].includes(a.status);
+  const pad = (n) => String(n).padStart(2, '0');
+  const soon = new Date(Date.now() + 36 * 3600000); soon.setMinutes(0, 0, 0);
+  const local = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const when = input({ type: 'datetime-local', value: local(soon), min: local(new Date()), required: true });
+  const dur = select([[30, '30 minutes'], [45, '45 minutes'], [60, '1 hour'], [90, '1.5 hours'], [15, '15 minutes']], 30);
+  const mode = select([['VIDEO', 'Video call'], ['PHONE', 'Phone call'], ['ONSITE', 'On site']], 'VIDEO');
+  const where = input({ placeholder: 'https://meet.google.com/…', maxlength: '300' });
+  const whereField = field('Meeting link', where);
+  mode.onchange = () => { const m = mode.value; whereField.hidden = m === 'PHONE'; whereField.querySelector('label').textContent = m === 'VIDEO' ? 'Meeting link' : 'Address'; where.placeholder = m === 'VIDEO' ? 'https://meet.google.com/…' : 'Office address and floor'; };
+  const note = textarea({ rows: '2', maxlength: '1000', placeholder: 'Anything the candidate should prepare or bring' });
+  const btn = h('button', { class: 'btn btn--sm', type: 'submit', disabled: canSchedule ? null : true }, icon('clock'), 'Send invite');
+  const form = h('form', { class: 'stack stack--sm', onsubmit: (e) => {
+    e.preventDefault();
+    if (!when.value) { toast('Pick a date and time', 'error'); return; }
+    busy(btn, async () => {
+      try { await post(`/employer/applications/${a.id}/interviews`, { startsAt: new Date(when.value).toISOString(), durationMin: Number(dur.value), mode: mode.value, location: where.value.trim(), note: note.value.trim() }); toast('Invite sent to the candidate', 'success'); await reload(); } catch (ex) { toast(ex.message, 'error'); }
+    });
+  } }, h('div', { class: 'form-grid' }, field('Date and time', when), field('Length', dur), field('Format', mode), whereField), field('Note (optional)', note), h('div', { class: 'row' }, btn, canSchedule ? null : h('span', { class: 'muted' }, 'Shortlist the candidate to schedule an interview.')));
+  const rows = a.interviews.length ? a.interviews.map((it) => interviewRow(it, it.status === 'SCHEDULED' ? [h('button', { type: 'button', class: 'btn btn--danger btn--sm', onclick: async (ev) => {
+    if (!(await confirmDialog({ title: 'Cancel this interview?', body: 'The candidate is notified.', confirmText: 'Cancel interview', danger: true }))) return;
+    busy(ev.currentTarget, async () => { try { await post(`/employer/applications/${a.id}/interviews/${it.id}/cancel`); toast('Interview cancelled'); await reload(); } catch (ex) { toast(ex.message, 'error'); } });
+  } }, 'Cancel')] : []))  : [h('p', { class: 'muted' }, 'No interviews yet.')];
+  return h('div', { class: 'card stack' }, h('h3', null, 'Interviews'), ...rows, h('details', { class: 'fold', open: a.interviews.length ? null : true }, h('summary', null, 'Schedule an interview'), form));
+}
+
+function messagesCard(a) {
+  let n = null; const count = h('span', { class: 'badge badge--neutral' }, '…');
+  return h('div', { class: 'card stack' }, h('div', { class: 'row row--between' }, h('h3', null, 'Messages'), count), h('p', { class: 'muted' }, 'The candidate sees these in their Applications page and by email.'), messageThread(a.id, { onCount: (c) => { n = c; count.textContent = String(c); } }));
+}
+
 export async function candidate({ params }) {
   const host = h('div', { class: 'stack stack--lg' });
   async function load() {
@@ -283,6 +308,7 @@ export async function candidate({ params }) {
         h('div', { class: 'row row--wrap actionbar' }, actions.length ? actions : h('span', { class: 'muted' }, 'This application is closed. No further status changes.'), h('a', { class: 'btn btn--secondary', href: mailTo }, icon('mail'), 'Email'))),
       h('div', { class: 'split' },
         h('div', { class: 'stack' },
+          interviewCard(a, load), messagesCard(a),
           h('div', { class: 'card stack' }, h('h3', null, 'Resume analysis'), a.resume ? analysisView(a.resume.analysis) : h('p', { class: 'muted' }, 'No resume attached.')),
           a.resume ? h('div', { class: 'card stack' }, h('div', { class: 'row row--between' }, h('h3', null, 'Resume text'), a.resume.hasFile ? h('button', { class: 'btn btn--secondary btn--sm', onclick: () => openPdf(a.resume.id).catch((e) => toast(e.message, 'error')) }, icon('eye'), 'Open PDF') : null), h('div', { class: 'resume-text', tabindex: '0', 'aria-label': 'Extracted resume text' }, a.resume.text)) : null),
         h('aside', { class: 'stack' },
