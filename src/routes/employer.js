@@ -569,16 +569,24 @@ for (const [action, value] of [['approve', 'VERIFIED'], ['reject', 'REJECTED']])
 export { parseJson };
 
 // ---------- Smart ranking, skill suggestions, bulk actions ----------
+function attachRatings(jobId, items) {
+  const by = new Map(db.prepare('SELECT id, employer_rating AS r, employer_note AS n FROM applications WHERE job_id = ?').all(jobId).map((r) => [r.id, r]));
+  for (const it of items) { const x = by.get(it.applicationId); it.rating = x?.r ?? null; it.hasNote = !!x?.n; }
+  return items;
+}
 employerRouter.get('/employer/jobs/:id/ranking', ...employer, wrap(async (req, res) => {
   const job = ownJob(req.user.id, req.params.id);
   const items = await rankCandidates(job);
+  attachRatings(job.id, items);
   res.json({ job: { id: job.id, title: job.title, status: job.status }, source: 'rules', items });
 }));
 
 // Ask the AI provider to phrase the "why" for the top candidates (counts against the employer's daily AI quota).
 employerRouter.post('/employer/jobs/:id/ranking/explain', ...employer, wrap(async (req, res) => {
   const job = ownJob(req.user.id, req.params.id);
-  const out = await explainTop(req.user.id, job, await rankCandidates(job));
+  const ranked = await rankCandidates(job);
+  attachRatings(job.id, ranked);
+  const out = await explainTop(req.user.id, job, ranked);
   res.json({ job: { id: job.id, title: job.title, status: job.status }, ...out });
 }));
 

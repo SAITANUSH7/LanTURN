@@ -82,6 +82,31 @@ test('employer: dashboard charts render and candidate filters persist in the URL
   assert.deepEqual(page.errors, []);
 });
 
+test('employer: attention card, job filters, private rating and note, CSV export', async () => {
+  const page = await newPage(browser);
+  await login(page, app.base, 'employer');
+  await page.waitForSelector('.attention');
+  await page.goto(`${app.base}/#/employer/jobs`); await page.waitForSelector('.filter');
+  await page.click('.filter:nth-child(3)');
+  await page.waitForFunction(() => location.hash.includes('status=CLOSED'));
+  await page.click('.filter:nth-child(2)');
+  assert.ok(await page.locator('.card h3').count() > 0);
+  await page.fill('input[type=search]', 'zzzz-no-such-job');
+  await page.waitForSelector('.empty');
+  await page.goto(`${app.base}/#/employer/jobs/1/candidates`); await page.waitForSelector('.cand');
+  const dl = page.waitForEvent('download');
+  await page.click('text=Export CSV');
+  assert.match((await dl).suggestedFilename(), /^candidates-job-1\.csv$/);
+  await page.click('.cand a[href*="/employer/applications/"]'); await page.waitForSelector('.rating');
+  await page.click('.rating__star:nth-child(3)');
+  await page.fill('textarea[aria-label="Private note"]', 'e2e note');
+  await page.click('text=Save note'); await page.waitForSelector('.toast');
+  await page.reload(); await page.waitForSelector('.rating');
+  assert.equal(await page.locator('.rating__star.is-on').count(), 3);
+  assert.equal(await page.inputValue('textarea[aria-label="Private note"]'), 'e2e note');
+  assert.deepEqual(page.errors.filter((e) => !/ERR_|Failed to load resource/.test(e)), []);
+});
+
 test('students are kept out of employer and admin pages', async () => {
   const page = await newPage(browser);
   await login(page, app.base, 'student');
@@ -108,7 +133,7 @@ for (const theme of ['dark', 'light']) {
     const found = [];
     const pub = await newPage(browser, { theme });
     for (const r of ['/', '/login', '/register']) { await pub.goto(`${app.base}/#${r}`); await pub.waitForTimeout(500); found.push(...(await audit(pub)).map((v) => `${r} ${v}`)); }
-    for (const [role, routes] of [['student', ['/student', '/student/jobs', '/student/roadmap', '/student/arena', '/student/dna']], ['employer', ['/employer', '/employer/jobs']]]) {
+    for (const [role, routes] of [['student', ['/student', '/student/jobs', '/student/roadmap', '/student/arena', '/student/dna']], ['employer', ['/employer', '/employer/jobs', '/employer/jobs/1/candidates', '/employer/applications/1', '/employer/jobs/new?from=1']]]) {
       const page = await newPage(browser, { theme }); await login(page, app.base, role);
       for (const r of routes) { await page.goto(`${app.base}/#${r}`); await page.waitForTimeout(700); found.push(...(await audit(page)).map((v) => `${r} ${v}`)); }
     }
