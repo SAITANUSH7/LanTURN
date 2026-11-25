@@ -23,7 +23,7 @@ const excerpt = (s, n = 90) => (s && s.length > n ? `${s.slice(0, n - 1)}…` : 
 export async function inbox({ query = {}, onLeave, user }) {
   const role = user?.role || session.user?.role || 'STUDENT';
   const isEmployer = role === 'EMPLOYER';
-  const rows = h('div', { class: 'inbox__list', role: 'list' });
+  const rows = h('div', { class: 'inbox__list' });
   const pane = h('section', { class: 'inbox__pane', 'aria-label': 'Conversation' });
   const stamp = h('span', { class: 'muted', 'aria-live': 'polite' });
   let items = [];
@@ -38,7 +38,7 @@ export async function inbox({ query = {}, onLeave, user }) {
     for (const t of items) {
       const current = t.applicationId === openId;
       rows.append(h('button', {
-        type: 'button', role: 'listitem', class: `inbox__item${current ? ' is-open' : ''}${t.unread ? ' has-unread' : ''}`,
+        type: 'button', class: `inbox__item${current ? ' is-open' : ''}${t.unread ? ' has-unread' : ''}`,
         'aria-current': current ? 'true' : null,
         onclick: () => open(t.applicationId),
       },
