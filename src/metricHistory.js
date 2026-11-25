@@ -52,6 +52,7 @@ export function maybeSample(now = Date.now()) {
  * sparkline indexes across them. Empty hours are simply absent - the chart draws the samples it was given.
  */
 export function metricHistory({ days = RETENTION_DAYS } = {}) {
+  const window = `-${Math.max(1, days)} days`;
   const rows = db.prepare(`SELECT strftime('%Y-%m-%dT%H:00:00Z', at) AS hour,
       CAST(ROUND(AVG(rss_mb)) AS INTEGER) AS rss,
       CAST(MAX(rss_mb) AS INTEGER) AS rssPeak,
@@ -61,10 +62,35 @@ export function metricHistory({ days = RETENTION_DAYS } = {}) {
       COUNT(*) AS samples
     FROM metric_samples
     WHERE at >= datetime('now', ?)
-    GROUP BY hour ORDER BY hour`).all(`-${Math.max(1, days)} days`);
+    GROUP BY hour ORDER BY hour`).all(window);
+
+  // A process deployed ten minutes ago has three samples and one hourly bucket. Charting that single bucket would
+  // show a flat line where a real trend exists, so while the history is younger than three hours we chart the raw
+  // samples instead. Same contract, smaller bucket: the client does not care which one it got.
+  if (rows.length < 3) {
+    const raw = db.prepare(`SELECT strftime('%Y-%m-%dT%H:%M:%SZ', at) AS at, rss_mb, inflight, queued, dead_letters
+      FROM metric_samples WHERE at >= datetime('now', ?) ORDER BY at`).all(window);
+    // Only while the whole history is young: an established history with three quiet hours is still an hour chart.
+    const ageHours = raw.length ? (Date.now() - Date.parse(raw[0].at)) / 3600000 : 0;
+    if (raw.length >= 2 && ageHours < 3) {
+      return {
+        days,
+        bucket: 'minute',
+        at: raw.map((r) => r.at),
+        rssMb: raw.map((r) => r.rss_mb),
+        rssPeakMb: raw.map((r) => r.rss_mb),
+        inflight: raw.map((r) => r.inflight),
+        queued: raw.map((r) => r.queued),
+        deadLetters: raw.map((r) => r.dead_letters),
+        samples: raw.length,
+        intervalSec: SAMPLE_MS / 1000,
+      };
+    }
+  }
 
   return {
     days,
+    bucket: 'hour',
     at: rows.map((r) => r.hour),
     rssMb: rows.map((r) => r.rss),
     rssPeakMb: rows.map((r) => r.rssPeak),

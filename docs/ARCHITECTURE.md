@@ -64,7 +64,9 @@ minute into `metric_samples` (rss, heap, in-flight, queue depth, dead letters), 
 write, and folds the rows into hourly buckets (average for memory, peak for the busy gauges) for the sparklines on
 Admin → System. It survives deploys because it is a table, not a process variable. `/api/admin/metrics` also records a
 sample when the newest one is older than the interval, so a freshly started process has a first point without waiting
-a minute. The sampler is skipped in tests; the bucket, retention and endpoint behaviour have their own suite.
+a minute. While the history is younger than three hours it is returned as raw samples rather than one hourly bucket,
+so a process deployed ten minutes ago already shows a real trend instead of a flat line. The sampler is skipped in
+tests; the bucket, retention and endpoint behaviour have their own suite.
 
 SIGTERM (every Railway deploy) stops accepting traffic, lets in-flight requests and tasks finish, checkpoints the WAL, then exits; a 10 s watchdog guarantees it never hangs a deploy. Requests log one JSON line each with a request id.
 

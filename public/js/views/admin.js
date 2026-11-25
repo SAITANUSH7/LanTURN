@@ -146,9 +146,12 @@ const stat = (label, value, opts = {}) => {
     h('span', { class: 'stat__hint' }, [o.delta, o.hint].filter(Boolean).join(' \u00b7 ')));
 };
 
-// "6 h" or "7 days": how much ground the sparkline actually covers, so a delta never claims a window it does not have.
+// "6 min", "4 h" or "7 days": how much ground the sparkline actually covers, so a delta never claims a window it does
+// not have. Right after a deploy the history is minutes wide, and saying "7 days" then would be a lie.
 const spanLabel = (at) => {
-  const hours = Math.max(1, Math.round((Date.parse(at[at.length - 1]) - Date.parse(at[0])) / 3600000));
+  const mins = Math.max(1, Math.round((Date.parse(at[at.length - 1]) - Date.parse(at[0])) / 60000));
+  if (mins < 90) return `${mins} min`;
+  const hours = Math.round(mins / 60);
   return hours >= 48 ? `${Math.round(hours / 24)} days` : `${hours} h`;
 };
 
@@ -186,7 +189,7 @@ export async function system() {
           }),
           stat('In flight', m.inflight, {
             spark: sparkline(hist.inflight, { label: 'In-flight requests, busiest minute of each hour' }),
-            hint: hist.at.length >= 2 ? `busiest hour ${Math.max(...hist.inflight)}` : 'requests being served right now',
+            hint: hist.at.length >= 2 ? `busiest ${hist.bucket === 'minute' ? 'minute' : 'hour'} ${Math.max(...hist.inflight)}` : 'requests being served right now',
           }),
           stat('Queue depth', q.queued ?? 0, {
             tone: q.oldestQueuedSec > 300 || q.deadLetters ? 'bad' : '',

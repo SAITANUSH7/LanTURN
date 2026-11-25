@@ -18,6 +18,14 @@ const insert = (mods, { rss, heap = 20, inflight = 0, queued = 0, running = 0, d
     .run(...list, rss, heap, inflight, queued, running, dead);
 };
 
+// Minute-precision, for the first minutes of a process's life.
+const insertAt = (mods, { rss, inflight = 0, queued = 0 }) => {
+  const list = Array.isArray(mods) ? mods : [mods];
+  db.prepare(`INSERT INTO metric_samples (at, rss_mb, heap_mb, inflight, queued, running, dead_letters)
+    VALUES (strftime('%Y-%m-%d %H:%M:%S', 'now'${list.map(() => ', ?').join('')}), ?, 10, ?, ?, 0, 0)`)
+    .run(...list, rss, inflight, queued);
+};
+
 test('samples fold into hourly buckets, oldest first, with gauges averaged and peaks kept', () => {
   __clearHistory();
   insert('-2 hours', { rss: 100, inflight: 1, queued: 2 });
@@ -34,8 +42,23 @@ test('samples fold into hourly buckets, oldest first, with gauges averaged and p
   assert.equal(h.samples, 3, 'the sample outside the window is not counted');
   assert.ok(h.at[0] < h.at[1], 'oldest first: the chart draws left to right');
   assert.equal(h.intervalSec, SAMPLE_MS / 1000);
+  assert.equal(h.bucket, 'hour', 'a multi-day history is charted by hour');
   // Every series is the same length, because the renderer indexes them against `at`.
   for (const k of ['rssMb', 'rssPeakMb', 'inflight', 'queued', 'deadLetters']) assert.equal(h[k].length, h.at.length, k);
+});
+
+test('a process that just started charts its minutes instead of one empty hour', () => {
+  __clearHistory();
+  insertAt('-4 minutes', { rss: 60, inflight: 1 });
+  insertAt('-3 minutes', { rss: 70, inflight: 3 });
+  insertAt('-2 minutes', { rss: 80, queued: 2 });
+  const h = metricHistory();
+  assert.equal(h.bucket, 'minute', 'three samples inside one hour are three points, not one');
+  assert.equal(h.at.length, 3);
+  assert.deepEqual(h.rssMb, [60, 70, 80]);
+  assert.equal(h.samples, 3);
+  assert.match(h.at[0], /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/, 'timestamps stay parseable by the browser');
+  assert.ok(Date.parse(h.at[0]) <= Date.parse(h.at[2]));
 });
 
 test('an empty history is an empty chart, not an error', () => {
