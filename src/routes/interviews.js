@@ -2,6 +2,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { db, tx } from '../db.js';
+import { invalidateReplyStats } from '../replyStats.js';
 import { HttpError, bad, conflict, notFound, parse, wrap, forbidden } from '../util.js';
 import { authenticate, requireRole } from '../auth.js';
 import { idParam, recordEvent } from './common.js';
@@ -122,6 +123,7 @@ interviewsRouter.post('/applications/:id/messages', authenticate, requireRole('S
   const recent = db.prepare("SELECT COUNT(*) n FROM application_messages WHERE sender_id = ? AND created_at >= datetime('now','-1 hour')").get(req.user.id).n;
   if (recent >= 20) throw new HttpError(429, 'RATE_LIMITED', 'Too many messages this hour. Please wait a little.');
   const id = Number(db.prepare('INSERT INTO application_messages (application_id, sender_id, sender_role, body) VALUES (?,?,?,?)').run(a.id, req.user.id, side, b.body).lastInsertRowid);
+  invalidateReplyStats(a.employer_id);
   const preview = b.body.length > 140 ? `${b.body.slice(0, 137)}...` : b.body;
   if (side === 'EMPLOYER') notify(a.student_id, 'message_received', `${a.company_name || 'An employer'} sent you a message`, `About ${a.title}: ${preview}`, `#/student/messages?thread=${a.id}`);
   else notify(a.employer_id, 'message_received', `${a.student_name || 'A candidate'} replied`, `About ${a.title}: ${preview}`, `#/employer/messages?thread=${a.id}`);

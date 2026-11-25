@@ -50,6 +50,16 @@ export function replyStats(employerId) {
   return stats;
 }
 
+/** Drop the cached number for one employer. Called by the message write path.
+ *
+ * The TTL is 60 s, which is fine for a dashboard nobody is looking at, but a reply just sent must be visible to the
+ * person who sent it. Without this, an employer who answers a candidate and opens their dashboard within a minute
+ * still reads the number from before their own reply - the exact bug a reviewer hit while testing this by hand. */
+export function invalidateReplyStats(employerId) {
+  if (employerId == null) cache.clear();
+  else cache.delete(Number(employerId));
+}
+
 export const __clearReplyCache = () => cache.clear();
 
 /** Human sentence for the UI: "usually replies in about 3 h", or null when there is nothing to brag about yet. */

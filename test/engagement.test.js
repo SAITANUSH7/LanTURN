@@ -192,6 +192,33 @@ test('reply time is measured from real threads and shown to both sides', async (
   assert.match(detail.body.employerReply || '', /replies/);
 });
 
+test('a reply is reflected immediately, not after the 60s cache expires', async () => {
+  // Regression: the employer dashboard caches this number for 60 s, so an employer who answered a candidate and then
+  // opened their dashboard read the value from *before* their own reply (replies: 0 with a real exchange on record).
+  // The write path now drops the cache entry; this test never calls __clearReplyCache between the reply and the read.
+  const resumes = await api('GET', '/resumes', { token: student.accessToken });
+  const job2 = await api('POST', '/employer/jobs', {
+    token: emp.accessToken,
+    body: { title: 'Platform Engineer', description: 'Node and SQLite.', type: 'FULL_TIME', location: 'Remote', remote: true, skills: [{ skillId: reactSkill.id, weight: 2 }] },
+  });
+  assert.equal(job2.status, 201);
+  const applied = await api('POST', `/jobs/${job2.body.id}/apply`, { token: student.accessToken, body: { resumeId: resumes.body.items[0].id, coverNote: 'Interested' } });
+  assert.equal(applied.status, 201, JSON.stringify(applied.body));
+  const threadId = applied.body.id;
+
+  __clearReplyCache();
+  // The employer opens the thread, which warms the cache with "nothing measured yet".
+  await api('POST', `/applications/${threadId}/messages`, { token: emp.accessToken, body: { body: 'Would Thursday suit you?' } });
+  const before = await api('GET', '/employer/response-time', { token: emp.accessToken });
+
+  await api('POST', `/applications/${threadId}/messages`, { token: student.accessToken, body: { body: 'Thursday works.' } });
+  await api('POST', `/applications/${threadId}/messages`, { token: emp.accessToken, body: { body: 'Booked.' } });
+
+  const after = await api('GET', '/employer/response-time', { token: emp.accessToken });
+  assert.equal(after.body.replies, before.body.replies + 1, 'the reply that was just sent is counted without waiting for the TTL');
+  __clearReplyCache();
+});
+
 test('the live stream accepts a single-use ticket, because EventSource cannot send a token', async () => {
   const t = await api('POST', '/realtime/ticket', { token: student.accessToken });
   assert.equal(t.status, 200);
