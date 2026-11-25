@@ -3177,7 +3177,7 @@ body:has(#main .auth2) .topbar__user > a.btn { display: none; }
    say so; small rings in dense lists keep their space. */
 /* The scale lives inside the ring as a <small> the stylesheet already knew how to draw ("21/100"); dense 66px rings
    in lists drop it because 9px of caption is noise there. */
-.ring__value small { letter-spacing: 0; }
+.ring__value small { letter-spacing: 0; color: var(--text-2); }
 .ring--sm .ring__value small { display: none; }
 
 /* Stat tiles: an accent hairline on the leading edge and a numeral that owns the card, so a row of four reads as one

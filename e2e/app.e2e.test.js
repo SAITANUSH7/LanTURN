@@ -156,7 +156,7 @@ for (const theme of ['dark', 'light']) {
     const found = [];
     const pub = await newPage(browser, { theme });
     for (const r of ['/', '/login', '/register']) { await pub.goto(`${app.base}/#${r}`); await pub.waitForTimeout(500); found.push(...(await audit(pub)).map((v) => `${r} ${v}`)); }
-    for (const [role, routes] of [['student', ['/student', '/student/applications', '/student/jobs', '/student/roadmap', '/student/arena', '/student/dna']], ['employer', ['/employer', '/employer/jobs', '/employer/jobs/1/candidates', '/employer/applications/1', '/employer/jobs/new?from=1']], ['admin', ['/admin', '/admin/system', '/admin/ai']]]) {
+    for (const [role, routes] of [['student', ['/student', '/student/applications', '/student/jobs', '/student/roadmap', '/student/career?jobId=1', '/student/messages', '/student/arena', '/student/dna']], ['employer', ['/employer', '/employer/jobs', '/employer/jobs/1/candidates', '/employer/applications/1', '/employer/jobs/new?from=1']], ['admin', ['/admin', '/admin/system', '/admin/ai']]]) {
       const page = await newPage(browser, { theme }); await login(page, app.base, role);
       for (const r of routes) { await page.goto(`${app.base}/#${r}`); await page.waitForTimeout(700); found.push(...(await audit(page)).map((v) => `${r} ${v}`)); }
     }
