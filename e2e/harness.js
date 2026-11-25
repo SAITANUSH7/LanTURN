@@ -60,5 +60,14 @@ export async function login(page, base, role) {
 
 export async function audit(page) {
   await page.evaluate(axeSource);
-  return page.evaluate(() => axe.run(document, { runOnly: ['wcag2a', 'wcag2aa'], resultTypes: ['violations'] }).then((r) => r.violations.map((v) => `${v.id}: ${v.nodes.slice(0, 3).map((n) => n.target.join(' ')).join(' | ')}`)));
+  // Each entry carries the exact colours and ratio axe measured, plus a short HTML snippet: a failing run is then
+  // diagnosable from the assertion message alone (and from CI annotations), without a browser or a screenshot.
+  return page.evaluate(() => axe.run(document, { runOnly: ['wcag2a', 'wcag2aa'], resultTypes: ['violations'] }).then((r) => r.violations.map((v) => {
+    const nodes = v.nodes.slice(0, 3).map((n) => {
+      const d = (n.any && n.any[0] && n.any[0].data) || (n.all && n.all[0] && n.all[0].data) || {};
+      const detail = d.contrastRatio ? ` [fg ${d.fgColor} bg ${d.bgColor} ratio ${d.contrastRatio} need ${d.expectedContrastRatio} ${d.fontSize || ''}/${d.fontWeight || ''}${d.messageKey ? ' ' + d.messageKey : ''}]` : '';
+      return `${n.target.join(' ')}${detail} <${String(n.html || '').replace(/\s+/g, ' ').slice(0, 90)}>`;
+    });
+    return `${v.id}: ${nodes.join(' | ')}`;
+  })));
 }
