@@ -221,6 +221,13 @@ Found a vulnerability? Please read [`SECURITY.md`](SECURITY.md) — report it pr
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the local workflow, the coding rules this codebase follows and what a PR
 needs to pass (`npm run lint`, `npm test`).
 
+## 🎨 Design system
+
+One CSS file, no build step: `public/css/lanturn.css`. The last layer ("Prism") defines the product look — deep
+graphite canvas, layered glass surfaces, an indigo→violet action accent, a full light theme, and motion that honours
+`prefers-reduced-motion`. Interactions live in `public/js/polish.js`. Open `/design-system.html` on a running instance
+to see every component in one page; `docs/ARCHITECTURE.md` explains how to extend it without breaking the e2e suite.
+
 ## Platform notes
 - Shipped UI: `public/` (vanilla, no build). Optional React rewrite: `frontend/` behind `USE_REACT=true`.
 - `npm run lint` — ESLint (flat config, `eslint.config.js`); `npm run lint:fix` to apply.

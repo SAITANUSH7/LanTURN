@@ -25,7 +25,7 @@ const server = createApp().listen(config.port, () => {
   const ps = providerSummary();
   console.log(ps.length ? `AI providers ready: ${ps.map((x) => `${x.label} (${x.model})`).join(' -> ')} -> rules engine` : 'AI mode: rules engine only. Add a key at /#/admin/ai (admin) or in .env');
   if (config.seedDemo) console.log('Demo logins (password Demo@12345): student.one@example.test, hr@examplecorp.test | admin:', config.adminEmail);
-  console.log(`Password reset: ${emailEnabled() ? 'emails are on' : 'no email provider (set EMAIL_API_KEY + EMAIL_FROM); outside production the reset link is returned by the API'}`);
+  console.log(`Password reset: ${emailEnabled() ? 'emails are on' : 'no email provider (set EMAIL_API_KEY + EMAIL_FROM); password reset links are printed to this log'}`);
 });
 
 // Slowloris and idle-connection limits

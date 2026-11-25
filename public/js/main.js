@@ -10,6 +10,7 @@ import { setupPage } from './views/setup.js';
 import { roadmapPage } from './views/roadmap.js';
 import * as ai from './views/ai.js';
 import './fx.js';
+import { initPolish } from './polish.js';
 import { t, LANGS, getLang, setLang } from './i18n.js';
 
 const app = document.getElementById('app');
@@ -182,6 +183,8 @@ document.addEventListener('pointermove', (e) => {
   clear(app).append(h('div', { class: 'container page' }, loadingBlock(2)));
   await restoreSession();
   await render();
+  // Additive interaction layer (sticky header state, ripple, magnetic CTAs, chart tooltips, reveal stagger).
+  initPolish();
 })();
 
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
