@@ -216,3 +216,40 @@ test('placement drives have a lifecycle, a registrant list, and refuse a past da
   // Another student cannot read the registrant list.
   assert.equal((await api('GET', `/drives/${live.body.id}/registrations`, { token: s.accessToken })).status, 403);
 });
+
+test('an employer can open the resume attached to an application they own, and nobody else can', async () => {
+  const adminToken = await admin();
+  const emp = await register('EMPLOYER', { companyName: 'Resume Readers' });
+  await api('PATCH', `/admin/users/${emp.user.id}/status`, { token: adminToken, body: { status: 'active' } });
+  const other = await register('EMPLOYER', { companyName: 'Nosy Corp' });
+  await api('PATCH', `/admin/users/${other.user.id}/status`, { token: adminToken, body: { status: 'active' } });
+  const e = await login(emp.email, 'Passw0rd!x');
+
+  const skill = (await api('GET', '/skills?q=Kotlin', { token: e })).body;
+  const skillId = (skill.items || skill)[0].id;
+  const job = await api('POST', '/employer/jobs', {
+    token: e,
+    body: { title: 'Resume Test Engineer', description: 'A role that exists so a resume can be opened.', type: 'INTERNSHIP', location: 'Hyderabad', remote: false, compensation: '20k/mo', skills: [{ skillId, weight: 2 }] },
+  });
+  assert.equal(job.status, 201, job.text);
+
+  const s = await register('STUDENT');
+  const up = await api('POST', '/resumes', { token: s.accessToken, form: pdfForm(RESUME_LINES, { consent: 'true' }) });
+  assert.equal(up.status, 201, up.text);
+  const apply = await api('POST', `/jobs/${job.body.id}/apply`, { token: s.accessToken, body: { resumeId: up.body.id } });
+  assert.ok([200, 201].includes(apply.status), apply.text);
+
+  const list = await api('GET', `/employer/jobs/${job.body.id}/candidates`, { token: e });
+  const app = list.body.items[0];
+  assert.equal(app.hasResumeFile, true, 'the UI needs to know a PDF exists before offering the button');
+
+  const open = await fetch(`${getOrigin()}/api/employer/applications/${app.applicationId}/resume`, { headers: { Authorization: `Bearer ${e}` } });
+  assert.equal(open.status, 200);
+  assert.equal(open.headers.get('content-type'), 'application/pdf');
+  // A different employer, and the student themselves, must not reach it through this route.
+  const otherToken = await login(other.email, 'Passw0rd!x');
+  assert.equal((await fetch(`${getOrigin()}/api/employer/applications/${app.applicationId}/resume`, { headers: { Authorization: `Bearer ${otherToken}` } })).status, 404);
+  assert.equal((await fetch(`${getOrigin()}/api/employer/applications/${app.applicationId}/resume`, { headers: { Authorization: `Bearer ${s.accessToken}` } })).status, 403);
+  // An admin moderating the platform can.
+  assert.equal((await fetch(`${getOrigin()}/api/admin/applications/${app.applicationId}/resume`, { headers: { Authorization: `Bearer ${adminToken}` } })).status, 200);
+});

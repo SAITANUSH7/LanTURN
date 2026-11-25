@@ -136,7 +136,6 @@ export function createApp() {
     next();
   });
 
-  // eslint-disable-next-line no-unused-vars
   app.use((err, req, res, _next) => {
     let status = 500;
     let code = 'INTERNAL';

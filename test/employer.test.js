@@ -155,7 +155,7 @@ test('candidate CSV export contains rows, escapes formulas and is owner-only', a
   const r = await api('GET', `/employer/jobs/${jobId}/candidates.csv`, { token: emp.accessToken });
   assert.equal(r.status, 200);
   assert.match(r.headers.get('content-type'), /text\/csv/);
-  const lines = r.text.replace(/^﻿/, '').trim().split('\r\n');
+  const lines = r.text.replace(/^\uFEFF/, '').trim().split('\r\n');
   assert.equal(lines.length, 3);
   assert.ok(r.text.includes(`"'=HYPERLINK(""x""),bad"`));
   const other = await register('EMPLOYER');

@@ -1,9 +1,12 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { Router } from 'express';
 import { interviewsFor, cancelOpenInterviews } from './interviews.js';
 import { enqueue } from '../queue.js';
 import { notify } from '../notify.js';
 import { z } from 'zod';
 import { db, tx, parseJson } from '../db.js';
+import { config } from '../config.js';
 import { conflict, notFound, parse, wrap, bad } from '../util.js';
 import { authenticate, requireRole, requireVerifiedEmployer, revokeAllSessions, bumpTokenVersion } from '../auth.js';
 import { audit, recentAudit } from '../audit.js';
@@ -163,6 +166,8 @@ employerRouter.get('/employer/jobs/:id/candidates', ...employer, wrap(async (req
     return {
       applicationId: r.id, status: r.status, matchScore: r.match_score, appliedAt: r.created_at, rating: r.employer_rating, hasNote: !!r.employer_note,
       resumeScore: an?.overallScore ?? null,
+      resumeId: an || r.resume_id ? r.resume_id : null,
+      hasResumeFile: Boolean(r.resume_id && db.prepare('SELECT file_key FROM resumes WHERE id = ?').get(r.resume_id)?.file_key),
       student: { name: r.full_name, college: r.college, degree: r.degree, branch: r.branch, graduationYear: r.graduation_year, location: r.location },
       topSkills: studentSkills(r.student_id).slice(0, 6).map((s) => s.name),
     };
@@ -326,6 +331,25 @@ employerRouter.get('/employer/jobs/:id/recommendations', ...employer, wrap(async
 // ---------- Admin ----------
 export const adminRouter = Router();
 const admin = [authenticate, requireRole('ADMIN')];
+
+// The applicant's actual PDF. `/resumes/:id/file` is student-only, which is why "View resume" was dead in both
+// portals: the employer had no way to open the file they were sent.
+function sendApplicationResume(res, applicationId, { anyEmployer }) {
+  const a = anyEmployer
+    ? db.prepare('SELECT * FROM applications WHERE id = ?').get(idParam(applicationId))
+    : ownApplication(res.req.user.id, applicationId);
+  if (!a) throw notFound('Application not found');
+  if (!a.resume_id) throw notFound('No resume is attached to this application');
+  const r = db.prepare('SELECT filename, file_key FROM resumes WHERE id = ?').get(a.resume_id);
+  const file = r?.file_key ? path.join(config.uploadDir, r.file_key) : '';
+  if (!file || !fs.existsSync(file)) throw notFound('The resume file is no longer available');
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `inline; filename="${String(r.filename).replace(/["\\\r\n]/g, '')}"`);
+  res.setHeader('Cache-Control', 'private, no-store');
+  res.sendFile(file);
+}
+employerRouter.get('/employer/applications/:id/resume', ...employer, wrap(async (req, res) => sendApplicationResume(res, req.params.id, { anyEmployer: false })));
+adminRouter.get('/admin/applications/:id/resume', ...admin, wrap(async (req, res) => sendApplicationResume(res, req.params.id, { anyEmployer: true })));
 
 adminRouter.get('/admin/analytics', ...admin, wrap(async (_req, res) => {
   const one = (sql) => (db.prepare(sql).get()?.n || 0);

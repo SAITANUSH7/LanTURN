@@ -3,10 +3,10 @@
 LanTURN keeps a SQLite database and resume PDFs on disk, so it needs a host with a **persistent disk/volume**. Vercel's serverless functions cannot do that (use Render or Railway; to use Vercel you would first move to Postgres + blob storage).
 
 ## 1. Push to GitHub
+If the folder already has a `.git` and an `origin`, skip to step 2 — this repository is already initialised.
 ```bash
-cd lanturn-app
-git init -b main            # skip if the folder already has .git
-git add . && git commit -m "LanTURN v5"
+git remote -v               # check what is already configured
+git add . && git commit -m "your change"
 # create an empty repo on github.com (no README), then:
 git remote add origin https://github.com/<you>/lanturn.git
 git push -u origin main
@@ -34,6 +34,8 @@ Data resets on every deploy and the service sleeps when idle. Switch back to Sta
 - If the JWT secrets are not set in production, the app generates strong ones and saves them next to the database (warning in the log). Setting them yourself is still better; generate with `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`).
 - Set `SEED_DEMO=true` only for a demo deployment; demo accounts use a known password.
 - Cookies are `Secure` in production, so use the HTTPS URL the host gives you.
+- `TRUST_PROXY` defaults to `1` in production. Set it to the number of proxy hops in front of the app (Render/Railway = 1, Cloudflare in front = 2) or to `false` when nothing sits in front, otherwise `X-Forwarded-For` can be spoofed to dodge rate limits.
+- The shipped UI is `public/` and needs no build step. Only if you set `USE_REACT=true` do you need `cd frontend && npm ci && npm run build` first — and the Dockerfile does not do that for you.
 - Back up the volume (`lanturn.db` and `uploads/`) before changing plans or regions.
 
 ## Railway: demo logins not working?

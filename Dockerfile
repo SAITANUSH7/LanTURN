@@ -13,6 +13,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends poppler-utils &
 COPY package*.json ./
 RUN npm ci --omit=dev
 COPY . .
+# The shipped UI lives in ./public and needs no build. The optional React frontend (USE_REACT=true) is NOT built here;
+# build it in a separate stage if you enable it.
 # If the C++ build failed or was skipped, the app silently uses the JS implementations.
 COPY --from=native /build/native/build ./native/build
 ENV NODE_ENV=production

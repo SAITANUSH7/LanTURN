@@ -97,4 +97,10 @@ export async function openPdf(resumeId) {
   const blob = await res.blob();
   window.open(URL.createObjectURL(blob), '_blank', 'noopener');
 }
+/** The same PDF as seen by the hiring side: authorized by the application, not by owning the resume. */
+export async function openApplicationResume(applicationId) {
+  const res = await api('GET', `/employer/applications/${applicationId}/resume`, { raw: true });
+  const blob = await res.blob();
+  window.open(URL.createObjectURL(blob), '_blank', 'noopener');
+}
 export const reloadUser = async () => { const d = await api('GET', '/me'); session.user = d.user; emit(); return d.user; };

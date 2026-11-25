@@ -6,7 +6,7 @@ import { db, tx } from '../db.js';
 import { config } from '../config.js';
 import { HttpError, conflict, parse, wrap, bad } from '../util.js';
 import { assertNotLocked, recordFailure, clearFailures, passwordProblem } from '../security.js';
-import { authenticate, hashPassword, checkPassword, signAccess, issueRefresh, rotateRefresh, revokeRefresh, clearRefresh, createPasswordReset, consumePasswordReset, setPassword, revokeAllSessions } from '../auth.js';
+import { authenticate, hashPassword, checkPassword, signAccess, issueRefresh, rotateRefresh, revokeRefresh, clearRefresh, createPasswordReset, consumePasswordReset, setPassword } from '../auth.js';
 import { notify } from '../notify.js';
 import { emailEnabled } from '../email.js';
 import { audit } from '../audit.js';

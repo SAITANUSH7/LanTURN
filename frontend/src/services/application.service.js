@@ -9,4 +9,7 @@ export const applicationService = {
   getEmployerApplication: (applicationId) => apiClient.get(`/employer/applications/${applicationId}`).then(unwrap),
   updateStatus: (applicationId, body) => apiClient.patch(`/employer/applications/${applicationId}/status`, body).then(unwrap),
   getResumeFileUrl: (resumeId) => `/api/resumes/${resumeId}/file`,
+  // Hiring-side PDF: authorized by the application, which is what the employer actually owns.
+  getApplicationResume: (applicationId) =>
+    apiClient.get(`/employer/applications/${applicationId}/resume`, { responseType: 'blob' }).then((r) => r.data),
 };

@@ -1,7 +1,7 @@
 # LanTURN architecture
 
 ## Layers
-1. **Client** — vanilla ES-module SPA (`public/`), hash router, XSS-safe `h()` DOM helper, strict CSP (no inline script/style).
+1. **Client** — the shipped UI is a vanilla ES-module SPA in `public/` (hash router, XSS-safe `h()` DOM helper, no build step). CSP allows no inline *script*; it does allow inline `style`, because motion code sets custom properties. `frontend/` is an optional React rewrite that is off by default.
 2. **API** — Express (`src/app.js`, `src/routes/*`): helmet, rate limits, zod validation, JWT auth + RBAC, error envelope `{error:{code,message,details,requestId}}`.
 3. **AI services** — `src/ai/*`: skill extraction, deterministic scoring, skill gap, job match, roadmaps; optional Anthropic adapter with schema validation and fallback to rules.
 4. **Data** — SQLite (`node:sqlite`) + private file storage for resumes.
@@ -19,7 +19,7 @@ Access JWT (15 min, memory) + rotating hashed refresh token in httpOnly cookie w
 Resume = 40 deterministic (sections 15, contact 5, length 10, quantified 10) + 60 rubric (clarity, skills, writing). Job match = 0.8 skill + 0.1 preference + 0.1 freshness.
 
 ## Design system
-Tokens in `public/css/tokens.css` (void/obsidian black, black #050609, white, one ice blue #6EA8FF (palette E, Bleach mono); red reserved for errors; glass, gradients, glow). Components in `components.css`, layout/pages in `app.css`. Motion: drifting blue/violet aurora orbs, scanline, ticker, morphing liquid blobs, pointer-follow glass highlight; honours reduced motion/transparency.
+Tokens, the glass/motion base, components, layout and pages all live in the single file `public/css/lanturn.css` (there is no `tokens.css`/`components.css`/`app.css` split). Motion: drifting aurora orbs, scanline, ticker, pointer-follow highlight, reveal-on-scroll; everything honours reduced motion/transparency.
 
 ---
 
@@ -96,3 +96,18 @@ flowchart LR
   D --> V
 ```
 After a resume upload the student gets a deterministic verdict immediately (rules decide, ML corroborates or flags disagreement). If an AI provider is configured and the daily quota allows, a background task sends the whole evidence, including the ML output, to the provider, which concludes. The reply is schema-validated and may only pick a direction and jobs that appear in the evidence; anything else is rejected and the deterministic verdict stays (`llmSkipped` says why). The setup page shows the result with its sources ("rules + ML model + AI (nvidia)"); `POST /api/career/verdict` re-runs it. Unchanged evidence is not re-sent (hash), so it doesn't spend quota twice.
+
+
+## Why there are two frontends
+
+`public/` is the shipped client: vanilla ES modules, one CSS file, no build step, and the only client the
+route-inventory test, the e2e suite and the deployment docs describe. `frontend/` is an unfinished React
+rewrite (Tailwind, TanStack Query, i18n, PWA) that is **off by default**; `USE_REACT=true` makes Express serve
+its `dist/` instead, and its dev server proxies `/api` to the Express app.
+
+The split is real and worth knowing: Networking, Interview Studio and parts of the employer pipeline exist
+only in React, while the roadmap, career map, admin system view and settings exist only in `public/`. Do not
+assume a screen exists in the UI you are running. The plan is to finish React feature-by-feature and delete
+the older screen each time, not to keep both forever. `src/routes/compat.js` exists because the React client
+was written against a slightly different REST shape (signed uploads, `/auth/session`, provider-style job
+search); it is the seam that keeps both clients working against one backend.
