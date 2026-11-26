@@ -64,7 +64,7 @@ export function landing({ navigate, user }) {
 }
 
 function authLayout(title, subtitle, form) {
-  const pt = (b, t) => h('li', null, icon('check'), h('div', null, h('b', null, b), t));
+  const pt = (b, t) => h('li', null, icon('check'), h('div', null, h('b', null, b), h('span', { class: 'auth2__list-t' }, t)));
   // The right-hand panel used to be three bullets in a very large empty box. It now carries the platform's real,
   // live numbers (the same public endpoint the landing page reads) so the space says something true instead of lorem.
   const pulse = h('div', { class: 'auth2__pulse', hidden: true, 'aria-label': 'Platform activity' });

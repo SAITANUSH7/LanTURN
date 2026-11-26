@@ -2031,3 +2031,21 @@ body:has(#main .auth2) .topbar--pub .topbar__user > a.btn { display: none; }
   :root .auth2__side > .auth2__list { flex-direction: row; gap: 22px; display: flex; }
   :root .auth2__list li { max-width: 26ch; font-size: 0.8rem; }
 }
+
+/* The strip under the sheet: three claims, one line each, small print under them. Descriptions are dropped at this
+   width - they belong to the two-column panel, where there is room for them. */
+@media (max-width: 900px) {
+  :root .auth2__side { flex-direction: column; gap: 8px; padding: 14px 20px calc(16px + env(safe-area-inset-bottom)); }
+  :root .auth2__list { display: flex; flex-wrap: wrap; gap: 4px 18px; max-width: none; }
+  :root .auth2__list li { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; }
+  :root .auth2__list .icon { width: 14px; height: 14px; margin: 0; }
+  :root .auth2__list b { display: inline; font-size: 0.8rem; color: var(--text-2); font-weight: 500; }
+  :root .auth2__list-t { display: none; }
+  :root .auth2__foot { font-size: 0.74rem; margin: 0; gap: 6px; color: var(--text-3); }
+  :root .auth2__foot .icon { width: 13px; height: 13px; }
+  :root .auth2__form { padding-bottom: 12px; }
+}
+@media (max-width: 900px) and (min-width: 561px) {
+  :root .auth2__side { flex-direction: row; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+  :root .auth2__list { gap: 4px 22px; }
+}
