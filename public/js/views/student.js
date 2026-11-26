@@ -329,8 +329,9 @@ export async function career({ query }) {
     });
     return h('div', { class: 'card stack' },
       h('div', { class: 'gap-grid' }, scoreRing(g.matchPercent, { accent: true }), h('div', null, h('h2', { style: { fontSize: '1.8rem' } }, g.target.title), h('p', { class: 'muted' }, `Weighted skill match based on the ${g.studentSkillCount} skills on your profile.`))),
-      h('div', null, h('h4', null, 'You have'), h('p', { class: 'chips-legend' }, 'Each dot is how heavily this job weights the skill — three dots means it matters most.'), h('div', { class: 'chips', style: { marginTop: '8px' } }, g.matched.length ? g.matched.map((s) => skillChip(s.skill, 'matched', s.weight)) : h('span', { class: 'muted' }, 'Nothing yet. Add skills in your profile or upload a resume.'))),
-      h('div', null, h('h4', null, 'Still missing (most important first)'), h('div', { class: 'chips', style: { marginTop: '8px' } }, g.missing.length ? g.missing.map((s) => skillChip(s.skill, 'missing', s.weight)) : h('span', { class: 'muted' }, 'No gaps. You cover every listed skill.'))),
+      h('div', { class: 'gap-cols' },
+        h('div', null, h('h4', null, 'You have'), h('p', { class: 'chips-legend' }, 'Each dot is how heavily this job weights the skill. Three dots means it matters most.'), h('div', { class: 'chips' }, g.matched.length ? g.matched.map((s) => skillChip(s.skill, 'matched', s.weight)) : h('span', { class: 'muted' }, 'Nothing yet. Add skills in your profile or upload a resume.'))),
+        h('div', null, h('h4', null, 'Still missing'), h('p', { class: 'chips-legend' }, 'Ordered by how much the job weights them.'), h('div', { class: 'chips' }, g.missing.length ? g.missing.map((s) => skillChip(s.skill, 'missing', s.weight)) : h('span', { class: 'muted' }, 'No gaps. You cover every listed skill.')))),
       g.missing.length ? h('div', null, planBtn) : null);
   }
   const roadHost = h('div');
@@ -344,7 +345,13 @@ export async function career({ query }) {
   }
   const goBtn = h('button', { class: 'btn', type: 'button', onclick: analyse }, icon('target'), 'Analyse my gap');
   out.append(
-    h('div', { class: 'card stack' }, jobId ? h('p', null, 'Analysing the requirements of a specific job.') : field('Target role', roleSel), h('div', null, goBtn)),
+    h('div', { class: 'card prompt' },
+      h('div', { class: 'prompt__copy' },
+        h('h3', null, jobId ? 'Gap analysis for this job' : 'Where do you stand against a role?'),
+        h('p', { class: 'muted' }, jobId
+          ? 'We compare the skills this job weights against what is on your profile right now.'
+          : 'Pick a target role to see the skills you already have, the ones you are missing, and the plan that closes the gap.')),
+      h('div', { class: 'prompt__act' }, jobId ? null : roleSel, goBtn)),
     gapHost, roadHost);
   if (jobId) analyse();
   else if (latest) { roadHost.append(h('h2', { class: 'section-title', style: { marginBottom: '12px' } }, 'Your latest roadmap'), roadmapView(latest)); }

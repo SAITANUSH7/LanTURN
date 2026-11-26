@@ -3726,3 +3726,26 @@ body:has(#main .auth2) .topbar .kbd-hint { display: none; }
 }
 /* A board that scrolls should say so: a thin, always-visible scrollbar and a snap edge. */
 :root .board { scrollbar-width: thin; scroll-padding-inline: 12px; }
+
+/* ---------- 29. Career: a prompt, not an empty card; gaps side by side ------------------------------------------- */
+:root .prompt { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; flex-wrap: wrap; padding: 18px 20px; }
+:root .prompt__copy { display: grid; gap: 4px; min-width: 0; max-width: 62ch; }
+:root .prompt__copy h3 { font-size: 1rem; margin: 0; }
+:root .prompt__copy p { margin: 0; font-size: 0.88rem; line-height: 1.5; }
+:root .prompt__act { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+:root .prompt__act .select { min-width: 220px; height: 38px; }
+:root .gap-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; padding-top: 4px; border-top: 1px solid var(--line); margin-top: 4px; }
+:root .gap-cols h4 { margin: 10px 0 4px; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-3); }
+:root .gap-cols .chips { margin-top: 8px; }
+:root .chips-legend { font-size: 0.8rem; color: var(--text-3); margin: 0; }
+@media (max-width: 720px) { :root .gap-cols { grid-template-columns: minmax(0, 1fr); gap: 16px; } :root .prompt__act { width: 100%; } :root .prompt__act .select { flex: 1; } }
+
+/* ---------- 30. Grid stretch is not a layout ----------------------------------------------------------------
+   A card is a stack container, so every direct child became full width: "Start the test" was a 44px violet slab and
+   the "Rules engine" badge on a medal card looked like a progress bar. Inline things stay inline. */
+:root .card > .btn,
+:root .card > .badge,
+:root .card > .chip,
+:root .card > .medal,
+:root .card > .row > .badge { justify-self: start; }
+:root .card > .btn { align-self: start; }
