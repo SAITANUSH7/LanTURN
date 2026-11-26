@@ -6,6 +6,7 @@ import { startScheduler, stopScheduler } from './src/tasks.js';
 import { setDraining } from './src/routes/ops.js';
 import { db } from './src/db.js';
 import { startMonitor, stopMonitor, reportError } from './src/monitor.js';
+import { startMetricSampler, stopMetricSampler } from './src/metricHistory.js';
 import { stopSearch } from './src/searchEngine.js';
 import { startupWarnings } from './src/security.js';
 import { emailEnabled } from './src/email.js';
@@ -18,6 +19,7 @@ if (config.seedDemo) seedDemo();
 startWorker();
 startScheduler();
 startMonitor();
+startMetricSampler(); // one row a minute, so the admin dashboard has a 7-day trend to draw
 
 const server = createApp().listen(config.port, () => {
   for (const w of startupWarnings()) console.warn(`SECURITY: ${w}`);
@@ -43,6 +45,7 @@ async function shutdown(signal, code = 0) {
   setDraining(true);
   stopScheduler();
   stopMonitor();
+  stopMetricSampler();
   const force = setTimeout(() => { console.error('forced exit after 10s'); process.exit(1); }, 10_000);
   force.unref();
   server.close();

@@ -37,6 +37,27 @@
     <div class="field"><label for="b">Select</label><select id="b" class="select"><option>Intermediate</option><option>Advanced</option></select></div>
     <div class="field" style="grid-column:1/-1"><label for="c">Textarea</label><textarea id="c" class="textarea" placeholder="Write a short note"></textarea><span class="hint">Helper text sits below the field.</span></div></div></section>
 
+  <section class="ds2__sec"><h2>Trends, strips and empty states</h2>
+    <p class="muted">A number answers how much. A trend answers whether it is getting worse, which is the question memory and queue depth actually raise. The strip exists so four related numbers do not become four more cards inside a card.</p>
+    <div class="grid grid--4">
+      <div class="stat stat--tile"><span class="stat__label">Memory (RSS)</span><strong class="stat__value">86 MB</strong>
+        <div class="stat__spark"><svg class="spark spark--accent" viewBox="0 0 132 34" preserveAspectRatio="none" role="img" aria-label="Memory over seven days: from 61 to 86 MB, low 61, high 91"><path class="spark__area" d="M0 28 L26 24 L52 25 L78 12 L104 8 L132 9 L132 34 L0 34 Z"></path><path class="spark__line" d="M0 28 L26 24 L52 25 L78 12 L104 8 L132 9"></path><circle class="spark__dot" cx="132" cy="9" r="2.6"></circle></svg></div>
+        <span class="stat__hint">+25 MB in 7 days &middot; peak 91 MB</span></div>
+      <div class="stat stat--tile"><span class="stat__label">Queue depth</span><strong class="stat__value">0</strong>
+        <div class="stat__spark"></div>
+        <span class="stat__hint">queue is empty</span></div>
+      <div class="stat stat--tile"><span class="stat__label">Uptime</span><strong class="stat__value">14 min</strong>
+        <div class="stat__spark"></div>
+        <span class="stat__hint">since this process started</span></div>
+      <div class="stat stat--tile"><span class="stat__label">In flight</span><strong class="stat__value">2</strong>
+        <div class="stat__spark"><svg class="spark spark--accent" viewBox="0 0 132 34" preserveAspectRatio="none" role="img" aria-label="In-flight requests: from 0 to 2, high 3"><path class="spark__area" d="M0 30 L26 22 L52 28 L78 14 L104 20 L132 16 L132 34 L0 34 Z"></path><path class="spark__line" d="M0 30 L26 22 L52 28 L78 14 L104 20 L132 16"></path><circle class="spark__dot" cx="132" cy="16" r="2.6"></circle></svg></div>
+        <span class="stat__hint">busiest hour 3</span></div>
+    </div>
+    <p class="muted" style="margin-top:12px">A tile with no history draws a hairline in the chart slot instead of a flat line through one point, so the numbers below it still line up.</p>
+    <div class="statstrip" style="margin-top:16px"><div class="statstrip__c"><small>Queued</small><strong>0</strong></div><div class="statstrip__c"><small>Running</small><strong>1</strong></div><div class="statstrip__c"><small>Failed (dead letters)</small><strong class="is-bad">2</strong></div><div class="statstrip__c"><small>Oldest waiting</small><strong>4s</strong></div></div>
+    <div class="empty" style="margin-top:16px"><h3>Nothing failed</h3><p class="muted">Tasks that exhaust their attempts land here, with a one-click retry.</p></div>
+  </section>
+
   <section class="ds2__sec"><h2>Feedback and data</h2>
     <div class="stats"><div class="stat stat--accent"><div class="stat__label">Resume score</div><div class="stat__value">82</div></div><div class="stat"><div class="stat__label">Skills</div><div class="stat__value">14</div></div><div class="stat"><div class="stat__label">Applications</div><div class="stat__value">3</div></div></div>
     <div class="stack" style="margin-top:16px"><div class="alert"><span>Informational message.</span></div><div class="alert alert--success"><span>Saved successfully.</span></div><div class="alert alert--warning"><span>Your resume is missing a skills section.</span></div><div class="alert alert--danger"><span>Something went wrong.</span></div></div>

@@ -107,6 +107,29 @@ test('employer: attention card, job filters, private rating and note, CSV export
   assert.deepEqual(page.errors.filter((e) => !/ERR_|Failed to load resource/.test(e)), []);
 });
 
+test('admin system: stat tiles carry their own trend, and the queue is a strip not four cards', async () => {
+  const page = await newPage(browser);
+  await login(page, app.base, 'admin');
+  await page.goto(`${app.base}/#/admin/system`);
+  await page.waitForSelector('.stat--tile', { timeout: 15000 });
+
+  assert.equal(await page.locator('.stat--tile').count(), 4, 'uptime, memory, in flight, queue depth');
+  // Every tile says what its number means. On a fresh process there is only one sample, so the sparkline is absent
+  // by design and the hint explains that instead of drawing a flat line through a single point.
+  assert.equal(await page.locator('.stat--tile .stat__hint').count(), 4);
+  // textContent, not innerText: the label is uppercased by CSS and innerText reflects that.
+  assert.match(await page.locator('.stat--tile').nth(1).textContent(), /Memory \(RSS\)/);
+
+  const queueCard = page.locator('.card').filter({ has: page.locator('h3', { hasText: 'Background queue' }) });
+  assert.equal(await queueCard.count(), 1);
+  assert.equal(await queueCard.locator('.statstrip').count(), 1, 'the four queue numbers live in one strip');
+  assert.equal(await queueCard.locator('.statstrip__c').count(), 4);
+  assert.equal(await queueCard.locator('.stat').count(), 0, 'and they are no longer cards nested in a card');
+
+  await noOverflow(page);
+  assert.deepEqual(page.errors, []);
+});
+
 test('students are kept out of employer and admin pages', async () => {
   const page = await newPage(browser);
   await login(page, app.base, 'student');
@@ -133,7 +156,7 @@ for (const theme of ['dark', 'light']) {
     const found = [];
     const pub = await newPage(browser, { theme });
     for (const r of ['/', '/login', '/register']) { await pub.goto(`${app.base}/#${r}`); await pub.waitForTimeout(500); found.push(...(await audit(pub)).map((v) => `${r} ${v}`)); }
-    for (const [role, routes] of [['student', ['/student', '/student/applications', '/student/jobs', '/student/roadmap', '/student/arena', '/student/dna']], ['employer', ['/employer', '/employer/jobs', '/employer/jobs/1/candidates', '/employer/applications/1', '/employer/jobs/new?from=1']]]) {
+    for (const [role, routes] of [['student', ['/student', '/student/applications', '/student/jobs', '/student/roadmap', '/student/career?jobId=1', '/student/messages', '/student/arena', '/student/dna']], ['employer', ['/employer', '/employer/jobs', '/employer/jobs/1/candidates', '/employer/applications/1', '/employer/jobs/new?from=1']], ['admin', ['/admin', '/admin/system', '/admin/ai']]]) {
       const page = await newPage(browser, { theme }); await login(page, app.base, role);
       for (const r of routes) { await page.goto(`${app.base}/#${r}`); await page.waitForTimeout(700); found.push(...(await audit(page)).map((v) => `${r} ${v}`)); }
     }

@@ -5,6 +5,7 @@ import { config } from '../config.js';
 import { authenticate, requireRole } from '../auth.js';
 import { wrap, notFound, bad } from '../util.js';
 import { snapshot, prometheus } from '../metrics.js';
+import { metricHistory, maybeSample } from '../metricHistory.js';
 import { queueStats } from '../queue.js';
 import { breakerStates } from '../ai/breaker.js';
 import { backend } from '../match.js';
@@ -34,7 +35,10 @@ opsRouter.get('/health/ready', (_req, res) => {
 
 const admin = [authenticate, requireRole('ADMIN')];
 opsRouter.get('/admin/metrics', ...admin, wrap(async (_req, res) => {
-  res.json({ ...snapshot(), queue: queueStats(), breakers: breakerStates(), matchBackend: backend, email: { enabled: emailEnabled() }, monitoring: monitorStatus(), nlp: nlpStatus(), search: searchStatus() });
+  // Take a sample if the last one is stale, so a freshly deployed process still has something to chart, then answer
+  // with the hourly buckets the dashboard draws as sparklines.
+  try { maybeSample(); } catch { /* charts are decoration; never fail the endpoint for them */ }
+  res.json({ ...snapshot(), queue: queueStats(), breakers: breakerStates(), matchBackend: backend, email: { enabled: emailEnabled() }, monitoring: monitorStatus(), nlp: nlpStatus(), search: searchStatus(), history: metricHistory() });
 }));
 opsRouter.get('/admin/metrics.prom', ...admin, wrap(async (_req, res) => {
   const q = queueStats();
