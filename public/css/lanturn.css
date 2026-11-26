@@ -2015,7 +2015,7 @@ body:has(#main .auth2) .topbar--pub .topbar__user > a.btn { display: none; }
    the panel on wide ones) sat under the fold. The public shell is a bare wrapper div inside #app, so the column starts
    there. `:has` scopes this to the two auth routes; without it the page just collapses to its content height. */
 body:has(#main .auth2) #app > div { display: flex; flex-direction: column; min-height: 100dvh; }
-body:has(#main .auth2) #main { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
+body:has(#main .auth2) #main { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; padding-bottom: 0; }
 :root .auth2 { flex: 1 1 auto; min-height: 0; }
 
 /* Narrow screens: the right-hand panel used to vanish below 900px, leaving the lower half of the page empty. It keeps
