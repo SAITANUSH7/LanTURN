@@ -3546,3 +3546,81 @@ body:has(#main .auth2) .topbar .kbd-hint { display: none; }
 :root .jf-foot .btn[type='submit'] { margin-left: auto; }
 /* The skill rows and the picker are one list, not three nested boxes. */
 :root .jf-sec .card--flat { border: 1px solid var(--line); background: color-mix(in srgb, var(--text) 3%, transparent); }
+
+/* ---------- 20. One accent for the numbers, and "done" is not "deleted" ------------------------------------------ */
+/* Six tiles in six hues (sky, violet, amber, cyan, indigo, orange) read as six unrelated widgets. One brand accent with
+   a hairline keeps the row a row. */
+:root .stats .stat { --tile: var(--brand); border-top: 2px solid color-mix(in srgb, var(--brand) 45%, transparent); }
+:root .stats .stat:hover { box-shadow: 0 18px 44px -26px color-mix(in srgb, var(--brand) 70%, transparent); }
+:root .stat--accent { background: linear-gradient(150deg, color-mix(in srgb, var(--brand) 22%, var(--panel)), var(--panel) 72%); }
+/* A finished onboarding step was struck through, which reads as "removed" rather than "done". The tick and the Done
+   badge already say it; the text stays readable. */
+:root .ob__step.is-done strong { text-decoration: none; color: var(--text-2); }
+:root .ob__step.is-done { opacity: 0.85; }
+:root .ob__step.is-next { background: color-mix(in srgb, var(--brand) 8%, transparent); box-shadow: inset 2px 0 0 var(--brand); }
+:root .ob__step { padding: 12px 12px; border-radius: 11px; }
+:root .ob__list { gap: 4px; display: grid; }
+:root .ob__bar { margin: 10px 0 6px; }
+:root .ob__step .ob__mark { width: 34px; height: 34px; border-radius: 10px; }
+
+/* ---------- 21. Auth panel details, status read-outs, bare stat strips ------------------------------------------- */
+/* The benefit list painted a 22px lilac disc behind a #c7d2fe tick, which in the light theme is a pale check on a pale
+   disc: a bullet that says nothing. The tick is now the mark. */
+:root .auth2__list .icon {
+  width: 20px; height: 20px; padding: 3px; border-radius: 6px;
+  background: color-mix(in srgb, var(--brand) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--brand) 34%, transparent);
+  color: var(--brand-hi) !important;
+}
+:root[data-theme='light'] .auth2__list .icon { background: var(--brand); border-color: var(--brand); color: #fff !important; }
+/* The live numbers read as three disabled buttons. A hairline rule above each reads as a figure instead. */
+:root .auth2__pulse { gap: 20px; }
+:root .auth2__pulse > div { padding: 10px 0 0; border: 0; border-top: 1px solid var(--line-2); border-radius: 0; background: none; }
+:root[data-theme='light'] .auth2__pulse > div { background: none; }
+:root .auth2__box { gap: 20px; }
+:root .auth2__box h1 { font-size: 1.75rem; line-height: 1.15; }
+:root .auth2__box p { font-size: 0.92rem; }
+
+/* Runtime status: a dot, a label, a value. No border, because nothing here is clickable. */
+:root .sysbadges { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+:root .sysbadge { display: inline-flex; align-items: center; gap: 7px; font-size: 0.83rem; color: var(--text-2); }
+:root .sysbadge b { color: var(--text); font-weight: 650; }
+:root .sysbadge__dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-3); flex: none; }
+:root .sysbadge__dot.is-ok { background: #22c55e; box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.16); }
+:root .sysbadge__dot.is-off { background: #f59e0b; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.16); }
+
+/* A strip of numbers inside a card is not a second card. */
+:root .card .statstrip { border: 0; border-radius: 0; background: none; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+:root .card .statstrip__c { padding: 12px 14px; }
+:root .card .statstrip__c:first-child { padding-left: 0; }
+:root[data-theme='light'] .card .statstrip { background: none; }
+
+/* The inline empty state: icon in its own column, both text lines stacked in the other. */
+:root .empty--inline { grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto; column-gap: 12px; row-gap: 1px; }
+:root .empty--inline > .icon { grid-row: span 2; }
+:root .empty--inline h3 { grid-column: 2; }
+:root .empty--inline p { grid-column: 2; }
+
+/* ---------- 22. Funnel, attention rows, charts ---------------------------------------------------------------- */
+:root .funnel li { display: grid; grid-template-columns: 92px minmax(0, 1fr) 26px 42px; align-items: center; gap: 10px; }
+:root .funnel__pc { font-size: 0.76rem; color: var(--text-3); text-align: right; font-variant-numeric: tabular-nums; }
+:root .funnel__n { text-align: right; font-variant-numeric: tabular-nums; }
+:root .funnel { gap: 10px; }
+:root .funnel__track { height: 8px; border-radius: 99px; background: color-mix(in srgb, var(--text) 8%, transparent); }
+:root .funnel__track > i { border-radius: 99px; background: var(--accent-grad); min-width: 3px; }
+/* A row inside a card gets a hairline, not its own box: two borders in one card is the nesting the screenshots kept
+   showing. The warning tint stays, as a left rule. */
+:root .attention__list { gap: 0; }
+:root .attention__list li {
+  border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: none;
+  padding: 12px 0 12px 12px; box-shadow: inset 2px 0 0 color-mix(in srgb, #f59e0b 55%, transparent);
+}
+:root .attention__list li:last-child { border-bottom: 0; }
+:root .attention__list li .btn { min-height: 30px; padding: 0 11px; font-size: 0.83rem; }
+:root .attention .card__title { margin-bottom: 4px; }
+/* Charts in the product carry the brand, not a second palette. */
+:root .chart__bar { background: color-mix(in srgb, var(--brand) 40%, transparent); }
+:root .chart__bar.is-today { background: var(--accent-grad); }
+:root .chart__col:hover .chart__bar { background: var(--brand-hi); }
+:root .chart { height: 120px; gap: 5px; }
+:root .chart__total { font-size: 1.7rem; margin-bottom: 10px; }

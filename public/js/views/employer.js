@@ -374,11 +374,15 @@ function applicantsChart(daily) {
 }
 
 function funnelChart(f) {
-  const max = Math.max(1, ...FUNNEL.map(([k]) => f[k] || 0));
+  // Scale against the first stage, not the largest one: with one applicant in "Applied" and one in "Shortlisted", a
+  // max-scaled chart drew two full bars and said nothing. Now the second bar is half the first, as it should be.
+  const base = Math.max(1, f.APPLIED || Math.max(...FUNNEL.map(([k]) => f[k] || 0)));
+  const pct = (n) => Math.round((n / base) * 100);
   return h('div', { class: 'card' },
-    h('h3', { class: 'card__title' }, 'Pipeline by stage'),
+    h('h3', { class: 'card__title' }, 'Pipeline by stage', h('span', { class: 'muted' }, 'share of applicants')),
     h('ul', { class: 'funnel' }, FUNNEL.map(([k, label]) => h('li', { 'data-st': k },
       h('span', { class: 'funnel__label' }, label),
-      h('span', { class: 'funnel__track' }, h('i', { style: { '--w': `${((f[k] || 0) / max) * 100}%` } })),
-      h('b', { class: 'funnel__n' }, String(f[k] || 0))))));
+      h('span', { class: 'funnel__track' }, h('i', { style: { '--w': `${pct(f[k] || 0)}%` } })),
+      h('b', { class: 'funnel__n' }, String(f[k] || 0)),
+      h('small', { class: 'funnel__pc' }, `${pct(f[k] || 0)}%`)))));
 }

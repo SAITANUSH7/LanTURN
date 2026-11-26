@@ -227,8 +227,8 @@ export async function system() {
   }
   await load(true);
   timer = setInterval(() => { if (!host.isConnected) { clearInterval(timer); return; } load(); }, 8000);
-  const chips = meta ? h('div', { class: 'row' },
-    h('span', { class: 'chip chip--blue' }, `Match engine: ${meta.matchBackend}`),
-    h('span', { class: meta.email.enabled ? 'chip chip--matched' : 'chip chip--missing' }, `Email: ${meta.email.enabled ? 'on' : 'off'}`)) : null;
+  const chips = meta ? h('div', { class: 'sysbadges', role: 'status', 'aria-label': 'Runtime status' },
+    h('span', { class: 'sysbadge' }, h('i', { class: 'sysbadge__dot is-ok', 'aria-hidden': 'true' }), h('span', null, 'Match engine'), h('b', null, meta.matchBackend)),
+    h('span', { class: 'sysbadge' }, h('i', { class: `sysbadge__dot ${meta.email.enabled ? 'is-ok' : 'is-off'}`, 'aria-hidden': 'true' }), h('span', null, 'Email'), h('b', null, meta.email.enabled ? 'on' : 'off'))) : null;
   return wrapPage(pageHead('System', 'Live view of background work, provider health and the ML model. Refreshes every few seconds.', chips), host);
 }

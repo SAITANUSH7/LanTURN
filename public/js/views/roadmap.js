@@ -92,7 +92,7 @@ export async function roadmapPage({ query }) {
     const y = scrollY;
     const nextUp = d.flat.find((x) => !x.t.done);
     const sel = h('select', { class: 'rm-select', 'aria-label': 'Career direction', onchange: (e) => { domain = e.target.value; load(); } },
-      d.directions.slice(0, 12).map((x) => h('option', { value: x.id, selected: x.id === d.domain.id ? true : null }, `${x.title} · ${x.fit}% match`)));
+      d.directions.slice(0, 12).map((x) => h('option', { value: x.id, selected: x.id === d.domain.id ? true : null }, `${x.title} · ${x.fit}%`)));
     const panel = h('aside', { class: 'rm-panel' },
       h('div', { class: 'rm-panel__ring' }, scoreRing(d.pct, { accent: true }), h('div', null, h('strong', { 'data-testid': 'rm-known' }, `${d.doneTotal} of ${d.total}`), h('span', null, 'topics known'))),
       h('div', { class: 'rm-panel__stats' }, h('div', null, h('b', null, d.stagesDone), h('span', null, `of ${d.stages.length} stages`)), h('div', null, h('b', null, d.monthsLeft), h('span', null, 'months to go'))),
@@ -143,6 +143,6 @@ export async function roadmapPage({ query }) {
 
   await load();
   const title = d?.domain?.title || 'Your roadmap';
-  const sub = d ? `${d.stages.length} stages · about ${d.domain.estimatedMonths} months from zero · open any topic for a study guide, tick what you already know, and watch the path fill in.` : 'Open any topic for a study guide, tick what you already know, and watch the path fill in.';
+  const sub = d ? `${d.stages.length} stages · about ${d.domain.estimatedMonths} months from zero · ${d.doneTotal} of ${d.total} topics already known` : 'Open any topic for a study guide, tick what you already know, and watch the path fill in.';
   return wrapPage(pageHead(title, sub), root);
 }
