@@ -37,16 +37,24 @@ function attentionCard(a, jobs) {
 // ---------------------------------------------------------------- Dashboard
 export async function dashboard() {
   const [d, jobs, rt] = await Promise.all([get('/employer/dashboard'), get('/employer/jobs'), get('/employer/response-time').catch(() => null)]);
-  const stat = (label, value, cls = '') => h('div', { class: `stat ${cls}` }, h('div', { class: 'stat__label' }, label), h('div', { class: 'stat__value' }, value));
+  // A number without a unit or a sentence under it is a guess. Every tile says what it counts.
+  const stat = (label, value, cls = '', hint = '') => h('div', { class: `stat ${cls}` },
+    h('div', { class: 'stat__label' }, label), h('div', { class: 'stat__value' }, value), hint ? h('span', { class: 'stat__hint' }, hint) : null);
   // Candidates can see this number on their application, so it belongs on the dashboard too - not hidden in a report.
   const replyStat = rt?.replies
-    ? stat('Median reply', rt.medianHours < 1 ? '<1 h' : rt.medianHours < 24 ? `${Math.round(rt.medianHours)} h` : `${Math.round(rt.medianHours / 24)} d`, rt.awaiting ? 'stat--warn' : '')
-    : stat('Median reply', '—');
+    ? stat('Median reply', rt.medianHours < 1 ? '<1 h' : rt.medianHours < 24 ? `${Math.round(rt.medianHours)} h` : `${Math.round(rt.medianHours / 24)} d`, rt.awaiting ? 'stat--warn' : '', rt.awaiting ? `${rt.awaiting} waiting on you` : 'to your first message')
+    : stat('Median reply', '—', '', 'no replies sent yet');
   return wrapPage(
     pageHead('Dashboard', 'Your hiring pipeline at a glance.', d.verification === 'VERIFIED' ? h('a', { class: 'btn btn--accent', href: '#/employer/jobs/new' }, icon('plus'), 'Post a job') : verifyBadge(d.verification)),
     pendingBanner(d.verification),
     attentionCard(d.attention, jobs.items),
-    h('div', { class: 'stats' }, stat('Open jobs', d.openJobs, 'stat--accent'), stat('Applicants', d.applicants), stat('Shortlisted', d.shortlisted), stat('Interviews', d.interviews), stat('Offers', d.offers), replyStat),
+    h('div', { class: 'stats' },
+      stat('Open jobs', d.openJobs, 'stat--accent', 'accepting applications'),
+      stat('Applicants', d.applicants, '', 'across all jobs'),
+      stat('Shortlisted', d.shortlisted, '', 'moved past screening'),
+      stat('Interviews', d.interviews, '', 'scheduled or held'),
+      stat('Offers', d.offers, '', 'sent to candidates'),
+      replyStat),
     h('div', { class: 'split split--even' }, applicantsChart(d.daily || []), funnelChart(d.funnel || {})),
     h('section', { class: 'stack' }, h('div', { class: 'row row--between' }, h('h2', { class: 'section-title' }, 'Your jobs'), h('a', { href: '#/employer/jobs' }, 'Manage all')),
       jobs.items.length ? jobs.items.slice(0, 5).map(jobRow) : empty('briefcase', 'No jobs posted yet', d.verification === 'VERIFIED' ? 'Post your first role and start receiving matched candidates.' : 'Once approved, your postings appear here.', d.verification === 'VERIFIED' ? h('a', { class: 'btn', href: '#/employer/jobs/new' }, 'Post a job') : null)));
@@ -105,7 +113,7 @@ export async function jobForm({ params, query = {}, navigate }) {
   const duplicating = !editing && Boolean(query.from);
   const [me, existing] = await Promise.all([get('/employer/dashboard'), source ? get(`/jobs/${source}`).catch(() => null) : null]);
   const v = {
-    title: input({ value: existing?.title || '', required: true, maxlength: '120' }),
+    title: input({ value: existing?.title || '', required: true, maxlength: '120', placeholder: 'e.g. Android Developer Intern' }),
     description: textarea({ rows: '7', maxlength: '5000', placeholder: 'What will this person do? What will they learn?' }, existing?.description || ''),
     type: select(Object.entries(TYPE_LABEL), existing?.type || 'INTERNSHIP'),
     location: input({ value: existing?.location || '', placeholder: 'City' }),
@@ -139,16 +147,8 @@ export async function jobForm({ params, query = {}, navigate }) {
     }, 180);
   };
   const sugBox = h('div', { class: 'chips', 'aria-live': 'polite' });
-  const sugBtn = h('button', { type: 'button', class: 'btn btn--secondary btn--sm', onclick: () => busy(sugBtn, async () => {
-    try {
-      const d = await post('/employer/skills/suggest', { title: v.title.value.trim(), description: v.description.value.trim(), exclude: [...skills.keys()] });
-      clear(sugBox);
-      if (!d.items.length) { sugBox.append(h('p', { class: 'muted' }, 'No suggestions yet. Add a title or a few lines of description first.')); return; }
-      d.items.forEach((x) => sugBox.append(h('button', { type: 'button', class: 'chip chip--blue', title: x.reason, onclick: (ev) => { skills.set(x.skillId, { id: x.skillId, name: x.name, weight: Math.min(3, Math.max(1, x.weight)) }); paint(); ev.currentTarget.remove(); } }, `+ ${x.name}`, h('small', { class: 'muted' }, ` ${x.reason}`))));
-    } catch (e) { toast(e.message, 'error'); }
-  }) }, icon('target'), 'Suggest skills');
   const btn = h('button', { class: 'btn', type: 'submit', disabled: me.verification !== 'VERIFIED' ? true : null }, editing ? 'Save changes' : 'Publish job');
-  const form = h('form', { class: 'card stack', onsubmit: (e) => {
+  const form = h('form', { class: 'jobform', onsubmit: (e) => {
     e.preventDefault();
     const problem = v.title.value.trim().length < 3 ? ['Give the job a title of at least 3 characters.', v.title]
       : v.description.value.trim().length < 10 ? ['Add a short description (at least 10 characters).', v.description]
@@ -164,15 +164,32 @@ export async function jobForm({ params, query = {}, navigate }) {
       } catch (ex) { toast(ex.message, 'error'); }
     });
   } },
-  duplicating && existing ? h('div', { class: 'alert', role: 'status' }, icon('copy'), h('div', null, h('strong', null, `Copied from “${existing.title}”`), h('p', null, 'Review the details, set a new apply-by date and publish.'))) : null,
-  field('Job title', v.title), field('Description', v.description, { hint: 'Up to 5000 characters. Plain text with short bullet lists works best.' }),
-  jdWriter({ getInput: () => ({ title: v.title.value.trim(), type: v.type.value, location: v.location.value.trim(), skills: [...skills.values()].map((x) => x.name) }),
-    onResult: (r) => { v.description.value = [r.description, r.responsibilities.length ? `\nWhat you will do:\n${r.responsibilities.map((x) => `- ${x}`).join('\n')}` : '', r.requirements.length ? `\nWhat we look for:\n${r.requirements.map((x) => `- ${x}`).join('\n')}` : '', r.niceToHave.length ? `\nNice to have:\n${r.niceToHave.map((x) => `- ${x}`).join('\n')}` : ''].filter(Boolean).join('\n').slice(0, 5000); toast('Draft added. Edit it before publishing.', 'success'); } }),
-  h('div', { class: 'form-grid' }, field('Type', v.type), field('Location', v.location), field('Compensation', v.comp), field('Apply by', v.deadline)),
-  h('label', { class: 'check' }, v.remote, 'Remote friendly'),
-  h('div', { class: 'stack stack--sm' }, h('h3', null, 'Required skills'), h('p', { class: 'hint muted' }, 'Weights drive the match score students and you see.'), skillList, h('div', { class: 'picker' }, search, list), h('div', { class: 'row' }, sugBtn), sugBox),
-  h('div', { class: 'form-actions' }, btn, h('a', { class: 'btn btn--secondary', href: '#/employer/jobs' }, 'Cancel'), me.verification !== 'VERIFIED' ? h('span', { class: 'muted' }, 'Publishing unlocks after admin approval.') : null));
-  return wrapPage(h('a', { class: 'crumb', href: '#/employer/jobs' }, icon('arrow-left'), 'My jobs'), pageHead(editing ? 'Edit job' : duplicating ? 'Duplicate job' : 'Post a job'), pendingBanner(me.verification), form);
+  duplicating && existing ? h('div', { class: 'alert', role: 'status' }, icon('copy'), h('div', null, h('strong', null, `Copied from \u201c${existing.title}\u201d`), h('p', null, 'Review the details, set a new apply-by date and publish.'))) : null,
+  // One form, three questions: what is the job, where and when, who fits. They used to be fourteen siblings in one
+  // 960px card, so the eye had to re-find the next field every time.
+  h('section', { class: 'jf-sec' },
+    h('div', { class: 'jf-sec__head' }, h('h2', null, 'The role'), h('p', { class: 'muted' }, 'What candidates read first.')),
+    field('Job title', v.title),
+    field('Description', v.description, { hint: 'Up to 5000 characters. Plain text with short bullet lists works best.' }),
+    jdWriter({ getInput: () => ({ title: v.title.value.trim(), type: v.type.value, location: v.location.value.trim(), skills: [...skills.values()].map((x) => x.name) }),
+      onResult: (r) => { v.description.value = [r.description, r.responsibilities.length ? `\nWhat you will do:\n${r.responsibilities.map((x) => `- ${x}`).join('\n')}` : '', r.requirements.length ? `\nWhat we look for:\n${r.requirements.map((x) => `- ${x}`).join('\n')}` : '', r.niceToHave.length ? `\nNice to have:\n${r.niceToHave.map((x) => `- ${x}`).join('\n')}` : ''].filter(Boolean).join('\n').slice(0, 5000); toast('Draft added. Edit it before publishing.', 'success'); } })),
+  h('section', { class: 'jf-sec' },
+    h('div', { class: 'jf-sec__head' }, h('h2', null, 'Details'), h('p', { class: 'muted' }, 'Type, place, pay and the last day to apply.')),
+    h('div', { class: 'form-grid jf-grid' }, field('Type', v.type), field('Location', v.location), field('Compensation', v.comp), field('Apply by', v.deadline)),
+    h('label', { class: 'check jf-check' }, v.remote, h('span', null, 'Remote friendly'), h('small', { class: 'muted' }, 'Candidates filtering for remote see this job.'))),
+  h('section', { class: 'jf-sec' },
+    h('div', { class: 'jf-sec__head' }, h('h2', null, 'Required skills'), h('p', { class: 'muted' }, 'Weights drive the match score students and you see.'), h('button', { type: 'button', class: 'btn btn--secondary btn--sm', onclick: (ev) => busy(ev.currentTarget, async () => {
+      try {
+        const d = await post('/employer/skills/suggest', { title: v.title.value.trim(), description: v.description.value.trim(), exclude: [...skills.keys()] });
+        clear(sugBox);
+        if (!d.items.length) { sugBox.append(h('p', { class: 'muted' }, 'No suggestions yet. Add a title or a few lines of description first.')); return; }
+        d.items.forEach((x) => sugBox.append(h('button', { type: 'button', class: 'chip chip--blue', title: x.reason, onclick: (e2) => { skills.set(x.skillId, { id: x.skillId, name: x.name, weight: Math.min(3, Math.max(1, x.weight)) }); paint(); e2.currentTarget.remove(); } }, `+ ${x.name}`, h('small', { class: 'muted' }, ` ${x.reason}`))));
+      } catch (e) { toast(e.message, 'error'); }
+    }) }, icon('target'), 'Suggest skills')),
+    skillList, h('div', { class: 'picker' }, search, list),
+    sugBox),
+  h('div', { class: 'jf-foot' }, btn, h('a', { class: 'btn btn--secondary', href: '#/employer/jobs' }, 'Cancel'), me.verification !== 'VERIFIED' ? h('span', { class: 'muted' }, 'Publishing unlocks after admin approval.') : null));
+  return wrapPage(h('a', { class: 'crumb', href: '#/employer/jobs' }, icon('arrow-left'), 'My jobs'), pageHead(editing ? 'Edit job' : duplicating ? 'Duplicate job' : 'Post a job', editing ? 'Change anything here; candidates see the update straight away.' : 'Three sections: the role, the details, the skills you will match on.'), pendingBanner(me.verification), form);
 }
 
 // ---------------------------------------------------------------- Candidates
@@ -188,7 +205,7 @@ export async function candidates({ params, query }) {
   let sort = query.sort === 'resume' ? 'resume' : query.sort === 'match' ? 'match' : 'smart';
   const bar = h('div', { class: 'row row--between' });
   const list = h('div', { class: 'stack' });
-  const titleEl = h('p', { class: 'strong' });
+  const head = pageHead('Candidates', 'Ranked by skill match, resume score and resume wording.', h('div', { class: 'row row--wrap' }, h('button', { class: 'btn btn--ghost btn--sm', onclick: (ev) => busy(ev.currentTarget, async () => { try { await downloadFile(`/employer/jobs/${params.id}/candidates.csv`, `candidates-job-${params.id}.csv`); } catch (e) { toast(e.message, 'error'); } }) }, icon('download'), 'Export CSV'), h('a', { class: 'btn btn--secondary btn--sm', href: `#/employer/jobs/${params.id}/board` }, icon('target'), 'Board view')));
   const selected = new Set();
   const pick = (s2) => { status = s2; selected.clear(); load(); };
   const sortBar = () => h('div', { class: 'segmented', role: 'group', 'aria-label': 'Sort' }, ...[['smart', 'AI rank'], ['match', 'Best match'], ['resume', 'Resume score']].map(([k, l]) => h('button', { 'aria-pressed': String(sort === k), onclick: () => { sort = k; load(); } }, l)));
@@ -197,7 +214,7 @@ export async function candidates({ params, query }) {
     clear(list).append(loadingBlock(2));
     try {
       const d = explain ? await post(`/employer/jobs/${params.id}/ranking/explain`, {}) : await get(`/employer/jobs/${params.id}/ranking`);
-      titleEl.textContent = d.job.title;
+      const sub = head.querySelector('p'); if (sub && d.job?.title) sub.textContent = `${d.job.title} · ranked by skill match, resume score and resume wording.`;
       const counts = Object.fromEntries(STATUSES.map((x) => [x, 0]));
       d.items.forEach((c) => { counts[c.status] = (counts[c.status] || 0) + 1; });
       clear(bar).append(filterBar(counts, status, pick), sortBar());
@@ -237,7 +254,7 @@ export async function candidates({ params, query }) {
     try {
       const d = await get(`/employer/jobs/${params.id}/candidates?sort=${sort}${status ? `&status=${status}` : ''}`);
       clear(bar).append(filterBar(d.counts, status, pick), sortBar());
-      titleEl.textContent = d.job.title;
+      const sub = head.querySelector('p'); if (sub && d.job?.title) sub.textContent = `${d.job.title} · ranked by skill match, resume score and resume wording.`;
       clear(list);
       if (!d.items.length) { list.append(empty('users', 'No candidates here yet', status ? 'No applications have this status.' : 'Applications will appear as soon as students apply.')); return; }
       d.items.forEach((c) => list.append(h('a', { class: 'card card--hover cand', href: `#/employer/applications/${c.applicationId}` },
@@ -249,7 +266,7 @@ export async function candidates({ params, query }) {
     } catch (e) { clear(list).append(errorBox(e, load)); }
   }
   await load();
-  return wrapPage(h('a', { class: 'crumb', href: '#/employer/jobs' }, icon('arrow-left'), 'My jobs'), pageHead('Candidates', null, h('div', { class: 'row row--wrap' }, h('button', { class: 'btn btn--ghost btn--sm', onclick: (ev) => busy(ev.currentTarget, async () => { try { await downloadFile(`/employer/jobs/${params.id}/candidates.csv`, `candidates-job-${params.id}.csv`); } catch (e) { toast(e.message, 'error'); } }) }, icon('download'), 'Export CSV'), h('a', { class: 'btn btn--secondary btn--sm', href: `#/employer/jobs/${params.id}/board` }, icon('target'), 'Board view'))), titleEl, bar, list);
+  return wrapPage(h('a', { class: 'crumb', href: '#/employer/jobs' }, icon('arrow-left'), 'My jobs'), head, bar, list);
 }
 
 
@@ -357,11 +374,15 @@ function applicantsChart(daily) {
 }
 
 function funnelChart(f) {
-  const max = Math.max(1, ...FUNNEL.map(([k]) => f[k] || 0));
+  // Scale against the first stage, not the largest one: with one applicant in "Applied" and one in "Shortlisted", a
+  // max-scaled chart drew two full bars and said nothing. Now the second bar is half the first, as it should be.
+  const base = Math.max(1, f.APPLIED || Math.max(...FUNNEL.map(([k]) => f[k] || 0)));
+  const pct = (n) => Math.round((n / base) * 100);
   return h('div', { class: 'card' },
-    h('h3', { class: 'card__title' }, 'Pipeline by stage'),
+    h('h3', { class: 'card__title' }, 'Pipeline by stage', h('span', { class: 'muted' }, 'share of applicants')),
     h('ul', { class: 'funnel' }, FUNNEL.map(([k, label]) => h('li', { 'data-st': k },
       h('span', { class: 'funnel__label' }, label),
-      h('span', { class: 'funnel__track' }, h('i', { style: { '--w': `${((f[k] || 0) / max) * 100}%` } })),
-      h('b', { class: 'funnel__n' }, String(f[k] || 0))))));
+      h('span', { class: 'funnel__track' }, h('i', { style: { '--w': `${pct(f[k] || 0)}%` } })),
+      h('b', { class: 'funnel__n' }, String(f[k] || 0)),
+      h('small', { class: 'funnel__pc' }, `${pct(f[k] || 0)}%`)))));
 }

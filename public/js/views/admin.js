@@ -203,9 +203,9 @@ export async function system() {
             ['Failed (dead letters)', q.deadLetters, q.deadLetters ? 'bad' : ''],
             ['Oldest waiting', `${q.oldestQueuedSec}s`, q.oldestQueuedSec > 300 ? 'bad' : ''],
           ]),
-          failed.length ? table(['Task', 'Type', 'Attempts', 'Error', ''], failed.map((x) => [`#${x.id}`, x.type, `${x.attempts}/${x.max_attempts}`, (x.error || '').slice(0, 90), h('button', { class: 'btn btn--secondary btn--sm', onclick: (ev) => busy(ev.currentTarget, async () => { try { await post(`/admin/tasks/${x.id}/retry`); toast('Re-queued', 'success'); await load(); } catch (e) { toast(e.message, 'error'); } }) }, 'Retry')])) : empty('check', 'Nothing failed', 'Tasks that exhaust their attempts land here, with a one-click retry.')),
+          failed.length ? table(['Task', 'Type', 'Attempts', 'Error', ''], failed.map((x) => [`#${x.id}`, x.type, `${x.attempts}/${x.max_attempts}`, (x.error || '').slice(0, 90), h('button', { class: 'btn btn--secondary btn--sm', onclick: (ev) => busy(ev.currentTarget, async () => { try { await post(`/admin/tasks/${x.id}/retry`); toast('Re-queued', 'success'); await load(); } catch (e) { toast(e.message, 'error'); } }) }, 'Retry')])) : empty('check', 'Nothing failed', 'Tasks that exhaust their attempts land here, with a one-click retry.', null, 'empty--inline')),
         h('div', { class: 'card stack' }, h('h3', null, 'Circuit breakers'), h('p', { class: 'muted' }, 'Open means the provider or service is being skipped and the built-in fallback is serving requests.'),
-          m.breakers.length ? table(['Service', 'Recent failures', 'State'], m.breakers.map((b) => [b.key, b.fails, h('span', { class: b.open ? 'chip chip--missing' : 'chip chip--matched' }, b.open ? `open, retry in ${Math.ceil(b.retryInMs / 1000)}s` : 'closed')])) : empty('shield', 'No provider traffic yet', 'A breaker opens the moment an AI or mail provider starts failing, and closes again on recovery.')),
+          m.breakers.length ? table(['Service', 'Recent failures', 'State'], m.breakers.map((b) => [b.key, b.fails, h('span', { class: b.open ? 'chip chip--missing' : 'chip chip--matched' }, b.open ? `open, retry in ${Math.ceil(b.retryInMs / 1000)}s` : 'closed')])) : empty('shield', 'No provider traffic yet', 'A breaker opens the moment an AI or mail provider starts failing, and closes again on recovery.', null, 'empty--inline')),
         h('div', { class: 'card stack' }, h('h3', null, 'ML model'),
           ml.model ? h('div', { class: 'stack stack--sm' }, h('p', null, `Active version ${ml.model.meta?.version ?? '?'} · ${ml.model.extra_samples ?? 0} extra training examples · ${ml.model.versions?.length ?? 0} saved versions`),
             ml.model.meta ? h('p', { class: 'muted' }, `Hold-out top-1 accuracy ${ml.model.meta.holdout_top1 ?? 'n/a'}. This is measured on synthetic text from the same generator as training, so it is not real-world accuracy.`) : null)
@@ -227,8 +227,8 @@ export async function system() {
   }
   await load(true);
   timer = setInterval(() => { if (!host.isConnected) { clearInterval(timer); return; } load(); }, 8000);
-  const chips = meta ? h('div', { class: 'row' },
-    h('span', { class: 'chip chip--blue' }, `Match engine: ${meta.matchBackend}`),
-    h('span', { class: meta.email.enabled ? 'chip chip--matched' : 'chip chip--missing' }, `Email: ${meta.email.enabled ? 'on' : 'off'}`)) : null;
+  const chips = meta ? h('div', { class: 'sysbadges', role: 'status', 'aria-label': 'Runtime status' },
+    h('span', { class: 'sysbadge' }, h('i', { class: 'sysbadge__dot is-ok', 'aria-hidden': 'true' }), h('span', null, 'Match engine'), h('b', null, meta.matchBackend)),
+    h('span', { class: 'sysbadge' }, h('i', { class: `sysbadge__dot ${meta.email.enabled ? 'is-ok' : 'is-off'}`, 'aria-hidden': 'true' }), h('span', null, 'Email'), h('b', null, meta.email.enabled ? 'on' : 'off'))) : null;
   return wrapPage(pageHead('System', 'Live view of background work, provider health and the ML model. Refreshes every few seconds.', chips), host);
 }

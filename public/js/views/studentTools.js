@@ -6,8 +6,14 @@ import { pageHead, wrapPage } from './shared.js';
 export async function todayCard() {
   try {
     const { streak, next } = await get('/student/today');
-    return h('div', { class: 'card card--accent row row--between' },
-      h('div', { class: 'stack stack--sm' }, h('strong', null, streak.current ? `${streak.current}-day streak${streak.doneToday ? '' : ' (do one thing today to keep it)'}` : 'Start your streak today'), h('h3', null, next.title), h('p', { class: 'muted' }, next.why)),
+    return h('section', { class: 'today', 'aria-label': 'Today' },
+      h('div', { class: 'today__streak' }, icon('bolt'),
+        h('b', null, streak.current ? `${streak.current}` : '0'),
+        h('small', null, streak.current ? 'day streak' : 'no streak yet')),
+      h('div', { class: 'today__body' },
+        h('p', { class: 'today__kicker' }, streak.current && !streak.doneToday ? 'One thing to keep your streak' : 'Do this next'),
+        h('h3', null, next.title),
+        h('p', { class: 'muted' }, next.why)),
       h('a', { class: 'btn', href: next.link }, 'Do it', icon('arrow-right')));
   } catch { return null; }
 }

@@ -3253,3 +3253,476 @@ body:has(#main .auth2) .topbar__user > a.btn { display: none; }
 .statstrip strong.is-bad { color: var(--danger, #e5484d); }
 @media (max-width: 560px) { .statstrip { grid-template-columns: 1fr 1fr; } .statstrip__c:nth-child(odd) { border-left: 0; } }
 :root[data-theme='light'] .statstrip { background: rgba(9, 9, 15, 0.025); }
+
+/* =================================================================================================================
+   Design pass III — the product layer.
+
+   Three earlier layers (studio, prism, and pass II) each added surfaces without reconciling the ones below. The result
+   reads as a system that works but does not feel designed: two near-equal headings on some pages, cards inside cards,
+   four different accent hues on four sibling numbers, a 10px square standing in for a page marker, and primary buttons
+   that are purple in dark mode and plain black in light. This layer settles those, page by page, without renaming a
+   single class the browser suite pins.
+
+   Rules it follows:
+     · One primary action colour (the brand gradient) in both themes. Black-on-white is a valid primary, but not next
+       to a purple one in the other theme.
+     · One marker per level: a bar for the page, a hairline for a section, a square for a tile.
+     · Cards never nest. Numbers that belong to a section live in a strip; a card holds one idea.
+     · Numbers are tabular and never big for the sake of being big: a stat is readable at a glance or it is not a stat.
+   ================================================================================================================= */
+
+/* ---------- 1. Page head: the marker, the sizes, the action slot ------------------------------------------------ */
+:root .page-head {
+  align-items: flex-start; gap: 20px;
+  padding-bottom: 14px; margin-bottom: 22px;
+  border-bottom: 1px solid var(--line);
+}
+/* The old marker was a 10px rounded square, which reads as a stray bullet next to a 36px title. A short bar reads as
+   an editorial rule instead: still the section colour, no longer a speck. */
+:root .page-head h1::before {
+  width: 3px; height: 0.78em; border-radius: 2px; margin-right: 12px; transform: translateY(0.06em);
+  background: linear-gradient(180deg, var(--sec-hi), var(--sec));
+}
+:root .page-head h1 {
+  font-size: clamp(1.7rem, 2.2vw, 2.05rem); font-weight: 650; letter-spacing: -0.028em; line-height: 1.16;
+}
+:root .page-head p { font-size: 0.95rem; line-height: 1.55; max-width: 68ch; margin-top: 6px; }
+:root .page-head > .row { align-items: center; gap: 8px; flex-wrap: wrap; }
+/* An optional eyebrow above the title: "Your roadmap" / "Android Development". */
+.eyebrow { font-size: 0.74rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); margin: 0 0 4px; }
+.eyebrow + h1, .eyebrow + h2 { margin-top: 0; }
+
+/* ---------- 2. Surfaces: one radius, one padding, less light on the edges --------------------------------------- */
+:root .card {
+  border-radius: 16px; padding: 20px;
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.028), rgba(255, 255, 255, 0.006) 42%), var(--panel);
+  box-shadow: none;
+}
+:root .card--flat { background: transparent; border-color: var(--line); }
+:root .card--blue { background: linear-gradient(160deg, color-mix(in srgb, var(--brand) 18%, var(--panel)), var(--panel) 70%); border-color: color-mix(in srgb, var(--brand) 34%, transparent); }
+:root[data-theme='light'] .card { background: #fff; border-color: var(--line); }
+:root[data-theme='light'] .card--blue { background: linear-gradient(160deg, rgba(79, 70, 229, 0.07), #fff 60%); }
+:root .card--hover:hover { transform: translateY(-2px); border-color: var(--line-2); }
+:root h3 { font-size: 1.02rem; font-weight: 650; letter-spacing: -0.012em; }
+:root .card > h3:first-child, :root .card > .row:first-child h3 { margin-bottom: 2px; }
+/* Section label inside a card ("Background queue", "Pipeline by stage"): a hairline under it turns a stack of cards
+   into a page of sections. */
+.card > h3:first-child { padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+
+/* ---------- 3. Buttons: one hierarchy, identical in both themes -------------------------------------------------- */
+:root .btn {
+  min-height: 38px; padding: 0 15px; border-radius: 10px; gap: 8px;
+  font-size: 0.92rem; font-weight: 600; letter-spacing: -0.005em;
+}
+:root .btn .icon { width: 16px; height: 16px; }
+:root .btn--sm { min-height: 30px; padding: 0 11px; border-radius: 8px; font-size: 0.83rem; gap: 6px; }
+:root .btn--sm .icon { width: 14px; height: 14px; }
+:root .btn--lg { min-height: 46px; padding: 0 22px; font-size: 1rem; border-radius: 12px; }
+/* Primary: the brand gradient, in both themes. The light theme used to paint it #18181b, which is why the sign-in
+   button looked like a stock <button> while every dark screen had a purple one. */
+:root .btn--primary,
+:root .btn:not(.btn--secondary):not(.btn--ghost):not(.btn--danger):not(.btn--accent):not(.btn--icon) {
+  background: var(--accent-grad); border-color: transparent; color: #fff;
+  box-shadow: 0 10px 26px -14px rgba(99, 102, 241, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+:root .btn--accent { background: var(--accent-grad); border-color: transparent; color: #fff; box-shadow: 0 10px 26px -14px rgba(99, 102, 241, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.22); }
+:root .btn--secondary { background: color-mix(in srgb, var(--text) 6%, transparent); border: 1px solid var(--line-2); color: var(--text); box-shadow: none; }
+:root .btn--secondary:hover { background: color-mix(in srgb, var(--text) 10%, transparent); border-color: var(--line-3); }
+:root .btn--ghost { background: transparent; border-color: transparent; color: var(--text-2); }
+:root .btn--ghost:hover { background: color-mix(in srgb, var(--text) 6%, transparent); color: var(--text); }
+:root .btn:disabled, :root .btn[aria-disabled='true'] { opacity: 0.5; box-shadow: none; }
+:root .btn:active { transform: translateY(1px); }
+:root .iconbtn { width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--line); background: color-mix(in srgb, var(--text) 4%, transparent); }
+:root .iconbtn:hover { background: color-mix(in srgb, var(--text) 8%, transparent); border-color: var(--line-2); }
+/* The palette hint is a keyboard affordance, not a second search box: make it look like a shortcut. */
+:root .kbd-hint { min-height: 30px; padding: 0 8px 0 10px; border-radius: 8px; font-size: 0.82rem; border: 1px solid var(--line); background: color-mix(in srgb, var(--text) 4%, transparent); gap: 6px; }
+:root .kbd-hint kbd { font-size: 0.72rem; padding: 1px 5px; border-radius: 5px; }
+
+/* ---------- 4. Form controls ------------------------------------------------------------------------------------ */
+:root .input, :root .select, :root .textarea, :root input[type='text'], :root input[type='email'], :root input[type='password'], :root input[type='search'] {
+  border-radius: 10px; background: color-mix(in srgb, var(--text) 4%, transparent); border: 1px solid var(--line-2);
+  font-size: 0.95rem;
+}
+:root .input:focus, :root .select:focus, :root .textarea:focus { border-color: color-mix(in srgb, var(--brand) 60%, transparent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 18%, transparent); outline: none; }
+:root .field > label, :root .form-grid label, :root label.field-label { font-size: 0.8rem; font-weight: 600; color: var(--text-2); margin-bottom: 5px; display: block; }
+:root .hint, :root .field .hint { font-size: 0.79rem; color: var(--text-3); }
+
+/* ---------- 5. Chips and badges: two sizes, three meanings ------------------------------------------------------- */
+:root .chip { height: 26px; padding: 0 11px; font-size: 0.8rem; font-weight: 500; border-radius: 999px; gap: 6px; }
+:root .chip .icon { width: 14px; height: 14px; }
+:root .badge { height: 23px; padding: 0 9px; font-size: 0.71rem; letter-spacing: 0.06em; border-radius: 7px; }
+
+/* ---------- 6. Stat tiles: compact, one accent, aligned --------------------------------------------------------- */
+:root .stat { border-radius: 14px; padding: 15px 17px; }
+:root .stat::after { opacity: 0.45; }
+:root .stat .stat__label::before { background: var(--brand); }
+:root .stat--tile { grid-template-rows: auto auto 32px auto; gap: 3px; }
+:root .stat--tile .stat__label { font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; color: var(--text-3); }
+:root .stat--tile .stat__value { font-size: clamp(1.6rem, 2.2vw, 2rem); letter-spacing: -0.03em; }
+:root .stat__hint { font-size: 0.76rem; line-height: 1.35; }
+:root .stat__spark { margin-top: 4px; }
+:root .spark { height: 30px; }
+:root .grid--4 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 186px), 1fr)); }
+
+/* ---------- 7. Empty states: one icon, tight text, no hamburger decoration --------------------------------------
+   `.empty::before` painted a generic three-line glyph above the *real* icon, so every empty state looked like it had
+   two icons, one of them meaningless. The real icon now sits in a tinted disc and the block is quiet. */
+:root .empty {
+  border: 1px solid var(--line); border-radius: 14px; background: color-mix(in srgb, var(--text) 2.5%, transparent);
+  padding: 26px 20px; display: grid; justify-items: center; gap: 6px; text-align: center;
+}
+:root .empty::before { content: none; display: none; }
+:root .empty > .icon {
+  width: 42px; height: 42px; padding: 10px; border-radius: 13px; margin: 0 0 4px;
+  background: var(--brand-soft); border: 1px solid color-mix(in srgb, var(--brand) 32%, transparent);
+  color: var(--brand-hi);
+}
+:root .empty h3 { margin: 0; font-size: 1rem; }
+:root .empty p { margin: 0; font-size: 0.88rem; line-height: 1.5; color: var(--text-2); max-width: 44ch; }
+/* A one-line variant for inside a card, where a 250px dashed box was heavier than the section it described. */
+:root .empty--inline {
+  grid-auto-flow: column; justify-content: start; justify-items: start; align-items: center; gap: 12px;
+  padding: 14px 16px; text-align: left; border-style: solid;
+}
+:root .empty--inline > .icon { width: 32px; height: 32px; padding: 7px; border-radius: 10px; margin: 0; }
+:root .empty--inline p { max-width: none; }
+
+/* ---------- 8. Tables ------------------------------------------------------------------------------------------- */
+:root .table th {
+  position: sticky; top: 0; z-index: 1; background: var(--panel);
+  font-size: 0.7rem; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--text-3);
+  padding: 10px 12px; border-bottom: 1px solid var(--line-2);
+}
+:root .table td { padding: 11px 12px; border-bottom: 1px solid var(--line); font-size: 0.9rem; }
+:root .table tbody tr:last-child td { border-bottom: 0; }
+:root .table tbody tr:hover td { background: color-mix(in srgb, var(--text) 3.5%, transparent); }
+:root[data-theme='light'] .table th { background: #fff; }
+
+/* ---------- 9. Board: four columns fit, empty columns say so ----------------------------------------------------- */
+:root .board { grid-auto-columns: minmax(0, 1fr); gap: 14px; }
+@media (max-width: 900px) { :root .board { grid-auto-columns: minmax(240px, 1fr); } }
+
+/* ---------- 10. Chrome details ----------------------------------------------------------------------------------- */
+::selection { background: color-mix(in srgb, var(--brand) 40%, transparent); }
+:root ::-webkit-scrollbar { width: 10px; height: 10px; }
+:root ::-webkit-scrollbar-track { background: transparent; }
+:root ::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--text) 16%, transparent); border-radius: 99px; border: 2px solid transparent; background-clip: content-box; }
+:root ::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--text) 26%, transparent); background-clip: content-box; }
+
+/* ---------- 11. Auth pages: one brand mark, no toolbars that belong to the app ----------------------------------- */
+body:has(#main .auth2) .topbar--pub .brand,
+body:has(#main .auth2) .topbar .kbd-hint { display: none; }
+:root[data-theme='light'] .auth2__box .btn--block,
+:root[data-theme='dark'] .auth2__box .btn--block,
+:root .auth2__box .btn--block {
+  background: var(--accent-grad); border-color: transparent; color: #fff;
+  box-shadow: 0 14px 32px -16px rgba(99, 102, 241, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+/* ---------- 12. Phone shell -------------------------------------------------------------------------------------- */
+@media (max-width: 640px) {
+  /* The language picker and the page marker both duplicate something already on screen at this width. */
+  .topbar .lang, .topbar select { display: none; }
+  :root .page-head { padding-bottom: 10px; margin-bottom: 16px; }
+  :root .page-head h1 { font-size: 1.55rem; }
+  :root .card { padding: 16px; border-radius: 14px; }
+  :root .tabbar { padding-bottom: max(6px, env(safe-area-inset-bottom)); }
+}
+
+/* ---------- 13. Stats strip: an even grid, whatever the tile count -------------------------------------------------
+   Six tiles in an auto-fit track landed 4 + 2 in a 960px column: one orphaned row under a full one. Counting in
+   threes keeps every row full at the width the content column actually has. */
+:root .stats { display: grid; gap: 12px; grid-template-columns: repeat(6, minmax(0, 1fr)); }
+@media (max-width: 1360px) { :root .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 620px) { :root .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+:root .stats .stat { min-height: 0; }
+
+/* ---------- 14. Inbox: one column when there is nothing to list ------------------------------------------------ */
+:root .inbox.is-empty { grid-template-columns: minmax(0, 1fr); }
+:root .inbox__pane[hidden] { display: none !important; }
+:root .inbox { gap: 14px; }
+:root .inbox__pane { border: 1px solid var(--line); border-radius: 16px; background: var(--panel-2, var(--panel)); min-height: 420px; }
+:root .inbox__item { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+:root .empty__act { margin-top: 12px; }
+
+/* ---------- 15. Roadmap: the page title is the plan, so the plan starts at the top -------------------------------- */
+:root .rm-head { display: none; }
+:root .rm-grid { gap: 20px; }
+
+/* ---------- 16. "Today" panel: a counter, an instruction, one action -------------------------------------------- */
+:root .today {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 18px;
+  padding: 14px 16px; border-radius: 16px; border: 1px solid color-mix(in srgb, var(--brand) 34%, transparent);
+  background: linear-gradient(100deg, color-mix(in srgb, var(--brand) 13%, var(--panel)), var(--panel) 58%);
+}
+:root[data-theme='light'] .today { background: linear-gradient(100deg, rgba(79, 70, 229, 0.06), #fff 58%); }
+:root .today__streak {
+  display: grid; grid-template-columns: auto auto; grid-template-rows: auto auto; align-items: center;
+  column-gap: 8px; padding: 8px 14px; border-radius: 12px; min-width: 96px;
+  border: 1px solid color-mix(in srgb, var(--brand) 30%, transparent); background: color-mix(in srgb, var(--brand) 10%, transparent);
+}
+:root .today__streak .icon { grid-row: span 2; width: 18px; height: 18px; color: var(--brand-hi); }
+:root .today__streak b { font-size: 1.3rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+:root .today__streak small { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-3); }
+:root .today__body { display: grid; gap: 2px; min-width: 0; }
+:root .today__body h3 { font-size: 1.05rem; margin: 0; }
+:root .today__body p.muted { font-size: 0.86rem; margin: 0; }
+@media (max-width: 700px) {
+  :root .today { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  :root .today__streak { grid-template-columns: auto auto auto; column-gap: 6px; justify-self: start; }
+  :root .today__streak .icon { grid-row: auto; }
+  :root .today .btn { width: 100%; justify-content: center; }
+}
+
+/* ---------- 17. Stat tiles that are links: the whole tile is the target, the arrow says so ----------------------- */
+:root .stat--link { text-decoration: none; color: inherit; transition: border-color 0.18s, background 0.18s, transform 0.18s; position: relative; }
+:root .stat--link:hover { border-color: color-mix(in srgb, var(--brand) 45%, transparent); background: color-mix(in srgb, var(--brand) 6%, var(--panel)); transform: translateY(-1px); }
+:root .stat--link:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+:root .stat__go { position: absolute; top: 12px; right: 12px; width: 16px; height: 16px; color: var(--text-3); opacity: 0; transform: translateX(-3px); transition: opacity 0.18s, transform 0.18s; }
+:root .stat--link:hover .stat__go, :root .stat--link:focus-visible .stat__go { opacity: 1; transform: none; color: var(--brand-hi); }
+
+/* ---------- 18. Filter toolbar (student jobs) -------------------------------------------------------------------- */
+:root .filbar {
+  display: grid; grid-template-columns: minmax(180px, 1.7fr) auto auto auto auto; align-items: center; gap: 8px;
+  padding: 8px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel);
+  position: sticky; top: calc(var(--topbar-h, 56px) + 8px); z-index: 6;
+  box-shadow: 0 10px 30px -24px #000;
+}
+:root .filbar__q { position: relative; display: flex; align-items: center; }
+:root .filbar__q > .icon { position: absolute; left: 11px; width: 16px; height: 16px; color: var(--text-3); pointer-events: none; }
+:root .filbar__q .input { padding-left: 34px; background: transparent; border-color: transparent; }
+:root .filbar__q .input:focus { background: color-mix(in srgb, var(--text) 5%, transparent); border-color: var(--line-2); }
+:root .filbar .select, :root .filbar .input { height: 36px; min-height: 36px; }
+:root .filbar .select { width: auto; min-width: 120px; }
+:root .filbar .input:not(.filbar__q .input) { width: 130px; }
+:root .filbar .btn { min-height: 36px; }
+:root .filbar__check { display: flex; align-items: center; gap: 7px; font-size: 0.86rem; color: var(--text-2); white-space: nowrap; padding: 0 6px; cursor: pointer; }
+:root .filbar__active { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+:root .filbar__active-label { font-size: 0.78rem; color: var(--text-3); }
+:root .filbar__clear { background: none; border: 0; color: var(--text-2); font-size: 0.8rem; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; padding: 4px; }
+:root .filbar__clear:hover { color: var(--text); }
+/* A chip that removes something is a button; give it the affordance. */
+:root .chip--x { cursor: pointer; padding-right: 7px; gap: 5px; background: color-mix(in srgb, var(--brand) 10%, transparent); border-color: color-mix(in srgb, var(--brand) 30%, transparent); color: var(--text); font-size: 0.79rem; }
+:root .chip--x:hover { background: color-mix(in srgb, var(--brand) 18%, transparent); }
+:root .chip--x .icon { width: 13px; height: 13px; opacity: 0.7; }
+@media (max-width: 860px) {
+  :root .filbar { grid-template-columns: minmax(0, 1fr) auto; position: static; }
+  :root .filbar .input:not(.filbar__q .input) { width: auto; }
+}
+
+/* ---------- 19. Job form: three sections, one column, an action bar at the end ----------------------------------
+   A publishing form is read top to bottom; 960px wide with a four-up field grid turned every field into a guess about
+   what comes next. 760px is the useful measure for prose plus controls. */
+:root .jobform { max-width: 780px; display: grid; gap: 16px; }
+:root .jf-sec {
+  display: grid; gap: 14px; padding: 20px 22px; border-radius: 16px;
+  border: 1px solid var(--line); background: var(--panel);
+  counter-increment: jf;
+}
+:root[data-theme='light'] .jf-sec { background: #fff; }
+:root .jf-sec__head { display: grid; gap: 2px; padding-bottom: 12px; border-bottom: 1px solid var(--line); position: relative; padding-left: 34px; }
+:root .jf-sec__head::before {
+  counter-increment: none; content: counter(jf); position: absolute; left: 0; top: 0;
+  width: 24px; height: 24px; border-radius: 8px; display: grid; place-items: center;
+  font-size: 0.78rem; font-weight: 700; color: var(--brand-hi);
+  background: color-mix(in srgb, var(--brand) 14%, transparent); border: 1px solid color-mix(in srgb, var(--brand) 30%, transparent);
+}
+:root .jobform { counter-reset: jf; }
+:root .jf-sec__head h2 { font-size: 1.05rem; font-weight: 650; letter-spacing: -0.015em; margin: 0; }
+:root .jf-sec__head p { font-size: 0.85rem; margin: 0; }
+:root .jf-sec__head .btn { position: absolute; right: 0; top: -2px; }
+:root .jf-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 560px) { :root .jf-grid { grid-template-columns: minmax(0, 1fr); } }
+:root .jf-check { display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 9px; row-gap: 0; padding: 10px 12px; border-radius: 10px; border: 1px dashed var(--line-2); }
+:root .jf-check small { grid-column: 2; font-size: 0.78rem; }
+:root .jf-foot {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  position: sticky; bottom: 8px; padding: 10px 12px; border-radius: 14px;
+  background: color-mix(in srgb, var(--panel) 88%, transparent); backdrop-filter: blur(10px);
+  border: 1px solid var(--line); box-shadow: 0 18px 40px -28px #000;
+}
+:root[data-theme='light'] .jf-foot { background: rgba(255, 255, 255, 0.9); }
+:root .jf-foot .btn[type='submit'] { margin-left: auto; }
+/* The skill rows and the picker are one list, not three nested boxes. */
+:root .jf-sec .card--flat { border: 1px solid var(--line); background: color-mix(in srgb, var(--text) 3%, transparent); }
+
+/* ---------- 20. One accent for the numbers, and "done" is not "deleted" ------------------------------------------ */
+/* Six tiles in six hues (sky, violet, amber, cyan, indigo, orange) read as six unrelated widgets. One brand accent with
+   a hairline keeps the row a row. */
+:root .stats .stat { --tile: var(--brand); border-top: 2px solid color-mix(in srgb, var(--brand) 45%, transparent); }
+:root .stats .stat:hover { box-shadow: 0 18px 44px -26px color-mix(in srgb, var(--brand) 70%, transparent); }
+:root .stat--accent { background: linear-gradient(150deg, color-mix(in srgb, var(--brand) 22%, var(--panel)), var(--panel) 72%); }
+/* A finished onboarding step was struck through, which reads as "removed" rather than "done". The tick and the Done
+   badge already say it; the text stays readable. */
+:root .ob__step.is-done strong { text-decoration: none; color: var(--text-2); }
+:root .ob__step.is-done { opacity: 0.85; }
+:root .ob__step.is-next { background: color-mix(in srgb, var(--brand) 8%, transparent); box-shadow: inset 2px 0 0 var(--brand); }
+:root .ob__step { padding: 12px 12px; border-radius: 11px; }
+:root .ob__list { gap: 4px; display: grid; }
+:root .ob__bar { margin: 10px 0 6px; }
+:root .ob__step .ob__mark { width: 34px; height: 34px; border-radius: 10px; }
+
+/* ---------- 21. Auth panel details, status read-outs, bare stat strips ------------------------------------------- */
+/* The benefit list painted a 22px lilac disc behind a #c7d2fe tick, which in the light theme is a pale check on a pale
+   disc: a bullet that says nothing. The tick is now the mark. */
+:root .auth2__list .icon {
+  width: 20px; height: 20px; padding: 3px; border-radius: 6px;
+  background: color-mix(in srgb, var(--brand) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--brand) 34%, transparent);
+  color: var(--brand-hi) !important;
+}
+:root[data-theme='light'] .auth2__list .icon { background: var(--brand); border-color: var(--brand); color: #fff !important; }
+/* The live numbers read as three disabled buttons. A hairline rule above each reads as a figure instead. */
+:root .auth2__pulse { gap: 20px; }
+:root .auth2__pulse > div { padding: 10px 0 0; border: 0; border-top: 1px solid var(--line-2); border-radius: 0; background: none; }
+:root[data-theme='light'] .auth2__pulse > div { background: none; }
+:root .auth2__box { gap: 20px; }
+:root .auth2__box h1 { font-size: 1.75rem; line-height: 1.15; }
+:root .auth2__box p { font-size: 0.92rem; }
+
+/* Runtime status: a dot, a label, a value. No border, because nothing here is clickable. */
+:root .sysbadges { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+:root .sysbadge { display: inline-flex; align-items: center; gap: 7px; font-size: 0.83rem; color: var(--text-2); }
+:root .sysbadge b { color: var(--text); font-weight: 650; }
+:root .sysbadge__dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-3); flex: none; }
+:root .sysbadge__dot.is-ok { background: #22c55e; box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.16); }
+:root .sysbadge__dot.is-off { background: #f59e0b; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.16); }
+
+/* A strip of numbers inside a card is not a second card. */
+:root .card .statstrip { border: 0; border-radius: 0; background: none; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+:root .card .statstrip__c { padding: 12px 14px; }
+:root .card .statstrip__c:first-child { padding-left: 0; }
+:root[data-theme='light'] .card .statstrip { background: none; }
+
+/* The inline empty state: icon in its own column, both text lines stacked in the other. */
+:root .empty--inline { grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto; column-gap: 12px; row-gap: 1px; }
+:root .empty--inline > .icon { grid-row: span 2; }
+:root .empty--inline h3 { grid-column: 2; }
+:root .empty--inline p { grid-column: 2; }
+
+/* ---------- 22. Funnel, attention rows, charts ---------------------------------------------------------------- */
+:root .funnel li { display: grid; grid-template-columns: 92px minmax(0, 1fr) 26px 42px; align-items: center; gap: 10px; }
+:root .funnel__pc { font-size: 0.76rem; color: var(--text-3); text-align: right; font-variant-numeric: tabular-nums; }
+:root .funnel__n { text-align: right; font-variant-numeric: tabular-nums; }
+:root .funnel { gap: 10px; }
+:root .funnel__track { height: 8px; border-radius: 99px; background: color-mix(in srgb, var(--text) 8%, transparent); }
+:root .funnel__track > i { border-radius: 99px; background: var(--accent-grad); min-width: 3px; }
+/* A row inside a card gets a hairline, not its own box: two borders in one card is the nesting the screenshots kept
+   showing. The warning tint stays, as a left rule. */
+:root .attention__list { gap: 0; }
+:root .attention__list li {
+  border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: none;
+  padding: 12px 0 12px 12px; box-shadow: inset 2px 0 0 color-mix(in srgb, #f59e0b 55%, transparent);
+}
+:root .attention__list li:last-child { border-bottom: 0; }
+:root .attention__list li .btn { min-height: 30px; padding: 0 11px; font-size: 0.83rem; }
+:root .attention .card__title { margin-bottom: 4px; }
+/* Charts in the product carry the brand, not a second palette. */
+:root .chart__bar { background: color-mix(in srgb, var(--brand) 40%, transparent); }
+:root .chart__bar.is-today { background: var(--accent-grad); }
+:root .chart__col:hover .chart__bar { background: var(--brand-hi); }
+:root .chart { height: 120px; gap: 5px; }
+:root .chart__total { font-size: 1.7rem; margin-bottom: 10px; }
+
+/* ---------- 23. Phone shell: room for the tab bar --------------------------------------------------------------- */
+@media (max-width: 960px) {
+  :root .app__main { padding-bottom: calc(74px + env(safe-area-inset-bottom)); }
+  :root .topbar { height: 54px; }
+  :root .topbar__in { padding: 0 12px; gap: 8px; }
+  :root .page, :root .app__main main { padding-left: 16px; padding-right: 16px; }
+  /* Five 48px targets plus a hairline: the bar needs its own surface, not a translucent guess over content. */
+  :root .tabbar { background: color-mix(in srgb, var(--void) 96%, transparent); box-shadow: 0 -12px 30px -22px #000; }
+}
+
+/* ---------- 24. Landing hero: caption, closer call to action ------------------------------------------------ */
+:root .lp-hero__lead { max-width: 58ch; font-size: 1.04rem; line-height: 1.62; }
+:root .lp-hero h1 { margin: 0 0 14px; }
+:root .lp-hero .eyebrow { margin-bottom: 16px; }
+:root .lp-cta { gap: 10px; margin-top: 4px; }
+:root .lp-note { margin-top: 14px; }
+
+/* ---------- 25. Kanban board: readable cards, edges that scroll --------------------------------------------------
+   At the content width the five columns were being squeezed to 182px: names wrapped to two lines and the two move
+   buttons stacked. A board may scroll sideways; it may not squash. Snap points keep a column aligned after a swipe. */
+:root .board { grid-auto-columns: minmax(228px, 1fr); gap: 12px; scroll-snap-type: x proximity; padding-bottom: 10px; }
+:root .board__col { scroll-snap-align: start; background: color-mix(in srgb, var(--text) 3%, transparent); border: 1px solid var(--line); border-radius: 14px; padding: 10px; display: grid; gap: 8px; align-content: start; min-height: 260px; }
+:root .board__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 0.82rem; font-weight: 600; letter-spacing: 0.01em; color: var(--text-2); padding: 2px 4px 8px; border-bottom: 1px solid var(--line); margin: 0; }
+:root .board__head .badge { height: 20px; padding: 0 6px; font-size: 0.7rem; }
+:root .board__card { padding: 10px 11px; border-radius: 11px; display: grid; gap: 7px; box-shadow: none; }
+:root .board__card .avatar { width: 28px; height: 28px; font-size: 0.72rem; }
+:root .board__card .row { gap: 7px; flex-wrap: nowrap; align-items: center; min-width: 0; }
+:root .board__card a strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.9rem; }
+:root .board__card .muted { font-size: 0.78rem; }
+:root .board__card .btn--sm { flex: 1 1 auto; justify-content: center; padding: 0 8px; font-size: 0.78rem; }
+:root .board__empty { margin: 0; padding: 18px 6px; text-align: center; font-size: 0.78rem; color: var(--text-3); border: 1px dashed var(--line-2); border-radius: 10px; }
+:root .board__col--over { border-color: color-mix(in srgb, var(--brand) 60%, transparent); background: color-mix(in srgb, var(--brand) 8%, transparent); }
+
+/* ---------- 26. Filter toolbar, corrected ----------------------------------------------------------------------
+   The first cut let the sixth child wrap to a second row, so "Save search" sat alone under the search box and the
+   select rode higher than the inputs. Actions now share one flex row and every control is exactly 36px tall. */
+:root .filbar { grid-template-columns: minmax(0, 1.6fr) 132px 124px auto; align-items: center; }
+:root .filbar__acts { display: flex; align-items: center; gap: 8px; justify-self: end; flex-wrap: nowrap; }
+:root .filbar__acts .btn { white-space: nowrap; }
+:root .filbar .select,
+:root .filbar .input { height: 36px; min-height: 36px; line-height: 34px; font-size: 0.9rem; }
+:root .filbar .select { width: 100%; min-width: 0; padding: 0 24px 0 10px; }
+:root .filbar__q .input { padding-left: 32px; }
+:root .filbar__q > .icon { left: 10px; }
+@media (max-width: 1080px) {
+  :root .filbar { grid-template-columns: minmax(0, 1fr) 120px 110px; }
+  :root .filbar__acts { grid-column: 1 / -1; justify-self: stretch; }
+  :root .filbar__acts .btn[type='submit'] { margin-left: auto; }
+}
+
+/* A grid stretches its children: the AI writer button was as wide as the form and read like "Publish". */
+:root .jf-sec > .btn { justify-self: start; }
+:root .jf-sec .form-actions .btn { justify-self: auto; }
+
+/* The "do this next" kicker is a caption, not the landing page's bordered pill. */
+:root .today__kicker {
+  margin: 0; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--brand-hi); border: 0; background: none; padding: 0; display: block;
+}
+
+/* ---------- 27. Destructive actions, and disclosures that look like disclosures -------------------------------- */
+/* In the light theme every bare .btn painted #18181b, so "Withdraw application" was a black slab: the one control on
+   the card that should look cautious looked like the primary. */
+:root .btn--danger {
+  background: color-mix(in srgb, #ef4444 12%, transparent); color: #f87171; border: 1px solid color-mix(in srgb, #ef4444 38%, transparent); box-shadow: none;
+}
+:root .btn--danger:hover { background: color-mix(in srgb, #ef4444 20%, transparent); color: #fca5a5; }
+:root[data-theme='light'] .btn--danger { background: #fff5f5; color: #b42318; border-color: #f3c0c0; }
+:root[data-theme='light'] .btn--danger:hover { background: #ffe9e9; color: #8f1c14; }
+
+/* A collapsed <details> was a dashed box with one bold word: it read as an empty message panel. The chevron and the
+   hover state make it a control. */
+:root .fold { border: 1px solid var(--line); border-radius: 12px; padding: 0; background: color-mix(in srgb, var(--text) 2.5%, transparent); }
+:root .fold > summary {
+  padding: 11px 14px; min-height: 40px; display: flex; align-items: center; gap: 8px; list-style: none;
+  font-size: 0.9rem; color: var(--text-2); border-radius: 12px;
+}
+:root .fold > summary::-webkit-details-marker { display: none; }
+:root .fold > summary::after {
+  content: ''; margin-left: auto; width: 8px; height: 8px; flex: none;
+  border-right: 1.6px solid currentColor; border-bottom: 1.6px solid currentColor;
+  transform: rotate(45deg) translateY(-2px); transition: transform 0.2s var(--ease-out); opacity: 0.7;
+}
+:root .fold[open] > summary::after { transform: rotate(225deg) translateY(-2px); }
+:root .fold > summary:hover { color: var(--text); background: color-mix(in srgb, var(--text) 4%, transparent); }
+:root .fold[open] > summary { border-bottom-left-radius: 0; border-bottom-right-radius: 0; border-bottom: 1px solid var(--line); color: var(--text); }
+:root .fold[open] { padding-bottom: 12px; }
+:root .fold > :not(summary) { margin: 12px 14px 0; }
+
+/* ---------- 28. Phone topbar: icon-only controls, no empty pills ----------------------------------------------- */
+@media (max-width: 640px) {
+  :root .topbar__user { gap: 6px; }
+  :root .topbar .bell { width: 34px; min-width: 34px; padding: 0; justify-content: center; border-color: transparent; background: transparent; }
+  :root .topbar .kbd-hint { width: 34px; padding: 0; justify-content: center; border-color: transparent; background: transparent; }
+  :root .topbar .kbd-hint span { display: none; }
+  :root .topbar .kbd-hint kbd { font-size: 0.62rem; padding: 0 3px; }
+  :root .topbar__crumb b { font-size: 0.92rem; }
+  :root .topbar__crumb i { display: none; }
+}
+/* A board that scrolls should say so: a thin, always-visible scrollbar and a snap edge. */
+:root .board { scrollbar-width: thin; scroll-padding-inline: 12px; }

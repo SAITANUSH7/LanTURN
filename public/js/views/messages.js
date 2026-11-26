@@ -25,12 +25,17 @@ export async function inbox({ query = {}, onLeave, user }) {
   const isEmployer = role === 'EMPLOYER';
   const rows = h('div', { class: 'inbox__list' });
   const pane = h('section', { class: 'inbox__pane', 'aria-label': 'Conversation' });
+  // With no threads the pane used to stay mounted next to the empty state: two dashed boxes side by side, the right one
+  // saying "pick a conversation" about a list that has none. The grid collapses to one column instead.
+  const box = h('div', { class: 'inbox' }, rows, pane);
   const stamp = h('span', { class: 'muted', 'aria-live': 'polite' });
   let items = [];
   let openId = Number(query.thread) || null;
 
   function paintList() {
     clear(rows);
+    box.classList.toggle('is-empty', !items.length);
+    pane.hidden = !items.length;
     if (!items.length) {
       rows.append(empty('mail', 'No conversations yet', isEmployer ? 'Message a candidate from their application and the thread appears here.' : 'When an employer writes to you about an application, it lands here.'));
       return;
@@ -110,7 +115,7 @@ export async function inbox({ query = {}, onLeave, user }) {
     pageHead('Messages', isEmployer ? 'Every candidate conversation in one place.' : 'Your conversations with employers.',
       h('button', { class: 'btn btn--secondary btn--sm', type: 'button', onclick: () => load() }, icon('refresh'), 'Refresh')),
     stamp, note,
-    h('div', { class: 'inbox' }, rows, pane),
+    box,
   );
 }
 

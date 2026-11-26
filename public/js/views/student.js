@@ -32,13 +32,21 @@ export async function dashboard({ user }) {
   ]);
   const latest = resumes.items[0]?.analysis;
   const active = apps.items.filter((a) => !TERMINAL.includes(a.status)).length;
-  const stat = (label, value, cls = '') => h('div', { class: `stat ${cls}` }, h('div', { class: 'stat__label' }, label), h('div', { class: 'stat__value' }, value));
+  // A dashboard number is a question ("where do I stand?") with a destination ("fix it here"). These are links.
+  const stat = (label, value, href, hint, cls = '') => h('a', { class: `stat stat--link ${cls}`, href },
+    h('div', { class: 'stat__label' }, label), h('div', { class: 'stat__value' }, value),
+    h('span', { class: 'stat__hint' }, hint), h('span', { class: 'stat__go', 'aria-hidden': 'true' }, icon('arrow-right')));
   return wrapPage(
     pageHead(`Hi, ${(user.name || 'there').split(' ')[0]}`, 'Here is where you stand today.', h('a', { class: 'btn btn--accent', href: '#/student/jobs' }, 'Browse jobs', icon('arrow-right'))),
     today,
     onboarding({ resume: resumes.items.length > 0, road: !!road, applied: apps.items.length > 0 }),
     h('div', { class: 'stats' },
-      stat('Resume score', latest?.overallScore ?? '—', 'stat--accent'), stat('Skills on profile', skills.items.length), stat('Active applications', active), stat('Jobs matched for you', rec.items.length)),
+      stat('Resume score', latest?.overallScore ?? '—', '#/student/resume',
+        latest ? (latest.missing?.length ? `${latest.missing.length} gap${latest.missing.length === 1 ? '' : 's'} to close` : 'looking strong') : 'upload one to get scored',
+        latest ? 'stat--accent' : ''),
+      stat('Skills on profile', skills.items.length, '#/student/profile', 'shown to employers on your matches'),
+      stat('Active applications', active, '#/student/applications', `${apps.items.length} sent in total`),
+      stat('Jobs matched for you', rec.items.length, '#/student/jobs', 'scored against your resume')),
     h('div', { class: 'split' },
       h('section', { class: 'stack' },
         h('div', { class: 'row row--between' }, h('h2', { class: 'section-title' }, 'Recommended for you'), h('a', { href: '#/student/jobs' }, 'See all jobs')),
@@ -55,9 +63,9 @@ export async function dashboard({ user }) {
 export async function jobs({ query }) {
   const f = { q: query.q || '', type: query.type || '', location: query.location || '', remote: query.remote === 'true', page: Number(query.page) || 1 };
   const results = h('div', { class: 'stack' });
-  const qEl = input({ type: 'search', placeholder: 'Title, company or keyword', value: f.q });
-  const typeEl = select([['', 'Any type'], ...Object.entries(TYPE_LABEL)], f.type);
-  const locEl = input({ placeholder: 'City', value: f.location });
+  const qEl = input({ type: 'search', placeholder: 'Title, company or keyword', value: f.q, 'aria-label': 'Search jobs by title, company or keyword' });
+  const typeEl = select([['', 'Any type'], ...Object.entries(TYPE_LABEL)], f.type, { 'aria-label': 'Job type' });
+  const locEl = input({ placeholder: 'City', value: f.location, 'aria-label': 'Filter by city' });
   const remoteEl = h('input', { type: 'checkbox', checked: f.remote ? true : null });
 
   const syncUrl = () => {
@@ -65,8 +73,33 @@ export async function jobs({ query }) {
     if (f.q) q.set('q', f.q); if (f.type) q.set('type', f.type); if (f.location) q.set('location', f.location); if (f.remote) q.set('remote', 'true'); if (f.page > 1) q.set('page', String(f.page));
     try { history.replaceState(null, '', `#/student/jobs${q.toString() ? `?${q}` : ''}`); } catch { /* optional */ }
   };
+  const activeBar = h('div', { class: 'filbar__active', hidden: true, 'aria-live': 'polite' });
+  // Filters stay visible as removable chips, so the result count is never "0 jobs" for an invisible reason.
+  const paintActive = () => {
+    clear(activeBar);
+    const on = [];
+    if (f.q) on.push(['q', `\u201c${f.q}\u201d`]);
+    if (f.type) on.push(['type', TYPE_LABEL[f.type] || f.type]);
+    if (f.location) on.push(['location', f.location]);
+    if (f.remote) on.push(['remote', 'Remote']);
+    activeBar.hidden = !on.length;
+    if (!on.length) return;
+    activeBar.append(h('span', { class: 'filbar__active-label' }, 'Filtered by'));
+    for (const [k, label] of on) {
+      activeBar.append(h('button', { type: 'button', class: 'chip chip--x', 'aria-label': `Remove filter ${label}`, onclick: () => {
+        if (k === 'q') { f.q = ''; qEl.value = ''; } else if (k === 'type') { f.type = ''; typeEl.value = ''; }
+        else if (k === 'location') { f.location = ''; locEl.value = ''; } else { f.remote = false; remoteEl.checked = false; }
+        f.page = 1; load();
+      } }, label, icon('x')));
+    }
+    activeBar.append(h('button', { type: 'button', class: 'filbar__clear', onclick: () => {
+      Object.assign(f, { q: '', type: '', location: '', remote: false, page: 1 });
+      qEl.value = ''; typeEl.value = ''; locEl.value = ''; remoteEl.checked = false; load();
+    } }, 'Clear all'));
+  };
   async function load() {
     syncUrl();
+    paintActive();
     clear(results).append(loadingBlock(3));
     const p = new URLSearchParams({ page: f.page, pageSize: 10 });
     if (f.q) p.set('q', f.q);
@@ -85,10 +118,12 @@ export async function jobs({ query }) {
         h('button', { class: 'btn btn--secondary btn--sm', disabled: f.page >= pages, onclick: () => { f.page++; load(); } }, 'Next', icon('arrow-right'))));
     } catch (e) { clear(results).append(errorBox(e, load)); }
   }
-  const form = h('form', { class: 'card', onsubmit: (e) => { e.preventDefault(); Object.assign(f, { q: qEl.value.trim(), type: typeEl.value, location: locEl.value.trim(), remote: remoteEl.checked, page: 1 }); load(); } },
-    h('div', { class: 'form-grid' }, field('Search', qEl), field('Type', typeEl), field('Location', locEl),
-      h('div', { class: 'field' }, h('span', { class: 'label' }, 'Work mode'), h('label', { class: 'check', style: { minHeight: '46px', alignItems: 'center' } }, remoteEl, 'Remote only'))),
-    h('div', { class: 'form-actions', style: { marginTop: '16px' } }, h('button', { class: 'btn', type: 'submit' }, icon('search'), 'Search')));
+  // Four stacked label+field pairs made the filter a form to fill in. It is a toolbar: type, narrow, go.
+  const acts = h('div', { class: 'filbar__acts' },
+    h('label', { class: 'filbar__check' }, remoteEl, h('span', null, 'Remote only')),
+    h('button', { class: 'btn', type: 'submit' }, 'Search'));
+  const form = h('form', { class: 'filbar', role: 'search', 'aria-label': 'Filter jobs', onsubmit: (e) => { e.preventDefault(); Object.assign(f, { q: qEl.value.trim(), type: typeEl.value, location: locEl.value.trim(), remote: remoteEl.checked, page: 1 }); load(); } },
+    h('div', { class: 'filbar__q' }, icon('search'), qEl), typeEl, locEl, acts);
   // Saved searches: the filters you always type again, plus an alert when a job finally matches.
   const savedBar = h('section', { class: 'saved', hidden: true, 'aria-label': 'Saved searches' }, h('div', { class: 'chips' }));
   async function loadSaved() {
@@ -128,10 +163,10 @@ export async function jobs({ query }) {
       } catch (e) { toast(e.message, 'error'); }
     }),
   }, icon('star'), 'Save search');
-  form.querySelector('.form-actions')?.append(saveBtn);
+  acts.append(saveBtn);
   await loadSaved();
   load();
-  return wrapPage(pageHead('Jobs', 'Every card shows how well your skills match.'), form, savedBar, results, liveJobs(() => qEl.value.trim() || f.q, () => locEl.value.trim()));
+  return wrapPage(pageHead('Jobs', 'Every card shows how well your skills match.'), form, activeBar, savedBar, results, liveJobs(() => qEl.value.trim() || f.q, () => locEl.value.trim()));
 }
 
 export async function jobDetail({ params }) {
