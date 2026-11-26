@@ -2026,26 +2026,34 @@ body:has(#main .auth2) .topbar--pub .topbar__user > a.btn { display: none; }
   :root .auth2__list b { font-size: 0.86rem; }
   :root .auth2__foot { font-size: 0.78rem; margin-top: 4px; }
 }
-@media (max-width: 900px) and (min-width: 561px) {
-  :root .auth2__side { flex-direction: row; align-items: flex-start; gap: 22px; }
-  :root .auth2__side > .auth2__list { flex-direction: row; gap: 22px; display: flex; }
-  :root .auth2__list li { max-width: 26ch; font-size: 0.8rem; }
-}
-
-/* The strip under the sheet: three claims, one line each, small print under them. Descriptions are dropped at this
-   width - they belong to the two-column panel, where there is room for them. */
+/* Narrow screens: the right-hand panel used to vanish below 900px, which left the lower half of the page an empty
+   field. It keeps its three claims as a strip pinned under the sheet - the same words, read as a footer. */
 @media (max-width: 900px) {
-  :root .auth2__side { flex-direction: column; gap: 8px; padding: 14px 20px calc(16px + env(safe-area-inset-bottom)); }
-  :root .auth2__list { display: flex; flex-wrap: wrap; gap: 4px 18px; max-width: none; }
-  :root .auth2__list li { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; }
-  :root .auth2__list .icon { width: 14px; height: 14px; margin: 0; }
-  :root .auth2__list b { display: inline; font-size: 0.8rem; color: var(--text-2); font-weight: 500; }
+  :root .auth2 { display: flex; flex-direction: column; min-height: 100dvh; }
+  :root .auth2__form { order: 1; flex: 1 1 auto; padding: 8px 18px 16px; }
+  :root .auth2__box { margin: auto; padding: 22px 20px 20px; border-radius: 16px; gap: 18px; }
+  :root .auth2__side {
+    order: 2; display: grid; gap: 10px; padding: 14px 20px calc(16px + env(safe-area-inset-bottom));
+    border-left: 0; border-top: 1px solid var(--line); overflow: visible;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--text) 3%, transparent), transparent 72%);
+  }
+  :root .auth2__side::before, :root .auth2__side h2, :root .auth2__pulse { display: none; }
+  /* Titles only: the descriptions belong to the two-column panel, where there is room to read them. */
   :root .auth2__list-t { display: none; }
-  :root .auth2__foot { font-size: 0.74rem; margin: 0; gap: 6px; color: var(--text-3); }
+  :root .auth2__list { display: grid; gap: 6px 18px; max-width: none; }
+  :root .auth2__list li { align-items: flex-start; gap: 7px; max-width: none; font-size: 0.8rem; line-height: 1.35; }
+  :root .auth2__list .icon { width: 14px; height: 14px; margin-top: 2px; }
+  :root .auth2__list b { font-size: inherit; font-weight: 500; color: var(--text-2); }
+  :root .auth2__foot { margin: 0; gap: 6px; font-size: 0.74rem; color: var(--text-3); }
   :root .auth2__foot .icon { width: 13px; height: 13px; }
-  :root .auth2__form { padding-bottom: 12px; }
 }
+/* Tablet: three equal columns, so no claim is squeezed out of the row. */
 @media (max-width: 900px) and (min-width: 561px) {
-  :root .auth2__side { flex-direction: row; align-items: center; justify-content: space-between; flex-wrap: wrap; }
-  :root .auth2__list { gap: 4px 22px; }
+  :root .auth2__list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  :root .auth2__foot { grid-column: 1 / -1; }
+}
+/* Phone: one wrapped flow of claims instead of three narrow columns. */
+@media (max-width: 560px) {
+  :root .auth2__list { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+  :root .auth2__list li { max-width: 100%; }
 }
