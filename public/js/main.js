@@ -108,7 +108,12 @@ function shell() {
       h('main', { id: 'main', tabindex: '-1' }));
   }
   const groups = NAV[user.role] || [];
-  const label = groups.flatMap(([, items]) => items).find(([to]) => active(to))?.[1] || '';
+  const crumbPath = (location.hash.replace(/^#/, '').split('?')[0]) || '/';
+  const routeLabel = () => {
+    const hit = ROUTES.find(([p]) => new RegExp(`^${p.replace(/:[^/]+/g, '[^/]+')}$`).test(crumbPath));
+    return hit ? hit[3] : '';
+  };
+  const label = groups.flatMap(([, items]) => items).find(([to]) => active(to))?.[1] || routeLabel() || '';
   const app = h('div', { class: 'app' });
   const side = h('aside', { class: 'side', id: 'side', 'aria-label': 'Sidebar' },
     h('a', { class: 'brand', href: `#${homeFor(user.role)}`, 'aria-label': 'LanTURN home' }, lantern(), h('span', null, 'Lan', h('b', null, 'TURN'))),
@@ -184,7 +189,7 @@ async function render() {
   leave.forEach((fn) => { try { fn(); } catch { /* ignore */ } });
   leave = [];
   const path = currentPath();
-  const route = ROUTES.find((r) => r.re.test(path));
+  const route = ROUTES.find((r) => r.re.test(crumbPath));
   const user = session.user;
 
   if (!route) { location.hash = '#/'; return; }
