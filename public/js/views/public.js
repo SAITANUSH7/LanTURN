@@ -1,4 +1,4 @@
-import { login as doLogin, register as doRegister, get } from '../api.js';
+import { login as doLogin, register as doRegister, joinTeam, get } from '../api.js';
 import { h, icon, field, input, busy, skillChip, toast, passwordField, lantern } from '../ui.js';
 
 const home = (u) => (u.role === 'STUDENT' ? '/student' : u.role === 'EMPLOYER' ? '/employer' : '/admin');
@@ -134,4 +134,23 @@ export function register({ navigate }) {
     },
   }, h('div', { class: 'field' }, h('span', { class: 'label' }, 'I am a'), seg), nameField, field('Email', email), passwordField('Password', pw, { hint: 'At least 8 characters.' }), note, err, btn, h('p', { class: 'muted' }, 'Already registered? ', h('a', { href: '#/login' }, 'Sign in')));
   return authLayout('Create your account', 'Free for students and employers.', form);
+}
+
+/** Landing page for a hiring-team invitation link: #/join?token=... */
+export async function join({ navigate, query = {} }) {
+  const token = query.token || '';
+  let inv = null;
+  try { inv = await get(`/auth/invite/${encodeURIComponent(token)}`); } catch {
+    return authLayout('Invitation not valid', 'This link is invalid, already used or expired.', h('div', { class: 'stack' }, h('p', { class: 'muted' }, 'Ask the account owner to send you a new invitation.'), h('a', { class: 'btn btn--block', href: '#/login' }, 'Go to sign in')));
+  }
+  const name = input({ required: true, autocomplete: 'name', value: inv.name || '' });
+  const pw = input({ type: 'password', required: true, minlength: '8', autocomplete: 'new-password' });
+  const err = h('div', { role: 'alert' });
+  const btn = h('button', { class: 'btn btn--block', type: 'submit' }, 'Join the team');
+  const form = h('form', { class: 'stack', novalidate: true, onsubmit: async (e) => {
+    e.preventDefault(); err.replaceChildren();
+    if (!name.value.trim()) { err.append(h('div', { class: 'alert alert--danger' }, icon('warn'), 'Enter your name.')); return; }
+    try { const u = await busy(btn, () => joinTeam({ token, name: name.value.trim(), password: pw.value })); toast(`Welcome to ${inv.company}`, 'success'); navigate(home(u)); } catch (ex) { err.append(h('div', { class: 'alert alert--danger' }, icon('warn'), ex.message)); }
+  } }, field('Email', input({ value: inv.email, readonly: true, 'aria-readonly': 'true' })), field('Your name', name), passwordField('Choose a password', pw, { hint: 'At least 8 characters.' }), err, btn);
+  return authLayout(`Join ${inv.company}`, 'You were invited to the hiring team. You will see the same jobs and candidates as your colleagues.', form);
 }

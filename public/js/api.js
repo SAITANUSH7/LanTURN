@@ -88,6 +88,11 @@ export async function register(body) {
   setSession(d);
   return d.user;
 }
+export async function joinTeam(body) {
+  const d = await request('POST', '/auth/join', { body });
+  setSession(d);
+  return d.user;
+}
 export async function logout() {
   try { await request('POST', '/auth/logout'); } catch { /* ignore */ }
   setSession(null);

@@ -385,3 +385,36 @@ function funnelChart(f) {
       h('b', { class: 'funnel__n' }, String(f[k] || 0)),
       h('small', { class: 'funnel__pc' }, `${pct(f[k] || 0)}%`)))));
 }
+
+// ---------------------------------------------------------------- Hiring team
+export async function team() {
+  const d = await get('/employer/team');
+  const host = h('div', { class: 'stack' });
+  const paint = (t, fresh) => {
+    clear(host);
+    if (!d.isOwner) { host.append(h('div', { class: 'card stack' }, h('h3', null, `You are on the ${d.company} hiring team`), h('p', { class: 'muted' }, `You share jobs, candidates, notes and messages with your colleagues. The account owner (${d.ownerEmail}) manages the team and the company profile.`))); return; }
+    const email = input({ type: 'email', placeholder: 'colleague@company.com', required: true, 'aria-label': 'Colleague email' });
+    const nm = input({ placeholder: 'Name (optional)', 'aria-label': 'Colleague name' });
+    const btn = h('button', { class: 'btn', type: 'submit', disabled: t.seatsLeft ? null : true }, icon('plus'), 'Send invite');
+    const form = h('form', { class: 'card stack', onsubmit: (e) => {
+      e.preventDefault();
+      busy(btn, async () => { try { const r = await post('/employer/team/invites', { email: email.value.trim(), name: nm.value.trim() }); paint(r, { email: r.email, link: r.link, emailed: r.emailed }); toast('Invitation created', 'success'); } catch (ex) { toast(ex.message, 'error'); } });
+    } }, h('h3', null, 'Invite a colleague'), h('p', { class: 'muted' }, `They get the same view of your jobs and candidates. ${t.seatsLeft} of ${t.limit} seats left.`), h('div', { class: 'form-grid' }, field('Work email', email), field('Name', nm)), h('div', null, btn));
+    host.append(form);
+    if (fresh) {
+      const box = input({ value: fresh.link, readonly: true, 'aria-label': 'Invitation link' });
+      host.append(h('div', { class: 'card stack stack--sm' }, h('h3', null, `Invitation for ${fresh.email}`), h('p', { class: 'muted' }, fresh.emailed ? 'We emailed them the link. You can also share it yourself. It works once, for 7 days.' : 'Email is not set up on this server, so copy this link and send it yourself. It works once, for 7 days.'),
+        h('div', { class: 'row' }, box, h('button', { class: 'btn btn--secondary', type: 'button', onclick: async () => { try { await navigator.clipboard.writeText(fresh.link); toast('Link copied', 'success'); } catch { box.select(); toast('Press Ctrl+C to copy', 'info'); } } }, icon('copy'), 'Copy'))));
+    }
+    host.append(h('div', { class: 'card stack' }, h('h3', null, `Members (${t.members.length})`),
+      t.members.length ? h('div', { class: 'stack stack--sm' }, t.members.map((m) => h('div', { class: 'row row--between row--wrap' }, h('div', null, h('strong', null, m.name || m.email), h('p', { class: 'muted' }, `${m.email} · joined ${fmtDate(m.joinedAt)}`)),
+        h('button', { class: 'btn btn--danger btn--sm', onclick: async (ev) => {
+          if (!(await confirmDialog({ title: `Remove ${m.name || m.email}?`, body: 'They lose access immediately. Their past notes and messages stay.', confirmText: 'Remove', danger: true }))) return;
+          busy(ev.currentTarget, async () => { try { paint(await api('DELETE', `/employer/team/members/${m.id}`)); toast('Member removed'); } catch (ex) { toast(ex.message, 'error'); } });
+        } }, 'Remove')))) : h('p', { class: 'muted' }, 'Just you for now.')));
+    if (t.invites.length) host.append(h('div', { class: 'card stack' }, h('h3', null, 'Pending invitations'), h('div', { class: 'stack stack--sm' }, t.invites.map((i) => h('div', { class: 'row row--between row--wrap' }, h('div', null, h('strong', null, i.name || i.email), h('p', { class: 'muted' }, `${i.email} · expires ${fmtDate(i.expiresAt)}`)),
+      h('button', { class: 'btn btn--ghost btn--sm', onclick: (ev) => busy(ev.currentTarget, async () => { try { paint(await api('DELETE', `/employer/team/invites/${i.id}`)); toast('Invitation withdrawn'); } catch (ex) { toast(ex.message, 'error'); } }) }, 'Withdraw'))))));
+  };
+  paint(d);
+  return wrapPage(pageHead('Team', 'Hire together. Everyone on the team sees the same jobs, candidates, notes and messages.'), host);
+}

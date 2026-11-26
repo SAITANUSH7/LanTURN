@@ -31,6 +31,7 @@ const ROUTES = [
   ['/', null, pub.landing, 'Home'],
   ['/login', null, pub.login, 'Sign in'],
   ['/register', null, pub.register, 'Create account'],
+  ['/join', null, pub.join, 'Join your team'],
   ['/student', ['STUDENT'], stu.dashboard, 'Home'],
   ['/student/builder', ['STUDENT'], stt.resumeBuilder, 'Resume builder'],
   ['/student/jobs', ['STUDENT'], stu.jobs, 'Jobs'],
@@ -57,6 +58,7 @@ const ROUTES = [
   ['/employer/applications/:id', ['EMPLOYER'], emp.candidate, 'Candidate'],
   ['/employer/messages', ['EMPLOYER'], inbox, 'Messages'],
   ['/employer/company', ['EMPLOYER'], emp.company, 'Company'],
+  ['/employer/team', ['EMPLOYER'], emp.team, 'Team'],
   ['/admin', ['ADMIN'], adm.employers, 'Employers'],
   ['/admin/ai', ['ADMIN'], adm.aiSettings, 'AI providers'],
   ['/admin/system', ['ADMIN'], adm.system, 'System'],
@@ -74,7 +76,7 @@ const NAV = {
     ['Grow', [['/student/roadmap', 'Roadmap', 'route'], ['/student/career', 'Career', 'route'], ['/student/dna', 'DNA', 'sparkle'], ['/student/arena', 'Arena', 'bolt'], ['/student/coach', 'Coach', 'users']]],
     ['Account', [['/student/profile', 'Profile', 'user']]],
   ],
-  EMPLOYER: [['Hiring', [['/employer', 'Dashboard', 'chart'], ['/employer/jobs', 'Jobs', 'briefcase'], ['/employer/messages', 'Messages', 'mail'], ['/employer/assistant', 'Assistant', 'sparkle'], ['/employer/company', 'Company', 'building']]]],
+  EMPLOYER: [['Hiring', [['/employer', 'Dashboard', 'chart'], ['/employer/jobs', 'Jobs', 'briefcase'], ['/employer/messages', 'Messages', 'mail'], ['/employer/team', 'Team', 'users'], ['/employer/assistant', 'Assistant', 'sparkle'], ['/employer/company', 'Company', 'building']]]],
   ADMIN: [['Administration', [['/admin', 'Employers', 'shield'], ['/admin/ai', 'AI providers', 'sparkle'], ['/admin/system', 'System', 'chart']]]],
 };
 export const homeFor = (role) => (role === 'STUDENT' ? '/student' : role === 'EMPLOYER' ? '/employer' : role === 'ADMIN' ? '/admin' : '/');
@@ -123,7 +125,7 @@ function shell() {
       items.map(([to, name, ic]) => h('a', { href: `#${to}`, 'data-s': sectionOf(to), 'aria-current': active(to), id: to.endsWith('/messages') ? 'nav-messages' : null }, icon(ic), t(name)))))),
     h('div', { class: 'side__foot' },
       h('div', { class: 'me' }, h('span', { class: 'me__av', 'aria-hidden': 'true' }, (user.name || user.email || '?').trim()[0].toUpperCase()),
-        h('div', { class: 'me__t' }, h('strong', null, user.name || user.email), h('small', null, user.role.toLowerCase()))),
+        h('div', { class: 'me__t' }, h('strong', null, user.name || user.email), h('small', null, user.team ? 'team member' : user.role.toLowerCase()))),
       h('button', { class: 'btn btn--secondary btn--sm', onclick: async () => { await logout(); navigate('/'); } }, icon('logout'), t('Sign out'))));
   const bar = h('header', { class: 'topbar' },
     h('div', { class: 'topbar__in' },
