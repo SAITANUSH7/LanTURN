@@ -1969,3 +1969,99 @@ a.card:hover, .card--hover:hover, .card--link:hover {
   .stats .stat { padding: 14px 14px; }
   .stats .stat .stat__value { font-size: 1.6rem; }
 }
+
+/* =================================================================================================================
+   Studio polish I — the sign-in page.
+
+   Reported: "see how improper the credentials part looks". At 808px wide the page is a single centred column: the
+   dual-column auth layout drops the right panel, so a 400px card floats in a field of nothing, the brand is printed
+   twice (once by the top bar, once above the card), and the primary button is a white slab with no relationship to
+   the surface it sits on. Nothing here adds a new colour: it is the same dark-blue Studio palette, arranged properly.
+   ================================================================================================================= */
+
+/* One brand per page. The sign-in sheet already carries it, so the public bar keeps only its controls. */
+body:has(#main .auth2) .topbar--pub .brand,
+body:has(#main .auth2) .topbar .kbd-hint,
+body:has(#main .auth2) .topbar--pub .topbar__user > a.btn { display: none; }
+
+/* The form column itself: a sheet with edges, not a floating block. */
+:root .auth2__box {
+  max-width: 420px; gap: 22px; padding: 0;
+  border: 1px solid var(--line); border-radius: 18px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--text) 4%, transparent), transparent 46%), var(--panel);
+  box-shadow: 0 30px 70px -50px #000;
+  padding: 26px 26px 24px;
+}
+:root .auth2__box h1 { font-size: 1.6rem; letter-spacing: -0.03em; line-height: 1.15; }
+:root .auth2__box > div > p { margin-top: 4px; font-size: 0.9rem; }
+:root .auth2__form { padding-top: 12px; padding-bottom: 24px; }
+:root .auth2__form .brand { align-self: flex-start; }
+
+/* Fields and the submit line: one width, one height, one rhythm. */
+:root .auth2__box .field > label { font-size: 0.78rem; font-weight: 600; letter-spacing: 0.01em; color: var(--text-2); margin-bottom: 6px; }
+:root .auth2__box .input { height: 44px; }
+:root .auth2__box .btn--block { min-height: 46px; font-size: 0.95rem; font-weight: 600; letter-spacing: 0.01em; margin-top: 4px; }
+:root .auth2__box .btn--block:not(:disabled) { box-shadow: 0 14px 30px -20px rgba(255, 255, 255, 0.5); }
+:root .auth2__box .btn--block:not(:disabled):hover { transform: translateY(-1px); }
+:root .auth2__box form { display: grid; gap: 14px; }
+:root .auth2__box .row--between, :root .auth2__box form > .row { align-items: center; }
+:root .auth2__box form > p, :root .auth2__box form > .muted:last-child { font-size: 0.86rem; margin-top: 2px; }
+/* A quiet divider between "who you are" and "what we promise", instead of a second heading. */
+:root .auth2__box form + .auth2__alt,
+:root .auth2__box .auth2__alt { padding-top: 4px; border-top: 1px solid var(--line); }
+
+/* The auth page owns exactly one viewport: the top bar takes what it needs, the page takes the rest. Without this the
+   page was a full 100vh *below* a 56px bar, so the bottom of it (the facts strip on narrow screens, the lower edge of
+   the panel on wide ones) sat under the fold. The public shell is a bare wrapper div inside #app, so the column starts
+   there. `:has` scopes this to the two auth routes; without it the page just collapses to its content height. */
+body:has(#main .auth2) #app > div { display: flex; flex-direction: column; min-height: 100dvh; }
+body:has(#main .auth2) #main { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
+:root .auth2 { flex: 1 1 auto; min-height: 0; }
+
+/* Narrow screens: the right-hand panel used to vanish below 900px, leaving the lower half of the page empty. It keeps
+   its three facts as a compact strip under the sheet - same words, read as a footer rather than a second column. */
+@media (max-width: 900px) {
+  :root .auth2 { display: flex; flex-direction: column; }
+  :root .auth2__form { order: 1; flex: 1; padding: 8px 18px 20px; }
+  :root .auth2__box { margin: auto; padding: 22px 20px 20px; border-radius: 16px; }
+  :root .auth2__side {
+    display: flex; order: 2; gap: 10px; padding: 18px 20px calc(20px + env(safe-area-inset-bottom));
+    border-left: 0; border-top: 1px solid var(--line); background: transparent; overflow: visible;
+  }
+  :root .auth2__side::before, :root .auth2__side h2, :root .auth2__pulse { display: none; }
+  :root .auth2__list { gap: 8px; max-width: none; }
+  :root .auth2__list li { font-size: 0.84rem; color: var(--text-2); }
+  :root .auth2__list b { font-size: 0.86rem; }
+  :root .auth2__foot { font-size: 0.78rem; margin-top: 4px; }
+}
+/* Narrow screens: the right-hand panel used to vanish below 900px, which left the lower half of the page an empty
+   field. It keeps its three claims as a strip pinned under the sheet - the same words, read as a footer. */
+@media (max-width: 900px) {
+  :root .auth2 { display: flex; flex-direction: column; }
+  :root .auth2__form { order: 1; flex: 1 1 auto; padding: 8px 18px 16px; }
+  :root .auth2__box { margin: auto; padding: 22px 20px 20px; border-radius: 16px; gap: 18px; }
+  :root .auth2__side {
+    order: 2; display: grid; gap: 10px; padding: 14px 20px calc(16px + env(safe-area-inset-bottom));
+    border-left: 0; border-top: 1px solid var(--line); overflow: visible;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--text) 3%, transparent), transparent 72%);
+  }
+  :root .auth2__side::before, :root .auth2__side h2, :root .auth2__pulse { display: none; }
+  /* Titles only: the descriptions belong to the two-column panel, where there is room to read them. */
+  :root .auth2__list-t { display: none; }
+  :root .auth2__list { display: grid; gap: 6px 18px; max-width: none; }
+  :root .auth2__list li { align-items: flex-start; gap: 7px; max-width: none; font-size: 0.8rem; line-height: 1.35; }
+  :root .auth2__list .icon { width: 14px; height: 14px; margin-top: 2px; }
+  :root .auth2__list b { font-size: inherit; font-weight: 500; color: var(--text-2); }
+  :root .auth2__foot { margin: 0; gap: 6px; font-size: 0.74rem; color: var(--text-3); }
+  :root .auth2__foot .icon { width: 13px; height: 13px; }
+}
+/* Tablet: three equal columns, so no claim is squeezed out of the row. */
+@media (max-width: 900px) and (min-width: 561px) {
+  :root .auth2__list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  :root .auth2__foot { grid-column: 1 / -1; }
+}
+/* Phone: one wrapped flow of claims instead of three narrow columns. */
+@media (max-width: 560px) {
+  :root .auth2__list { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+  :root .auth2__list li { max-width: 100%; }
+}
