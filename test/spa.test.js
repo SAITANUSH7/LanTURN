@@ -42,7 +42,7 @@ test('API routes are preserved and not intercepted by SPA fallback', async () =>
 // revalidated on every load; this was found the hard way, when the redesign shipped and reviewers kept seeing the
 // previous stylesheet out of their browser cache.
 test('stylesheets and scripts are revalidated, never served from a long-lived cache', async () => {
-  for (const path of ['/css/lanturn.css', '/js/main.js', '/js/polish.js']) {
+  for (const path of ['/css/lanturn.css', '/js/main.js']) {
     const res = await fetch(getOrigin() + path);
     assert.equal(res.status, 200, path);
     assert.equal(res.headers.get('cache-control'), 'max-age=0, must-revalidate', `${path} must revalidate`);

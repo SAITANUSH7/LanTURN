@@ -374,9 +374,8 @@ function applicantsChart(daily) {
 }
 
 function funnelChart(f) {
-  // Scale against the first stage, not the largest one: with one applicant in "Applied" and one in "Shortlisted", a
-  // max-scaled chart drew two full bars and said nothing. Now the second bar is half the first, as it should be.
-  const base = Math.max(1, f.APPLIED || Math.max(...FUNNEL.map(([k]) => f[k] || 0)));
+  // Each stage as a share of everyone who applied (a candidate sits in exactly one stage), so the bars add up to 100%.
+  const base = Math.max(1, FUNNEL.reduce((n, [k]) => n + (f[k] || 0), 0));
   const pct = (n) => Math.round((n / base) * 100);
   return h('div', { class: 'card' },
     h('h3', { class: 'card__title' }, 'Pipeline by stage', h('span', { class: 'muted' }, 'share of applicants')),
