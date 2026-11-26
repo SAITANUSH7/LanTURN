@@ -200,15 +200,17 @@ const NEXT = { APPLIED: ['SHORTLISTED', 'REJECTED'], SHORTLISTED: ['INTERVIEW', 
 
 export async function board({ params }) {
   const host = h('div', { class: 'board', role: 'group', 'aria-label': 'Applicant board' });
-  const title = h('p', { class: 'strong' });
+  // The job name belongs in the page header, not in an orphan line between the header and the board.
+  const head = pageHead(t('Board'), 'Drag a card, or use the buttons, to move applicants.');
   async function load() {
     const d = await get(`/employer/jobs/${params.id}/candidates?sort=match`);
-    title.textContent = d.job.title;
+    const sub = head.querySelector('p'); if (sub && d.job?.title) sub.textContent = `${d.job.title} · drag a card, or use the buttons, to move applicants.`;
     clear(host);
     for (const col of COLS) {
       const cards = d.items.filter((c) => c.status === col);
       const zone = h('div', { class: 'board__col', 'data-status': col },
         h('h3', { class: 'board__head' }, STATUS_META[col].label, h('span', { class: 'badge badge--neutral' }, String(cards.length))),
+        cards.length ? null : h('p', { class: 'board__empty' }, 'No one here yet'),
         cards.map((c) => h('div', { class: 'card card--hover board__card', draggable: 'true', 'data-id': c.applicationId, 'data-status': c.status },
           h('div', { class: 'row', style: { flexWrap: 'nowrap' } }, h('div', { class: 'avatar', 'aria-hidden': 'true' }, initials(c.student.name)), h('a', { href: `#/employer/applications/${c.applicationId}` }, h('strong', null, c.student.name))),
           h('div', { class: 'muted' }, `Match ${c.matchScore}%`),
@@ -230,5 +232,5 @@ export async function board({ params }) {
     try { await patch(`/employer/applications/${id}/status`, { status }); toast(`Moved to ${STATUS_META[status].label}`, 'success'); await load(); } catch (e) { toast(e.message, 'error'); await load(); }
   }
   await load();
-  return wrapPage(h('a', { class: 'crumb', href: `#/employer/jobs/${params.id}/candidates` }, icon('arrow-left'), 'List view'), pageHead(t('Board'), 'Drag a card, or use the buttons, to move applicants.'), title, host);
+  return wrapPage(h('a', { class: 'crumb', href: `#/employer/jobs/${params.id}/candidates` }, icon('arrow-left'), 'List view'), head, host);
 }

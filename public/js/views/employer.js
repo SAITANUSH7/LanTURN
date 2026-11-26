@@ -205,7 +205,7 @@ export async function candidates({ params, query }) {
   let sort = query.sort === 'resume' ? 'resume' : query.sort === 'match' ? 'match' : 'smart';
   const bar = h('div', { class: 'row row--between' });
   const list = h('div', { class: 'stack' });
-  const titleEl = h('p', { class: 'strong' });
+  const head = pageHead('Candidates', 'Ranked by skill match, resume score and resume wording.', h('div', { class: 'row row--wrap' }, h('button', { class: 'btn btn--ghost btn--sm', onclick: (ev) => busy(ev.currentTarget, async () => { try { await downloadFile(`/employer/jobs/${params.id}/candidates.csv`, `candidates-job-${params.id}.csv`); } catch (e) { toast(e.message, 'error'); } }) }, icon('download'), 'Export CSV'), h('a', { class: 'btn btn--secondary btn--sm', href: `#/employer/jobs/${params.id}/board` }, icon('target'), 'Board view')));
   const selected = new Set();
   const pick = (s2) => { status = s2; selected.clear(); load(); };
   const sortBar = () => h('div', { class: 'segmented', role: 'group', 'aria-label': 'Sort' }, ...[['smart', 'AI rank'], ['match', 'Best match'], ['resume', 'Resume score']].map(([k, l]) => h('button', { 'aria-pressed': String(sort === k), onclick: () => { sort = k; load(); } }, l)));
@@ -214,7 +214,7 @@ export async function candidates({ params, query }) {
     clear(list).append(loadingBlock(2));
     try {
       const d = explain ? await post(`/employer/jobs/${params.id}/ranking/explain`, {}) : await get(`/employer/jobs/${params.id}/ranking`);
-      titleEl.textContent = d.job.title;
+      const sub = head.querySelector('p'); if (sub && d.job?.title) sub.textContent = `${d.job.title} · ranked by skill match, resume score and resume wording.`;
       const counts = Object.fromEntries(STATUSES.map((x) => [x, 0]));
       d.items.forEach((c) => { counts[c.status] = (counts[c.status] || 0) + 1; });
       clear(bar).append(filterBar(counts, status, pick), sortBar());
@@ -254,7 +254,7 @@ export async function candidates({ params, query }) {
     try {
       const d = await get(`/employer/jobs/${params.id}/candidates?sort=${sort}${status ? `&status=${status}` : ''}`);
       clear(bar).append(filterBar(d.counts, status, pick), sortBar());
-      titleEl.textContent = d.job.title;
+      const sub = head.querySelector('p'); if (sub && d.job?.title) sub.textContent = `${d.job.title} · ranked by skill match, resume score and resume wording.`;
       clear(list);
       if (!d.items.length) { list.append(empty('users', 'No candidates here yet', status ? 'No applications have this status.' : 'Applications will appear as soon as students apply.')); return; }
       d.items.forEach((c) => list.append(h('a', { class: 'card card--hover cand', href: `#/employer/applications/${c.applicationId}` },
@@ -266,7 +266,7 @@ export async function candidates({ params, query }) {
     } catch (e) { clear(list).append(errorBox(e, load)); }
   }
   await load();
-  return wrapPage(h('a', { class: 'crumb', href: '#/employer/jobs' }, icon('arrow-left'), 'My jobs'), pageHead('Candidates', null, h('div', { class: 'row row--wrap' }, h('button', { class: 'btn btn--ghost btn--sm', onclick: (ev) => busy(ev.currentTarget, async () => { try { await downloadFile(`/employer/jobs/${params.id}/candidates.csv`, `candidates-job-${params.id}.csv`); } catch (e) { toast(e.message, 'error'); } }) }, icon('download'), 'Export CSV'), h('a', { class: 'btn btn--secondary btn--sm', href: `#/employer/jobs/${params.id}/board` }, icon('target'), 'Board view'))), titleEl, bar, list);
+  return wrapPage(h('a', { class: 'crumb', href: '#/employer/jobs' }, icon('arrow-left'), 'My jobs'), head, bar, list);
 }
 
 

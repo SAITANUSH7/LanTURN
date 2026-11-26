@@ -3624,3 +3624,36 @@ body:has(#main .auth2) .topbar .kbd-hint { display: none; }
 :root .chart__col:hover .chart__bar { background: var(--brand-hi); }
 :root .chart { height: 120px; gap: 5px; }
 :root .chart__total { font-size: 1.7rem; margin-bottom: 10px; }
+
+/* ---------- 23. Phone shell: room for the tab bar --------------------------------------------------------------- */
+@media (max-width: 960px) {
+  :root .app__main { padding-bottom: calc(74px + env(safe-area-inset-bottom)); }
+  :root .topbar { height: 54px; }
+  :root .topbar__in { padding: 0 12px; gap: 8px; }
+  :root .page, :root .app__main main { padding-left: 16px; padding-right: 16px; }
+  /* Five 48px targets plus a hairline: the bar needs its own surface, not a translucent guess over content. */
+  :root .tabbar { background: color-mix(in srgb, var(--void) 96%, transparent); box-shadow: 0 -12px 30px -22px #000; }
+}
+
+/* ---------- 24. Landing hero: caption, closer call to action ------------------------------------------------ */
+:root .lp-hero__lead { max-width: 58ch; font-size: 1.04rem; line-height: 1.62; }
+:root .lp-hero h1 { margin: 0 0 14px; }
+:root .lp-hero .eyebrow { margin-bottom: 16px; }
+:root .lp-cta { gap: 10px; margin-top: 4px; }
+:root .lp-note { margin-top: 14px; }
+
+/* ---------- 25. Kanban board: readable cards, edges that scroll --------------------------------------------------
+   At the content width the five columns were being squeezed to 182px: names wrapped to two lines and the two move
+   buttons stacked. A board may scroll sideways; it may not squash. Snap points keep a column aligned after a swipe. */
+:root .board { grid-auto-columns: minmax(228px, 1fr); gap: 12px; scroll-snap-type: x proximity; padding-bottom: 10px; }
+:root .board__col { scroll-snap-align: start; background: color-mix(in srgb, var(--text) 3%, transparent); border: 1px solid var(--line); border-radius: 14px; padding: 10px; display: grid; gap: 8px; align-content: start; min-height: 260px; }
+:root .board__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 0.82rem; font-weight: 600; letter-spacing: 0.01em; color: var(--text-2); padding: 2px 4px 8px; border-bottom: 1px solid var(--line); margin: 0; }
+:root .board__head .badge { height: 20px; padding: 0 6px; font-size: 0.7rem; }
+:root .board__card { padding: 10px 11px; border-radius: 11px; display: grid; gap: 7px; box-shadow: none; }
+:root .board__card .avatar { width: 28px; height: 28px; font-size: 0.72rem; }
+:root .board__card .row { gap: 7px; flex-wrap: nowrap; align-items: center; min-width: 0; }
+:root .board__card a strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.9rem; }
+:root .board__card .muted { font-size: 0.78rem; }
+:root .board__card .btn--sm { flex: 1 1 auto; justify-content: center; padding: 0 8px; font-size: 0.78rem; }
+:root .board__empty { margin: 0; padding: 18px 6px; text-align: center; font-size: 0.78rem; color: var(--text-3); border: 1px dashed var(--line-2); border-radius: 10px; }
+:root .board__col--over { border-color: color-mix(in srgb, var(--brand) 60%, transparent); background: color-mix(in srgb, var(--brand) 8%, transparent); }
