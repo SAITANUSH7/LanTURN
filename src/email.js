@@ -11,7 +11,7 @@ let fetchImpl = (...a) => fetch(...a);
 export const __setEmailFetch = (fn) => { fetchImpl = fn || ((...a) => fetch(...a)); };
 export const emailEnabled = () => Boolean(process.env.EMAIL_API_KEY && process.env.EMAIL_FROM);
 const apiUrl = () => process.env.EMAIL_API_URL || 'https://api.resend.com/emails';
-const publicUrl = () => (process.env.PUBLIC_URL || `http://localhost:${config.port || 3000}`).replace(/\/$/, '');
+export const publicUrl = () => (process.env.PUBLIC_URL || `http://localhost:${config.port || 3000}`).replace(/\/$/, '');
 
 // Only these notification types become emails. Chat, connection and comment noise stays in-app.
 const EMAILED = new Set(['application_status', 'application_received', 'strong_applicant', 'job_match', 'job_removed', 'interview_scheduled', 'interview_cancelled', 'message_received']);
@@ -60,6 +60,19 @@ export function maybeEmail(userId, type, title, body, link) {
     enqueue('email.send', { userId, type, title, body, link }, { userId, maxAttempts: 5 });
   } catch { /* best effort */ }
 }
+
+/** Invitation to join an employer's hiring team. Sent only when email is configured; the owner can always copy the link instead. */
+export function emailInvite(to, company, link) {
+  if (!emailEnabled()) return false;
+  enqueue('email.invite', { to, company, link }, { maxAttempts: 4 });
+  return true;
+}
+registerTask('email.invite', async ({ to, company, link }) => {
+  const text = `${company} invited you to join their hiring team on LanTURN.\n\nAccept the invitation: ${link}\n\nThe link works for 7 days. If you did not expect this, ignore this email.`;
+  const html = `<p><strong>${company.replace(/[<>&]/g, '')}</strong> invited you to join their hiring team on LanTURN.</p><p><a href="${link}">Accept the invitation</a></p><p style="color:#666">The link works for 7 days. If you did not expect this, ignore this email.</p>`;
+  await sendEmail({ to, subject: `${company} invited you to LanTURN`, text, html });
+  return { sent: true };
+});
 
 registerTask('email.send', async ({ userId, type, title, body, link }) => {
   if (!prefsFor(userId).enabled) return { skipped: 'opted out' };

@@ -55,7 +55,7 @@ compatRouter.post('/auth/onboarding', authenticate, wrap(async (req, res) => {
 compatRouter.patch('/notifications/:id/read', authenticate, wrap(async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) throw bad('Invalid id');
-  db.prepare("UPDATE notifications SET read_at = datetime('now') WHERE id = ? AND user_id = ?").run(id, req.user.id);
+  db.prepare("UPDATE notifications SET read_at = datetime('now') WHERE id = ? AND user_id = ?").run(id, req.actorId ?? req.user.id);
   res.json({ ok: true });
 }));
 

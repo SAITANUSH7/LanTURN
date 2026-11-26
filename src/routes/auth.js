@@ -34,8 +34,13 @@ export function publicUser(u) {
     const p = db.prepare('SELECT full_name FROM student_profiles WHERE user_id = ?').get(u.id);
     out.name = p?.full_name || '';
   } else if (u.role === 'EMPLOYER') {
-    const p = db.prepare('SELECT company_name FROM employer_profiles WHERE user_id = ?').get(u.id);
+    const p = db.prepare('SELECT company_name FROM employer_profiles WHERE user_id = ?').get(u.team_owner_id || u.id);
     out.name = p?.company_name || '';
+    if (u.team_owner_id) {
+      out.team = true;
+      out.verification = db.prepare('SELECT verification FROM users WHERE id = ?').get(u.team_owner_id)?.verification || 'PENDING';
+      out.memberName = db.prepare('SELECT name FROM team_invites WHERE user_id = ?').get(u.id)?.name || '';
+    }
   } else out.name = 'Admin';
   return out;
 }
@@ -168,7 +173,7 @@ authRouter.post('/change-password', authenticate, wrap(async (req, res) => {
 
 export const meRouter = Router();
 meRouter.get('/', authenticate, wrap(async (req, res) => {
-  res.json({ user: publicUser(req.user) });
+  res.json({ user: publicUser(db.prepare('SELECT * FROM users WHERE id = ?').get(req.actorId)) });
 }));
 
 /** Everything LanTURN stores about the signed-in user, in one downloadable JSON file. */

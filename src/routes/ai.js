@@ -24,19 +24,19 @@ aiRouter.get('/ai/status', ...anyone, wrap(async (_req, res) => {
 // ---------- Notifications ----------
 const notifOut = (n) => ({ id: n.id, type: n.type, title: n.title, body: n.body, link: n.link, read: !!n.read_at, createdAt: n.created_at });
 aiRouter.get('/notifications', ...anyone, wrap(async (req, res) => {
-  const rows = db.prepare('SELECT * FROM notifications WHERE user_id = ? ORDER BY id DESC LIMIT 50').all(req.user.id);
-  const unread = db.prepare('SELECT COUNT(*) AS n FROM notifications WHERE user_id = ? AND read_at IS NULL').get(req.user.id).n;
+  const rows = db.prepare('SELECT * FROM notifications WHERE user_id = ? ORDER BY id DESC LIMIT 50').all((req.actorId ?? req.user.id));
+  const unread = db.prepare('SELECT COUNT(*) AS n FROM notifications WHERE user_id = ? AND read_at IS NULL').get((req.actorId ?? req.user.id)).n;
   res.json({ unread, items: rows.map(notifOut) });
 }));
 aiRouter.get('/notifications/unread-count', ...anyone, wrap(async (req, res) => {
-  res.json({ unread: db.prepare('SELECT COUNT(*) AS n FROM notifications WHERE user_id = ? AND read_at IS NULL').get(req.user.id).n });
+  res.json({ unread: db.prepare('SELECT COUNT(*) AS n FROM notifications WHERE user_id = ? AND read_at IS NULL').get((req.actorId ?? req.user.id)).n });
 }));
 aiRouter.post('/notifications/read-all', ...anyone, wrap(async (req, res) => {
-  db.prepare("UPDATE notifications SET read_at = datetime('now') WHERE user_id = ? AND read_at IS NULL").run(req.user.id);
+  db.prepare("UPDATE notifications SET read_at = datetime('now') WHERE user_id = ? AND read_at IS NULL").run((req.actorId ?? req.user.id));
   res.json({ unread: 0 });
 }));
 aiRouter.post('/notifications/:id/read', ...anyone, wrap(async (req, res) => {
-  db.prepare("UPDATE notifications SET read_at = datetime('now') WHERE id = ? AND user_id = ?").run(idParam(req.params.id), req.user.id);
+  db.prepare("UPDATE notifications SET read_at = datetime('now') WHERE id = ? AND user_id = ?").run(idParam(req.params.id), (req.actorId ?? req.user.id));
   res.json({ ok: true });
 }));
 

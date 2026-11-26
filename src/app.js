@@ -14,6 +14,7 @@ import { authRouter, meRouter } from './routes/auth.js';
 import { studentRouter } from './routes/student.js';
 import { interviewsRouter } from './routes/interviews.js';
 import { engagementRouter } from './routes/engagement.js';
+import { teamRouter } from './routes/team.js';
 import { aiRouter } from './routes/ai.js';
 import { jobsRouter } from './routes/jobs.js';
 import { employerRouter, adminRouter } from './routes/employer.js';
@@ -82,7 +83,7 @@ export function createApp() {
     const one = (sql) => (db.prepare(sql).get()?.n || 0);
 
     const studentsCount = one("SELECT COUNT(*) AS n FROM users WHERE role = 'STUDENT'");
-    const employersCount = one("SELECT COUNT(*) AS n FROM users WHERE role = 'EMPLOYER'");
+    const employersCount = one("SELECT COUNT(*) AS n FROM users WHERE role = 'EMPLOYER' AND team_owner_id IS NULL");
     const openJobsCount = one("SELECT COUNT(*) AS n FROM jobs WHERE status = 'OPEN'");
     const applicationsCount = one("SELECT COUNT(*) AS n FROM applications");
     const verifiedSkillsCount = one("SELECT COUNT(*) AS n FROM skill_medals");
@@ -106,6 +107,7 @@ export function createApp() {
     app.use('/api', limiter(240));
     app.use('/api/auth/login', limiter(10));
     app.use('/api/auth/register', limiter(10));
+    app.use('/api/auth/join', limiter(10));
     app.use('/api/auth/forgot-password', limiter(5));
     app.use('/api/auth/reset-password', limiter(10));
     app.use('/api/resumes', limiter(30));
@@ -116,7 +118,7 @@ export function createApp() {
 
   app.use('/api/auth', authRouter);
   app.use('/api/me', meRouter);
-  app.use('/api', studentRouter, jobsRouter, interviewsRouter, engagementRouter, employerRouter, aiRouter, adminRouter, opsRouter, studentToolsRouter, networkingRouter, careerRoadmapsRouter, careerMapRouter, compatRouter, drivesRouter, realtimeRouter);
+  app.use('/api', studentRouter, jobsRouter, interviewsRouter, teamRouter, engagementRouter, employerRouter, aiRouter, adminRouter, opsRouter, studentToolsRouter, networkingRouter, careerRoadmapsRouter, careerMapRouter, compatRouter, drivesRouter, realtimeRouter);
   app.use('/api', (_req, _res, next) => next(new HttpError(404, 'NOT_FOUND', 'Unknown API route')));
 
   const frontendDist = path.join(ROOT, 'frontend', 'dist');

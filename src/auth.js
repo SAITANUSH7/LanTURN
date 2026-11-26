@@ -91,11 +91,17 @@ export function authenticate(req, _res, next) {
   if (!h.startsWith('Bearer ')) return next(new HttpError(401, 'UNAUTHENTICATED', 'Sign in required'));
   try {
     const p = jwt.verify(h.slice(7), config.accessSecret, { algorithms: ['HS256'] });
-    const user = db.prepare('SELECT id, email, role, verification, consent_at, token_version FROM users WHERE id = ?').get(p.sub);
+    const user = db.prepare('SELECT id, email, role, verification, consent_at, token_version, team_owner_id FROM users WHERE id = ?').get(p.sub);
     if (blocked(user)) throw new Error('gone');
     // A token minted before the last disable/password change/role change is no longer valid.
     if ((p.tv || 0) !== (user.token_version || 0)) throw new Error('stale');
-    req.user = user;
+    req.actorId = user.id; // the person actually signed in
+    if (user.role === 'EMPLOYER' && user.team_owner_id) {
+      // A team member works inside the owner's workspace: every employer route sees the owner's id and approval status.
+      const owner = db.prepare("SELECT id, verification, token_version FROM users WHERE id = ? AND role = 'EMPLOYER'").get(user.team_owner_id);
+      if (!owner || blocked(owner)) throw new Error('owner gone');
+      req.user = { id: owner.id, email: user.email, role: 'EMPLOYER', verification: owner.verification, consent_at: user.consent_at, memberId: user.id };
+    } else req.user = user;
     next();
   } catch {
     next(new HttpError(401, 'UNAUTHENTICATED', 'Session expired'));
@@ -104,6 +110,9 @@ export function authenticate(req, _res, next) {
 
 export const requireRole = (...roles) => (req, _res, next) =>
   roles.includes(req.user.role) ? next() : next(forbidden('Not allowed for your role'));
+
+/** Team management and company settings belong to the account owner, not to invited members. */
+export const requireOwner = (req, _res, next) => (req.user.memberId ? next(forbidden('Only the account owner can do this', 'OWNER_ONLY')) : next());
 
 export const requireVerifiedEmployer = (req, _res, next) =>
   req.user.verification === 'VERIFIED' ? next() : next(forbidden('Your employer account is awaiting admin approval', 'EMPLOYER_NOT_VERIFIED'));

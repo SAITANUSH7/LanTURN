@@ -71,11 +71,11 @@ opsRouter.post('/admin/ml/retrain', ...admin, wrap(async (req, res) => {
 }));
 
 // ---- Email preferences ----
-opsRouter.get('/email-prefs', authenticate, wrap(async (req, res) => { res.json(prefsFor(req.user.id)); }));
+opsRouter.get('/email-prefs', authenticate, wrap(async (req, res) => { res.json(prefsFor(req.actorId ?? req.user.id)); }));
 opsRouter.put('/email-prefs', authenticate, wrap(async (req, res) => {
   if (typeof req.body?.enabled !== 'boolean') throw bad('enabled must be true or false');
-  setPrefs(req.user.id, req.body.enabled);
-  res.json(prefsFor(req.user.id));
+  setPrefs(req.actorId ?? req.user.id, req.body.enabled);
+  res.json(prefsFor(req.actorId ?? req.user.id));
 }));
 // One-click unsubscribe from the link in every email (no login needed; the token is an HMAC of the user id).
 opsRouter.get('/email/unsubscribe', (req, res) => {

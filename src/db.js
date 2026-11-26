@@ -403,6 +403,22 @@ CREATE TABLE IF NOT EXISTS application_messages (
 );
 CREATE INDEX IF NOT EXISTS idx_appmsg_app ON application_messages(application_id, id);
 `);
+try { db.exec('ALTER TABLE users ADD COLUMN team_owner_id INTEGER REFERENCES users(id) ON DELETE CASCADE'); } catch { /* column already exists */ }
+db.exec(`
+CREATE INDEX IF NOT EXISTS idx_users_team_owner ON users(team_owner_id);
+CREATE TABLE IF NOT EXISTS team_invites (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  owner_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  email TEXT NOT NULL COLLATE NOCASE,
+  name TEXT NOT NULL DEFAULT '',
+  token_hash TEXT NOT NULL UNIQUE,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  expires_at TEXT NOT NULL,
+  accepted_at TEXT,
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS idx_team_invites_owner ON team_invites(owner_id);
+`);
 db.exec("CREATE TABLE IF NOT EXISTS ml_feedback (user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, domain TEXT NOT NULL, consent_at TEXT NOT NULL)");
 db.exec('CREATE TABLE IF NOT EXISTS app_flags (key TEXT PRIMARY KEY, value TEXT NOT NULL)');
 

@@ -230,3 +230,64 @@ test('messages: employer writes first, student can then reply, strangers are blo
   await api('POST', `/applications/${id}/withdraw`, { token: st });
   assert.equal((await api('POST', `/applications/${id}/messages`, { token: emp.accessToken, body: { body: 'late' } })).status, 409);
 });
+
+async function inviteMember(owner, email = `member${Date.now()}${Math.floor(Math.random() * 1e5)}@example.test`) {
+  const inv = await api('POST', '/employer/team/invites', { token: owner.accessToken, body: { email, name: 'Priya HR' } });
+  assert.equal(inv.status, 201);
+  const token = new URL(inv.body.link).hash.split('token=')[1];
+  const join = await api('POST', '/auth/join', { body: { token, password: 'Str0ng!Passw0rd#1', name: 'Priya HR' } });
+  return { inv, token, join, email };
+}
+
+test('hiring team: member joins by invite and works inside the owner workspace', async () => {
+  const { emp, jobId, apps } = await setup(1);
+  const { inv, token, join } = await inviteMember(emp);
+  assert.equal(join.status, 201);
+  assert.equal(join.body.user.team, true);
+  const m = join.body.accessToken;
+  assert.equal((await api('GET', `/auth/invite/${token}`)).status, 404); // single use
+  // sees the owner's jobs and candidates, and can act on them
+  const jobs = (await api('GET', '/employer/jobs', { token: m })).body.items;
+  assert.ok(jobs.some((j) => j.id === jobId));
+  assert.equal((await api('PATCH', `/employer/applications/${apps[0].id}/status`, { token: m, body: { status: 'SHORTLISTED' } })).status, 200);
+  assert.equal((await api('PUT', `/employer/applications/${apps[0].id}/note`, { token: m, body: { note: 'from member', rating: 3 } })).status, 200);
+  // but cannot manage the team or the company profile
+  assert.equal((await api('POST', '/employer/team/invites', { token: m, body: { email: 'x@example.test' } })).status, 403);
+  assert.equal((await api('PUT', '/employers/me/company', { token: m, body: { companyName: 'Hijacked' } })).status, 403);
+  const t = (await api('GET', '/employer/team', { token: emp.accessToken })).body;
+  assert.equal(t.members.length, 1);
+  assert.equal(t.members[0].name, 'Priya HR');
+  // the student sees the member's action as the employer's
+  const mine = await api('GET', '/applications', { token: apps[0].st.accessToken });
+  assert.equal(mine.body.items[0].status, 'SHORTLISTED');
+  // a message from the member reaches the student
+  assert.equal((await api('POST', `/applications/${apps[0].id}/messages`, { token: m, body: { body: 'hello from the team' } })).status, 201);
+  // alerts for the owner reach the member as well (from the day they joined), each with their own read state
+  await api('POST', `/applications/${apps[0].id}/messages`, { token: apps[0].st.accessToken, body: { body: 'thanks!' } });
+  const n = (await api('GET', '/notifications', { token: m })).body;
+  assert.ok(n.items.some((x) => x.type === 'message_received'));
+  await api('POST', '/notifications/read-all', { token: m });
+  assert.ok((await api('GET', '/notifications', { token: emp.accessToken })).body.unread > 0);
+  // a member removed by the owner loses access immediately
+  await api('DELETE', `/employer/team/members/${t.members[0].id}`, { token: emp.accessToken });
+  assert.equal((await api('GET', '/employer/jobs', { token: m })).status, 401);
+});
+
+test('hiring team: invites are validated, limited and cannot be reused or guessed', async () => {
+  const { emp } = await setup(0);
+  assert.equal((await api('POST', '/employer/team/invites', { token: emp.accessToken, body: { email: 'not-an-email' } })).status, 400);
+  assert.equal((await api('POST', '/employer/team/invites', { token: emp.accessToken, body: { email: emp.user.email } })).status, 409);
+  assert.equal((await api('GET', '/auth/invite/' + 'a'.repeat(48))).status, 404);
+  assert.equal((await api('POST', '/auth/join', { body: { token: 'a'.repeat(48), password: 'Str0ng!Passw0rd#1', name: 'X' } })).status, 404);
+  const { token } = await inviteMember(emp);
+  assert.equal((await api('POST', '/auth/join', { body: { token, password: 'Str0ng!Passw0rd#1', name: 'Again' } })).status, 404);
+  const weak = await api('POST', '/employer/team/invites', { token: emp.accessToken, body: { email: 'weak@example.test' } });
+  const wt = new URL(weak.body.link).hash.split('token=')[1];
+  assert.equal((await api('POST', '/auth/join', { body: { token: wt, password: 'password', name: 'W' } })).status, 400);
+  for (let i = 0; i < 9; i++) await api('POST', '/employer/team/invites', { token: emp.accessToken, body: { email: `seat${i}@example.test` } });
+  assert.equal((await api('POST', '/employer/team/invites', { token: emp.accessToken, body: { email: 'overflow@example.test' } })).status, 409);
+  const other = await register('EMPLOYER');
+  assert.equal((await api('DELETE', `/employer/team/invites/${weak.body.id}`, { token: other.accessToken })).status, 404);
+  const stu = await register('STUDENT');
+  assert.equal((await api('GET', '/employer/team', { token: stu.accessToken })).status, 403);
+});

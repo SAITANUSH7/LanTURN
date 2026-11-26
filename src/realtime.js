@@ -59,9 +59,9 @@ realtimeRouter.get('/realtime/stream', streamAuth, (req, res) => {
   res.setHeader('X-Accel-Buffering', 'no'); // Disable proxy buffering
 
   // Send initial handshake
-  res.write(`event: connected\ndata: ${JSON.stringify({ userId: req.user.id, time: new Date().toISOString() })}\n\n`);
+  res.write(`event: connected\ndata: ${JSON.stringify({ userId: req.actorId ?? req.user.id, time: new Date().toISOString() })}\n\n`);
 
-  const userId = Number(req.user.id);
+  const userId = Number(req.actorId ?? req.user.id);
   if (!clients.has(userId)) {
     clients.set(userId, new Set());
   }

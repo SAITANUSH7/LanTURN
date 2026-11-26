@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { db, tx, parseJson } from '../db.js';
 import { config } from '../config.js';
 import { conflict, notFound, parse, wrap, bad } from '../util.js';
-import { authenticate, requireRole, requireVerifiedEmployer, revokeAllSessions, bumpTokenVersion } from '../auth.js';
+import { authenticate, requireRole, requireVerifiedEmployer, requireOwner, revokeAllSessions, bumpTokenVersion } from '../auth.js';
 import { audit, recentAudit } from '../audit.js';
 import { unlockAccount, failedAttempts } from '../security.js';
 import { quotaLimit } from '../ai/index.js';
@@ -36,7 +36,7 @@ employerRouter.get('/employers/me/company', ...employer, wrap(async (req, res) =
   res.json(companyOut(db.prepare('SELECT * FROM employer_profiles WHERE user_id = ?').get(req.user.id), req.user));
 }));
 
-employerRouter.put('/employers/me/company', ...employer, wrap(async (req, res) => {
+employerRouter.put('/employers/me/company', ...employer, requireOwner, wrap(async (req, res) => {
   const b = parse(CompanySchema, req.body);
   if (b.website && !/^https?:\/\//i.test(b.website)) throw bad('website: must start with http:// or https://');
   db.prepare('UPDATE employer_profiles SET company_name=?, website=?, industry=?, size=?, description=?, location=? WHERE user_id=?')
@@ -223,7 +223,7 @@ employerRouter.patch('/employer/applications/:id/status', ...employer, wrap(asyn
   }
   tx(() => {
     db.prepare("UPDATE applications SET status = ?, updated_at = datetime('now') WHERE id = ?").run(targetStatus, a.id);
-    recordEvent(a.id, a.status, targetStatus, req.user.id);
+    recordEvent(a.id, a.status, targetStatus, req.actorId ?? req.user.id);
     if (targetStatus === 'REJECTED') cancelOpenInterviews(a.id);
   });
   const jt = db.prepare('SELECT j.title, e.company_name FROM jobs j LEFT JOIN employer_profiles e ON e.user_id = j.employer_id WHERE j.id = ?').get(a.job_id);
@@ -356,7 +356,7 @@ adminRouter.get('/admin/analytics', ...admin, wrap(async (_req, res) => {
   const one = (sql) => (db.prepare(sql).get()?.n || 0);
 
   const totalStudents = one("SELECT COUNT(*) AS n FROM users WHERE role = 'STUDENT'");
-  const totalEmployers = one("SELECT COUNT(*) AS n FROM users WHERE role = 'EMPLOYER'");
+  const totalEmployers = one("SELECT COUNT(*) AS n FROM users WHERE role = 'EMPLOYER' AND team_owner_id IS NULL");
   const totalJobs = one("SELECT COUNT(*) AS n FROM jobs");
   const openJobs = one("SELECT COUNT(*) AS n FROM jobs WHERE status = 'OPEN'");
   const verifiedJobs = one("SELECT COUNT(*) AS n FROM jobs WHERE verified_by_admin = 1");
@@ -413,7 +413,7 @@ adminRouter.get('/admin/analytics/summary', ...admin, wrap(async (_req, res) => 
   const one = (sql) => (db.prepare(sql).get()?.n || 0);
 
   const totalStudents = one("SELECT COUNT(*) AS n FROM users WHERE role = 'STUDENT'");
-  const totalEmployers = one("SELECT COUNT(*) AS n FROM users WHERE role = 'EMPLOYER'");
+  const totalEmployers = one("SELECT COUNT(*) AS n FROM users WHERE role = 'EMPLOYER' AND team_owner_id IS NULL");
   const totalJobs = one("SELECT COUNT(*) AS n FROM jobs");
   const openJobs = one("SELECT COUNT(*) AS n FROM jobs WHERE status = 'OPEN'");
   const verifiedJobs = one("SELECT COUNT(*) AS n FROM jobs WHERE verified_by_admin = 1");
@@ -689,7 +689,7 @@ employerRouter.post('/employer/applications/bulk-status', ...employer, wrap(asyn
       if (!TRANSITIONS[a.status].includes(target)) { results.push({ id, ok: false, error: `Cannot move from ${a.status} to ${target}` }); continue; }
       tx(() => {
         db.prepare("UPDATE applications SET status = ?, updated_at = datetime('now') WHERE id = ?").run(target, a.id);
-        recordEvent(a.id, a.status, target, req.user.id);
+        recordEvent(a.id, a.status, target, req.actorId ?? req.user.id);
         if (target === 'REJECTED') cancelOpenInterviews(a.id);
       });
       const jt = db.prepare('SELECT j.title, e.company_name FROM jobs j LEFT JOIN employer_profiles e ON e.user_id = j.employer_id WHERE j.id = ?').get(a.job_id);
