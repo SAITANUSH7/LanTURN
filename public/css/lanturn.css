@@ -2084,3 +2084,17 @@ body:has(#main .auth2) #main { flex: 1 1 auto; display: flex; flex-direction: co
   :root .auth2__list { display: flex; flex-wrap: wrap; gap: 4px 14px; }
   :root .auth2__list li { max-width: 100%; }
 }
+
+/* ---------- Stat tiles fill their row ----------
+   `repeat(auto-fit, minmax(min(100%, 158px), 1fr))` gave five columns at 900 and at 1280 - four tiles beside a hole -
+   and four columns at 808, where the dashboard's six tiles then sat 4 + 2 with two holes on the second row. The number
+   of tiles decides the grid now: four go 2x2 until a row of four is wide enough to hold a one-line label (212px per
+   tile, which arrives around 1180px), six go 3x2 as soon as a phone column stops being the right shape. Without `:has`
+   the six-tile dashboard falls back to 2x3, which is tidy, just taller. */
+:root .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 561px) {
+  :root .stats:has(> :nth-child(5)) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (min-width: 1180px) {
+  :root .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
