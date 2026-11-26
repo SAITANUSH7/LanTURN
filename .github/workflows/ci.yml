@@ -56,13 +56,14 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: failure()
         with: { name: e2e-log, path: e2e.log, retention-days: 5 }
-      # Design review: every screen, both themes, one PNG each. Off by default (repo variable UI_SHOTS=1 turns it on)
-      # because the browser suite already covers behaviour; this is for looking at the thing.
+      # Design review: every screen, both themes, one PNG each. Off unless the repo carries a `.ui-shots` marker file
+      # (create one and push to turn it on; delete it to turn it off), because the browser suite already covers
+      # behaviour - this is for looking at the thing.
       - name: Capture screenshots
-        if: vars.UI_SHOTS == '1'
+        if: hashFiles('.ui-shots') != ''
         run: node scripts/screenshots.mjs ui-shots
       - uses: actions/upload-artifact@v4
-        if: vars.UI_SHOTS == '1'
+        if: hashFiles('.ui-shots') != ''
         with: { name: ui-shots, path: ui-shots, retention-days: 3 }
 
   python:
