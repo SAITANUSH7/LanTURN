@@ -47,7 +47,7 @@ export async function aiSettings() {
         try { const v = model.value.trim(); const i = v.indexOf(':'); const named = i > 0 && /^(opencode|deepseek|kimi|gemini|groq|openrouter|openai|anthropic|custom)$/.test(v.slice(0, i));
         const t = await post(`/admin/ai/${named ? v.slice(0, i) : 'nvidia'}/test`, { model: named ? v.slice(i + 1) : v }); clear(out).append(t.ok ? `Works (${(t.ms / 1000).toFixed(1)} s)` : `Not working: ${t.error}`); loadLogs(); } catch (e) { clear(out); toast(e.message, 'error'); }
       }, 'Testing…');
-      return { key: g.key, model, row: h('div', { class: 'stack stack--sm' }, h('strong', null, g.label), h('small', { class: 'muted' }, g.hint), h('div', { class: 'row' }, model, test), out) };
+      return { key: g.key, model, row: h('div', { class: 'stack stack--sm ai-route' }, h('strong', { class: 'ai-route__name' }, g.label), h('small', { class: 'muted' }, g.hint), h('div', { class: 'row ai-route__row' }, model, test), out) };
     });
     const save = h('button', { class: 'btn btn--sm', type: 'button' }, 'Save routing');
     save.onclick = () => busy(save, async () => { try { await put('/admin/ai/routes', Object.fromEntries(rows.map((x) => [x.key, x.model.value.trim()]))); toast('Routing saved', 'success'); } catch (e) { toast(e.message, 'error'); } });

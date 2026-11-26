@@ -36,6 +36,10 @@ export async function inbox({ query = {}, onLeave, user }) {
     clear(rows);
     box.classList.toggle('is-empty', !items.length);
     pane.hidden = !items.length;
+    // With no threads, "0 conversations" plus a line of advice above an empty card is three ways of saying nothing.
+    // The empty state already carries the role-specific sentence, so the two meta lines step aside.
+    stamp.hidden = !items.length;
+    note.hidden = !items.length;
     if (!items.length) {
       rows.append(empty('mail', 'No conversations yet', isEmployer ? 'Message a candidate from their application and the thread appears here.' : 'When an employer writes to you about an application, it lands here.'));
       return;

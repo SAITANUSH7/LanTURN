@@ -3952,3 +3952,14 @@ body:has(#main .auth2) .topbar .kbd-hint { display: none; }
 :root .company-preview__link { font-size: 0.82rem; color: var(--brand-hi); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 :root .company-preview__link:hover { text-decoration: underline; }
 @media (max-width: 900px) { :root .company-preview { position: static; } }
+
+/* ---------- 13. Admin AI routing: three groups, one rhythm -------------------------------------------------------
+   Each task group was a bold 16px heading (the same weight as the card title), a hint, an input and a Test button that
+   wrapped onto its own line. Groups get a hairline, a smaller name, and keep their Test button on the row. */
+:root .ai-route { padding-top: 14px; }
+:root .ai-route + .ai-route { border-top: 1px solid var(--line); margin-top: 4px; }
+:root .card > h3 + .ai-route { padding-top: 4px; }
+:root .ai-route__name { font-size: 0.92rem; font-weight: 650; letter-spacing: -0.005em; }
+:root .ai-route__row { flex-wrap: nowrap; gap: 8px; align-items: center; }
+:root .ai-route__row .input { flex: 1 1 auto; min-width: 0; }
+:root .ai-route__row .btn { flex: none; }
