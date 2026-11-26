@@ -96,6 +96,12 @@ try {
 
     // Phone: the drawer and the tab bar only exist at this width.
     const phone = await newPage(browser, { width: 390, height: 844, theme });
+    // The landing bar before signing in carries more controls than any other bar - brand, theme, language, two calls
+    // to action - which is why it was the one bar that did not fit. No pass captured it at this width until now.
+    await phone.goto(`${app.base}/#/`);
+    await settle(phone);
+    await shoot(phone, `${theme}--phone-landing.jpg`);
+    count += 1;
     await phone.goto(`${app.base}/#/login`);
     await settle(phone);
     await shoot(phone, `${theme}--phone-login.jpg`);
@@ -108,6 +114,16 @@ try {
       count += 1;
     }
     await phone.context().close();
+
+    // An employer's single application: a form inside a split column, which is where a grid track that will not shrink
+    // pushes the content off the side of a phone.
+    const empPhone = await newPage(browser, { width: 390, height: 844, theme });
+    await login(empPhone, app.base, 'employer');
+    await empPhone.goto(`${app.base}/#/employer/applications/1`);
+    await settle(empPhone);
+    await shoot(empPhone, `${theme}--phone-employer-candidate.jpg`);
+    count += 1;
+    await empPhone.context().close();
   }
 } finally {
   console.log(`captured ${count} screenshots into ${out}`);

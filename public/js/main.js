@@ -1,5 +1,5 @@
 import { restoreSession, session, logout, onSessionChange, post, get } from './api.js';
-import { h, clear, icon, lantern, errorBox, loadingBlock, pageSkeleton, toast } from './ui.js';
+import { h, clear, icon, lantern, errorBox, loadingBlock, pageSkeleton, toast, langPicker } from './ui.js';
 import * as pub from './views/public.js';
 import * as stu from './views/student.js';
 import * as emp from './views/employer.js';
@@ -11,7 +11,7 @@ import { roadmapPage } from './views/roadmap.js';
 import * as ai from './views/ai.js';
 import { inbox } from './views/messages.js';
 import './fx.js';
-import { t, LANGS, getLang, setLang } from './i18n.js';
+import { t } from './i18n.js';
 
 const app = document.getElementById('app');
 
@@ -86,11 +86,6 @@ let leave = [];
 const currentPath = () => (location.hash.slice(1).split('?')[0] || '/');
 const parseQuery = () => Object.fromEntries(new URLSearchParams(location.hash.split('?')[1] || ''));
 
-function langPicker() {
-  const sel = h('select', { class: 'lang', 'aria-label': 'Language', onchange: (e) => { setLang(e.target.value); render(); } }, LANGS.map(([v, l]) => h('option', { value: v, selected: v === getLang() ? true : null }, l)));
-  return sel;
-}
-
 // Colour section for a path: "/student/jobs/12" -> "jobs", "/student" -> "home".
 const sectionOf = (path) => { const seg = path.split('/').filter(Boolean); return seg.length < 2 ? 'home' : seg[1] === 'jobs' && seg[0] === 'employer' ? 'jobs' : seg[1]; };
 
@@ -103,7 +98,7 @@ function shell() {
       h('header', { class: 'topbar topbar--pub' },
         h('div', { class: 'topbar__in' },
           h('a', { class: 'brand', href: '#/', 'aria-label': 'LanTURN home' }, lantern(), h('span', null, 'Lan', h('b', null, 'TURN'))),
-          h('div', { class: 'topbar__user' }, themeToggle(), langPicker(),
+          h('div', { class: 'topbar__user' }, themeToggle(), langPicker({ onchange: render }),
             h('a', { class: 'btn btn--secondary btn--sm', href: '#/login' }, t('Sign in')),
             h('a', { class: 'btn btn--accent btn--sm', href: '#/register' }, t('Get started'))))),
       h('main', { id: 'main', tabindex: '-1' }));
@@ -132,7 +127,7 @@ function shell() {
       h('div', { class: 'topbar__crumb' },
         h('button', { class: 'iconbtn menu-btn', type: 'button', 'aria-label': 'Open menu', 'aria-controls': 'side', onclick: () => app.classList.toggle('is-open') }, icon('list')),
         h('i', { 'aria-hidden': 'true' }), h('b', null, t(label || 'LanTURN'))),
-      h('div', { class: 'topbar__user' }, themeToggle(), langPicker(), user.role !== 'ADMIN' ? ai.bell() : null)));
+      h('div', { class: 'topbar__user' }, themeToggle(), langPicker({ onchange: render }), user.role !== 'ADMIN' ? ai.bell() : null)));
   const tabs = user.role === 'STUDENT' ? h('nav', { class: 'tabbar', 'aria-label': 'Quick navigation' },
     [['/student', 'Home', 'home'], ['/student/jobs', 'Jobs', 'briefcase'], ['/student/resume', 'Resume', 'file'], ['/student/roadmap', 'Roadmap', 'route']].map(([to, name, ic]) => h('a', { href: `#${to}`, 'data-s': sectionOf(to), 'aria-current': active(to) }, icon(ic), h('span', null, t(name)))),
     h('button', { type: 'button', 'aria-label': 'More', 'aria-controls': 'side', onclick: () => app.classList.toggle('is-open') }, icon('list'), h('span', null, t('More')))) : null;

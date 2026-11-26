@@ -355,7 +355,7 @@ table.table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
 .grid--3 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); }
 .split { display: grid; gap: var(--sp-5); grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); align-items: start; }
 @media (max-width: 900px) {
-.split { grid-template-columns: 1fr; }
+.split { grid-template-columns: minmax(0, 1fr); }
 }
 /* ===== Top navigation (floating glass bar) ===== */
 .topbar { position: sticky; top: 0; z-index: 100; background: rgba(8, 10, 18, 0.55); -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%); border-bottom: 1px solid var(--glass-line); box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) inset; }
@@ -1431,7 +1431,7 @@ body[data-section='dna'] li:nth-child(6n+6) .meter__fill { background: var(--c-i
 /* ============ Charts ============ */
 .split--even { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 @media (max-width: 900px) {
-.split--even { grid-template-columns: 1fr; }
+.split--even { grid-template-columns: minmax(0, 1fr); }
 }
 .chart__total { font-size: 2rem; font-weight: 600; letter-spacing: -0.03em; line-height: 1; margin-bottom: 14px; font-variant-numeric: tabular-nums; }
 .chart__total small { font-size: 0.9rem; font-weight: 500; color: var(--text-2); letter-spacing: 0; }
@@ -2009,6 +2009,25 @@ body:has(#main .auth2) .topbar--pub .topbar__user > a.btn { display: none; }
 /* A quiet divider between "who you are" and "what we promise", instead of a second heading. */
 :root .auth2__box form + .auth2__alt,
 :root .auth2__box .auth2__alt { padding-top: 4px; border-top: 1px solid var(--line); }
+
+/* The language select is the widest control in the public bar: brand, theme, language, "Sign in" and "Get started" need
+   489px, which a 390px phone does not have, so the last button was cut off at the edge (hidden by `overflow-x: clip`
+   rather than fixed). On phones the select moves to the landing footer, where the same choice is one scroll away. */
+.footer__cols .footer__lang { display: none; }
+@media (max-width: 560px) {
+  body:has(#main .lp) .topbar--pub .topbar__user .lang { display: none; }
+  .footer__cols .footer__lang { display: grid; gap: 8px; }
+  .footer__lang .lang { justify-self: start; min-width: 128px; }
+}
+/* What is left still needs 375px; the smallest phones are 360 and 320, so the bar tightens before it hides anything. */
+@media (max-width: 400px) {
+  body:has(#main .lp) .topbar--pub .topbar__in { padding-inline: 12px; }
+  body:has(#main .lp) .topbar--pub .topbar__user { gap: 6px; }
+  body:has(#main .lp) .topbar--pub .topbar__user .btn--sm { padding-inline: 9px; }
+}
+@media (max-width: 350px) {
+  body:has(#main .lp) .topbar--pub .topbar__user > .btn--secondary { display: none; }
+}
 
 /* The auth page owns exactly one viewport: the top bar takes what it needs, the page takes the rest. Without this the
    page was a full 100vh *below* a 56px bar, so the bottom of it (the facts strip on narrow screens, the lower edge of
