@@ -37,16 +37,24 @@ function attentionCard(a, jobs) {
 // ---------------------------------------------------------------- Dashboard
 export async function dashboard() {
   const [d, jobs, rt] = await Promise.all([get('/employer/dashboard'), get('/employer/jobs'), get('/employer/response-time').catch(() => null)]);
-  const stat = (label, value, cls = '') => h('div', { class: `stat ${cls}` }, h('div', { class: 'stat__label' }, label), h('div', { class: 'stat__value' }, value));
+  // A number without a unit or a sentence under it is a guess. Every tile says what it counts.
+  const stat = (label, value, cls = '', hint = '') => h('div', { class: `stat ${cls}` },
+    h('div', { class: 'stat__label' }, label), h('div', { class: 'stat__value' }, value), hint ? h('span', { class: 'stat__hint' }, hint) : null);
   // Candidates can see this number on their application, so it belongs on the dashboard too - not hidden in a report.
   const replyStat = rt?.replies
-    ? stat('Median reply', rt.medianHours < 1 ? '<1 h' : rt.medianHours < 24 ? `${Math.round(rt.medianHours)} h` : `${Math.round(rt.medianHours / 24)} d`, rt.awaiting ? 'stat--warn' : '')
-    : stat('Median reply', '—');
+    ? stat('Median reply', rt.medianHours < 1 ? '<1 h' : rt.medianHours < 24 ? `${Math.round(rt.medianHours)} h` : `${Math.round(rt.medianHours / 24)} d`, rt.awaiting ? 'stat--warn' : '', rt.awaiting ? `${rt.awaiting} waiting on you` : 'to your first message')
+    : stat('Median reply', '—', '', 'no replies sent yet');
   return wrapPage(
     pageHead('Dashboard', 'Your hiring pipeline at a glance.', d.verification === 'VERIFIED' ? h('a', { class: 'btn btn--accent', href: '#/employer/jobs/new' }, icon('plus'), 'Post a job') : verifyBadge(d.verification)),
     pendingBanner(d.verification),
     attentionCard(d.attention, jobs.items),
-    h('div', { class: 'stats' }, stat('Open jobs', d.openJobs, 'stat--accent'), stat('Applicants', d.applicants), stat('Shortlisted', d.shortlisted), stat('Interviews', d.interviews), stat('Offers', d.offers), replyStat),
+    h('div', { class: 'stats' },
+      stat('Open jobs', d.openJobs, 'stat--accent', 'accepting applications'),
+      stat('Applicants', d.applicants, '', 'across all jobs'),
+      stat('Shortlisted', d.shortlisted, '', 'moved past screening'),
+      stat('Interviews', d.interviews, '', 'scheduled or held'),
+      stat('Offers', d.offers, '', 'sent to candidates'),
+      replyStat),
     h('div', { class: 'split split--even' }, applicantsChart(d.daily || []), funnelChart(d.funnel || {})),
     h('section', { class: 'stack' }, h('div', { class: 'row row--between' }, h('h2', { class: 'section-title' }, 'Your jobs'), h('a', { href: '#/employer/jobs' }, 'Manage all')),
       jobs.items.length ? jobs.items.slice(0, 5).map(jobRow) : empty('briefcase', 'No jobs posted yet', d.verification === 'VERIFIED' ? 'Post your first role and start receiving matched candidates.' : 'Once approved, your postings appear here.', d.verification === 'VERIFIED' ? h('a', { class: 'btn', href: '#/employer/jobs/new' }, 'Post a job') : null)));

@@ -3253,3 +3253,199 @@ body:has(#main .auth2) .topbar__user > a.btn { display: none; }
 .statstrip strong.is-bad { color: var(--danger, #e5484d); }
 @media (max-width: 560px) { .statstrip { grid-template-columns: 1fr 1fr; } .statstrip__c:nth-child(odd) { border-left: 0; } }
 :root[data-theme='light'] .statstrip { background: rgba(9, 9, 15, 0.025); }
+
+/* =================================================================================================================
+   Design pass III — the product layer.
+
+   Three earlier layers (studio, prism, and pass II) each added surfaces without reconciling the ones below. The result
+   reads as a system that works but does not feel designed: two near-equal headings on some pages, cards inside cards,
+   four different accent hues on four sibling numbers, a 10px square standing in for a page marker, and primary buttons
+   that are purple in dark mode and plain black in light. This layer settles those, page by page, without renaming a
+   single class the browser suite pins.
+
+   Rules it follows:
+     · One primary action colour (the brand gradient) in both themes. Black-on-white is a valid primary, but not next
+       to a purple one in the other theme.
+     · One marker per level: a bar for the page, a hairline for a section, a square for a tile.
+     · Cards never nest. Numbers that belong to a section live in a strip; a card holds one idea.
+     · Numbers are tabular and never big for the sake of being big: a stat is readable at a glance or it is not a stat.
+   ================================================================================================================= */
+
+/* ---------- 1. Page head: the marker, the sizes, the action slot ------------------------------------------------ */
+:root .page-head {
+  align-items: flex-start; gap: 20px;
+  padding-bottom: 14px; margin-bottom: 22px;
+  border-bottom: 1px solid var(--line);
+}
+/* The old marker was a 10px rounded square, which reads as a stray bullet next to a 36px title. A short bar reads as
+   an editorial rule instead: still the section colour, no longer a speck. */
+:root .page-head h1::before {
+  width: 3px; height: 0.78em; border-radius: 2px; margin-right: 12px; transform: translateY(0.06em);
+  background: linear-gradient(180deg, var(--sec-hi), var(--sec));
+}
+:root .page-head h1 {
+  font-size: clamp(1.7rem, 2.2vw, 2.05rem); font-weight: 650; letter-spacing: -0.028em; line-height: 1.16;
+}
+:root .page-head p { font-size: 0.95rem; line-height: 1.55; max-width: 68ch; margin-top: 6px; }
+:root .page-head > .row { align-items: center; gap: 8px; flex-wrap: wrap; }
+/* An optional eyebrow above the title: "Your roadmap" / "Android Development". */
+.eyebrow { font-size: 0.74rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); margin: 0 0 4px; }
+.eyebrow + h1, .eyebrow + h2 { margin-top: 0; }
+
+/* ---------- 2. Surfaces: one radius, one padding, less light on the edges --------------------------------------- */
+:root .card {
+  border-radius: 16px; padding: 20px;
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.028), rgba(255, 255, 255, 0.006) 42%), var(--panel);
+  box-shadow: none;
+}
+:root .card--flat { background: transparent; border-color: var(--line); }
+:root .card--blue { background: linear-gradient(160deg, color-mix(in srgb, var(--brand) 18%, var(--panel)), var(--panel) 70%); border-color: color-mix(in srgb, var(--brand) 34%, transparent); }
+:root[data-theme='light'] .card { background: #fff; border-color: var(--line); }
+:root[data-theme='light'] .card--blue { background: linear-gradient(160deg, rgba(79, 70, 229, 0.07), #fff 60%); }
+:root .card--hover:hover { transform: translateY(-2px); border-color: var(--line-2); }
+:root h3 { font-size: 1.02rem; font-weight: 650; letter-spacing: -0.012em; }
+:root .card > h3:first-child, :root .card > .row:first-child h3 { margin-bottom: 2px; }
+/* Section label inside a card ("Background queue", "Pipeline by stage"): a hairline under it turns a stack of cards
+   into a page of sections. */
+.card > h3:first-child { padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+
+/* ---------- 3. Buttons: one hierarchy, identical in both themes -------------------------------------------------- */
+:root .btn {
+  min-height: 38px; padding: 0 15px; border-radius: 10px; gap: 8px;
+  font-size: 0.92rem; font-weight: 600; letter-spacing: -0.005em;
+}
+:root .btn .icon { width: 16px; height: 16px; }
+:root .btn--sm { min-height: 30px; padding: 0 11px; border-radius: 8px; font-size: 0.83rem; gap: 6px; }
+:root .btn--sm .icon { width: 14px; height: 14px; }
+:root .btn--lg { min-height: 46px; padding: 0 22px; font-size: 1rem; border-radius: 12px; }
+/* Primary: the brand gradient, in both themes. The light theme used to paint it #18181b, which is why the sign-in
+   button looked like a stock <button> while every dark screen had a purple one. */
+:root .btn--primary,
+:root .btn:not(.btn--secondary):not(.btn--ghost):not(.btn--danger):not(.btn--accent):not(.btn--icon) {
+  background: var(--accent-grad); border-color: transparent; color: #fff;
+  box-shadow: 0 10px 26px -14px rgba(99, 102, 241, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+:root .btn--accent { background: var(--accent-grad); border-color: transparent; color: #fff; box-shadow: 0 10px 26px -14px rgba(99, 102, 241, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.22); }
+:root .btn--secondary { background: color-mix(in srgb, var(--text) 6%, transparent); border: 1px solid var(--line-2); color: var(--text); box-shadow: none; }
+:root .btn--secondary:hover { background: color-mix(in srgb, var(--text) 10%, transparent); border-color: var(--line-3); }
+:root .btn--ghost { background: transparent; border-color: transparent; color: var(--text-2); }
+:root .btn--ghost:hover { background: color-mix(in srgb, var(--text) 6%, transparent); color: var(--text); }
+:root .btn:disabled, :root .btn[aria-disabled='true'] { opacity: 0.5; box-shadow: none; }
+:root .btn:active { transform: translateY(1px); }
+:root .iconbtn { width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--line); background: color-mix(in srgb, var(--text) 4%, transparent); }
+:root .iconbtn:hover { background: color-mix(in srgb, var(--text) 8%, transparent); border-color: var(--line-2); }
+/* The palette hint is a keyboard affordance, not a second search box: make it look like a shortcut. */
+:root .kbd-hint { min-height: 30px; padding: 0 8px 0 10px; border-radius: 8px; font-size: 0.82rem; border: 1px solid var(--line); background: color-mix(in srgb, var(--text) 4%, transparent); gap: 6px; }
+:root .kbd-hint kbd { font-size: 0.72rem; padding: 1px 5px; border-radius: 5px; }
+
+/* ---------- 4. Form controls ------------------------------------------------------------------------------------ */
+:root .input, :root .select, :root .textarea, :root input[type='text'], :root input[type='email'], :root input[type='password'], :root input[type='search'] {
+  border-radius: 10px; background: color-mix(in srgb, var(--text) 4%, transparent); border: 1px solid var(--line-2);
+  font-size: 0.95rem;
+}
+:root .input:focus, :root .select:focus, :root .textarea:focus { border-color: color-mix(in srgb, var(--brand) 60%, transparent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 18%, transparent); outline: none; }
+:root .field > label, :root .form-grid label, :root label.field-label { font-size: 0.8rem; font-weight: 600; color: var(--text-2); margin-bottom: 5px; display: block; }
+:root .hint, :root .field .hint { font-size: 0.79rem; color: var(--text-3); }
+
+/* ---------- 5. Chips and badges: two sizes, three meanings ------------------------------------------------------- */
+:root .chip { height: 26px; padding: 0 11px; font-size: 0.8rem; font-weight: 500; border-radius: 999px; gap: 6px; }
+:root .chip .icon { width: 14px; height: 14px; }
+:root .badge { height: 23px; padding: 0 9px; font-size: 0.71rem; letter-spacing: 0.06em; border-radius: 7px; }
+
+/* ---------- 6. Stat tiles: compact, one accent, aligned --------------------------------------------------------- */
+:root .stat { border-radius: 14px; padding: 15px 17px; }
+:root .stat::after { opacity: 0.45; }
+:root .stat .stat__label::before { background: var(--brand); }
+:root .stat--tile { grid-template-rows: auto auto 32px auto; gap: 3px; }
+:root .stat--tile .stat__label { font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; color: var(--text-3); }
+:root .stat--tile .stat__value { font-size: clamp(1.6rem, 2.2vw, 2rem); letter-spacing: -0.03em; }
+:root .stat__hint { font-size: 0.76rem; line-height: 1.35; }
+:root .stat__spark { margin-top: 4px; }
+:root .spark { height: 30px; }
+:root .grid--4 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 186px), 1fr)); }
+
+/* ---------- 7. Empty states: one icon, tight text, no hamburger decoration --------------------------------------
+   `.empty::before` painted a generic three-line glyph above the *real* icon, so every empty state looked like it had
+   two icons, one of them meaningless. The real icon now sits in a tinted disc and the block is quiet. */
+:root .empty {
+  border: 1px solid var(--line); border-radius: 14px; background: color-mix(in srgb, var(--text) 2.5%, transparent);
+  padding: 26px 20px; display: grid; justify-items: center; gap: 6px; text-align: center;
+}
+:root .empty::before { content: none; display: none; }
+:root .empty > .icon {
+  width: 42px; height: 42px; padding: 10px; border-radius: 13px; margin: 0 0 4px;
+  background: var(--brand-soft); border: 1px solid color-mix(in srgb, var(--brand) 32%, transparent);
+  color: var(--brand-hi);
+}
+:root .empty h3 { margin: 0; font-size: 1rem; }
+:root .empty p { margin: 0; font-size: 0.88rem; line-height: 1.5; color: var(--text-2); max-width: 44ch; }
+/* A one-line variant for inside a card, where a 250px dashed box was heavier than the section it described. */
+:root .empty--inline {
+  grid-auto-flow: column; justify-content: start; justify-items: start; align-items: center; gap: 12px;
+  padding: 14px 16px; text-align: left; border-style: solid;
+}
+:root .empty--inline > .icon { width: 32px; height: 32px; padding: 7px; border-radius: 10px; margin: 0; }
+:root .empty--inline p { max-width: none; }
+
+/* ---------- 8. Tables ------------------------------------------------------------------------------------------- */
+:root .table th {
+  position: sticky; top: 0; z-index: 1; background: var(--panel);
+  font-size: 0.7rem; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--text-3);
+  padding: 10px 12px; border-bottom: 1px solid var(--line-2);
+}
+:root .table td { padding: 11px 12px; border-bottom: 1px solid var(--line); font-size: 0.9rem; }
+:root .table tbody tr:last-child td { border-bottom: 0; }
+:root .table tbody tr:hover td { background: color-mix(in srgb, var(--text) 3.5%, transparent); }
+:root[data-theme='light'] .table th { background: #fff; }
+
+/* ---------- 9. Board: four columns fit, empty columns say so ----------------------------------------------------- */
+:root .board { grid-auto-columns: minmax(0, 1fr); gap: 14px; }
+@media (max-width: 900px) { :root .board { grid-auto-columns: minmax(240px, 1fr); } }
+
+/* ---------- 10. Chrome details ----------------------------------------------------------------------------------- */
+::selection { background: color-mix(in srgb, var(--brand) 40%, transparent); }
+:root ::-webkit-scrollbar { width: 10px; height: 10px; }
+:root ::-webkit-scrollbar-track { background: transparent; }
+:root ::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--text) 16%, transparent); border-radius: 99px; border: 2px solid transparent; background-clip: content-box; }
+:root ::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--text) 26%, transparent); background-clip: content-box; }
+
+/* ---------- 11. Auth pages: one brand mark, no toolbars that belong to the app ----------------------------------- */
+body:has(#main .auth2) .topbar__pub .brand,
+body:has(#main .auth2) .topbar .kbd-hint { display: none; }
+:root[data-theme='light'] .auth2__box .btn--block,
+:root[data-theme='dark'] .auth2__box .btn--block,
+:root .auth2__box .btn--block {
+  background: var(--accent-grad); border-color: transparent; color: #fff;
+  box-shadow: 0 14px 32px -16px rgba(99, 102, 241, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+/* ---------- 12. Phone shell -------------------------------------------------------------------------------------- */
+@media (max-width: 640px) {
+  /* The language picker and the page marker both duplicate something already on screen at this width. */
+  .topbar .lang, .topbar select { display: none; }
+  :root .page-head { padding-bottom: 10px; margin-bottom: 16px; }
+  :root .page-head h1 { font-size: 1.55rem; }
+  :root .card { padding: 16px; border-radius: 14px; }
+  :root .tabbar { padding-bottom: max(6px, env(safe-area-inset-bottom)); }
+}
+
+/* ---------- 13. Stats strip: an even grid, whatever the tile count -------------------------------------------------
+   Six tiles in an auto-fit track landed 4 + 2 in a 960px column: one orphaned row under a full one. Counting in
+   threes keeps every row full at the width the content column actually has. */
+:root .stats { display: grid; gap: 12px; grid-template-columns: repeat(6, minmax(0, 1fr)); }
+@media (max-width: 1360px) { :root .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 620px) { :root .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+:root .stats .stat { min-height: 0; }
+
+/* ---------- 14. Inbox: one column when there is nothing to list ------------------------------------------------ */
+:root .inbox.is-empty { grid-template-columns: minmax(0, 1fr); }
+:root .inbox__pane[hidden] { display: none !important; }
+:root .inbox { gap: 14px; }
+:root .inbox__pane { border: 1px solid var(--line); border-radius: 16px; background: var(--panel-2, var(--panel)); min-height: 420px; }
+:root .inbox__item { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+:root .empty__act { margin-top: 12px; }
+
+/* ---------- 15. Roadmap: the page title is the plan, so the plan starts at the top -------------------------------- */
+:root .rm-head { display: none; }
+:root .rm-grid { gap: 20px; }

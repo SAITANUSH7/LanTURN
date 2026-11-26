@@ -167,8 +167,10 @@ export function skillChip(name, kind, weight) {
   return h('span', { class: cls }, kind === 'matched' ? icon('check') : kind === 'missing' ? icon('x') : null, name, weight ? weightDots(weight) : null, kind === 'matched' ? h('span', { class: 'sr-only' }, ' (you have this)') : kind === 'missing' ? h('span', { class: 'sr-only' }, ' (missing)') : null);
 }
 
-export const empty = (iconName, title, text, action) =>
-  h('div', { class: 'empty' }, icon(iconName), h('h3', null, title), text ? h('p', { class: 'muted' }, text) : null, action ? h('div', { style: { marginTop: '16px' } }, action) : null);
+// `mod` lets a caller pick the compact variant for a slot inside a card ("nothing failed" under a heading that already
+// says so). Everything else keeps the page-level block.
+export const empty = (iconName, title, text, action, mod = '') =>
+  h('div', { class: `empty${mod ? ` ${mod}` : ''}` }, icon(iconName), h('h3', null, title), text ? h('p', { class: 'muted' }, text) : null, action ? h('div', { class: 'empty__act' }, action) : null);
 
 export const errorBox = (err, retry) =>
   h('div', { class: 'alert alert--danger', role: 'alert' }, icon('warn'), h('div', { class: 'stack stack--sm' }, h('strong', null, 'Something went wrong'), h('p', null, err?.message || 'Please try again.'), retry ? h('div', null, h('button', { class: 'btn btn--sm btn--secondary', onclick: retry }, icon('refresh'), 'Try again')) : null));

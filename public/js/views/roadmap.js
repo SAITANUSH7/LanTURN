@@ -136,11 +136,13 @@ export async function roadmapPage({ query }) {
     });
     track.append(h('li', { class: 'rm-goal' }, h('a', { class: 'rm-goal__card', href: '#/student/jobs' }, h('span', { class: 'rm-dot' }, icon('briefcase')), h('div', null, h('strong', null, 'Apply to roles'), h('span', null, `${d.domain.title} jobs and internships`)))));
 
-    clear(root).append(h('div', { class: 'rm-head' }, h('h2', null, d.domain.title), h('p', null, `${d.stages.length} stages · about ${d.domain.estimatedMonths} months from zero`)), h('div', { class: 'rm-grid' }, track, panel));
+    clear(root).append(h('div', { class: 'rm-grid' }, track, panel));
     scrollTo(0, y);
     if (focusId) document.getElementById(focusId)?.querySelector('input:not([disabled]), button')?.focus({ preventScroll: true });
   }
 
   await load();
-  return wrapPage(pageHead('Your roadmap', 'Open any topic for a study guide, tick what you already know, and watch the path fill in.'), root);
+  const title = d?.domain?.title || 'Your roadmap';
+  const sub = d ? `${d.stages.length} stages · about ${d.domain.estimatedMonths} months from zero · open any topic for a study guide, tick what you already know, and watch the path fill in.` : 'Open any topic for a study guide, tick what you already know, and watch the path fill in.';
+  return wrapPage(pageHead(title, sub), root);
 }
