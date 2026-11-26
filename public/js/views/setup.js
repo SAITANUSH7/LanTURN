@@ -1,5 +1,5 @@
 import { get, post, put, del } from '../api.js';
-import { h, clear, icon, empty, toast, busy, loadingBlock, errorBox } from '../ui.js';
+import { h, clear, icon, toast, busy, loadingBlock, errorBox } from '../ui.js';
 import { pageHead, wrapPage } from './shared.js';
 import { uploader } from './careermap.js';
 
@@ -34,7 +34,13 @@ export async function setupPage() {
     clear(host);
     // the LLM conclusion arrives from a background task a few seconds after upload: check back a few times
     if (s?.verdict?.pending && polls++ < 5) setTimeout(() => { if (host.isConnected) load(); }, 4000);
-    if (!s) { host.append(empty('file', 'Nothing set up yet', 'Upload your resume and we will fill in your profile, pick your skills, choose a direction and match jobs automatically.'), uploader(load)); return; }
+    if (!s) {
+      host.append(
+        h('div', { class: 'setup-intro' },
+          h('p', { class: 'muted' }, 'Nothing is set up yet. One upload fills your profile, picks your skills, chooses a direction and starts matching jobs - you can change every part of it afterwards.')),
+        uploader(load));
+      return;
+    }
     const filled = Object.entries(s.filled || {});
     const redo = h('button', { class: 'btn btn--secondary btn--sm', type: 'button' }, icon('refresh'), 'Run again');
     redo.onclick = () => busy(redo, async () => { try { draw((await post('/career/auto-setup')).setup); toast('Updated from your latest resume', 'success'); } catch (e) { toast(e.message, 'error'); } }, 'Working…');

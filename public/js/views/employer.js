@@ -354,8 +354,29 @@ export async function company() {
     busy(btn, async () => {
       try { await put('/employers/me/company', { companyName: v.name.value.trim(), website: v.website.value.trim(), industry: v.industry.value.trim(), size: v.size.value, description: v.about.value.trim(), location: v.location.value.trim() }); await reloadUser(); toast('Company saved', 'success'); } catch (ex) { toast(ex.message, 'error'); }
     });
-  } }, h('div', { class: 'form-grid' }, field('Company name', v.name), field('Website', v.website), field('Industry', v.industry), field('Size', v.size), field('Location', v.location)), field('About', v.about), h('div', null, btn));
-  return wrapPage(pageHead('Company', 'This is what students see on your job posts.', verifyBadge(c.verification)), pendingBanner(c.verification), form, await companyDnaCard(), await emailPrefsCard());
+  } },
+    h('div', { class: 'form-grid jf-grid' }, field('Company name', v.name), field('Website', v.website), field('Industry', v.industry), field('Size', v.size), field('Location', v.location)),
+    field('About', v.about), h('div', null, btn));
+
+  const preview = h('div', { class: 'card company-preview' });
+  const paintPreview = () => {
+    const name = v.name.value.trim() || 'Your company';
+    const meta = [v.industry.value.trim(), v.size.value && `${v.size.value} people`, v.location.value.trim()].filter(Boolean);
+    clear(preview).append(
+      h('p', { class: 'eyebrow' }, 'What students see'),
+      h('div', { class: 'company-preview__head' },
+        h('div', { class: 'company-preview__logo', 'aria-hidden': 'true' }, name.slice(0, 1).toUpperCase()),
+        h('div', null, h('strong', null, name), h('span', { class: 'muted' }, meta.length ? meta.join(' \u00b7 ') : 'Add an industry, size and location'))),
+      v.about.value.trim() ? h('p', { class: 'company-preview__about' }, v.about.value.trim()) : h('p', { class: 'muted' }, 'No description yet. Two or three sentences about what the company builds is enough.'),
+      v.website.value.trim() ? h('a', { class: 'company-preview__link', href: v.website.value.trim(), target: '_blank', rel: 'noopener noreferrer' }, v.website.value.trim()) : null);
+  };
+  for (const el of [v.name, v.industry, v.location, v.about, v.website, v.size]) el.addEventListener('input', paintPreview);
+  v.size.addEventListener('change', paintPreview);
+  paintPreview();
+
+  return wrapPage(pageHead('Company', 'This is what students see on your job posts.', verifyBadge(c.verification)), pendingBanner(c.verification),
+    h('div', { class: 'split split--even company-split' }, form, preview),
+    await companyDnaCard(), await emailPrefsCard());
 }
 
 const FUNNEL = [['APPLIED', 'Applied'], ['SHORTLISTED', 'Shortlisted'], ['INTERVIEW', 'Interview'], ['OFFERED', 'Offered'], ['REJECTED', 'Rejected'], ['WITHDRAWN', 'Withdrawn']];

@@ -108,11 +108,14 @@ function shell() {
       h('main', { id: 'main', tabindex: '-1' }));
   }
   const groups = NAV[user.role] || [];
+  // ROUTES is the compiled list ({re, keys, title}), not the literal array: matching on r.re is the only form that
+  // works. Without it every route outside the sidebar - auto-setup, notifications, a job's detail page - printed the
+  // brand in the header instead of its own name.
   const routeLabel = () => {
     try {
       const crumbPath = (location.hash.replace(/^#/, '').split('?')[0]) || '/';
-      const hit = (typeof ROUTES !== 'undefined' ? ROUTES : []).find(([p]) => new RegExp(`^${p.replace(/:[^/]+/g, '[^/]+')}$`).test(crumbPath));
-      return hit ? hit[3] : '';
+      const hit = (typeof ROUTES !== 'undefined' ? ROUTES : []).find((r) => r.re.test(crumbPath));
+      return hit ? hit.title : '';
     } catch { return ''; }
   };
   const label = groups.flatMap(([, items]) => items).find(([to]) => active(to))?.[1] || routeLabel() || '';

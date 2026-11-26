@@ -3909,3 +3909,46 @@ body:has(#main .auth2) .topbar .kbd-hint { display: none; }
 :root .radar { max-width: 380px; }
 :root .radar__label { font-size: 11.5px; fill: var(--text-2); }
 :root .radar__ring, :root .radar__axis { stroke: var(--line-2); }
+
+/* ---------- 11. Auto-setup: the dropzone is the page ------------------------------------------------------------
+   Two stacked boxes said the same thing ("upload a resume"), and the dropzone itself was a dashed rectangle inside a
+   card - a box in a box. One intro line, then a dropzone that looks like a place you can drop something. */
+:root .setup-intro { display: grid; gap: 6px; max-width: 72ch; }
+:root .setup-intro p { margin: 0; }
+:root .dropzone {
+  display: grid; justify-items: center; gap: 4px; padding: 26px 20px; cursor: pointer;
+  border: 1.5px dashed color-mix(in srgb, var(--brand) 40%, transparent); border-radius: 14px;
+  background: color-mix(in srgb, var(--brand) 6%, transparent);
+  transition: border-color 0.18s var(--ease), background 0.18s var(--ease);
+}
+:root .dropzone:hover { border-color: color-mix(in srgb, var(--brand) 70%, transparent); background: color-mix(in srgb, var(--brand) 10%, transparent); }
+:root .dropzone:focus-within { outline: 2px solid var(--brand); outline-offset: 3px; }
+:root .dropzone > .icon { width: 26px; height: 26px; color: var(--brand-hi); margin-bottom: 4px; }
+:root .dropzone .strong { font-size: 0.98rem; }
+:root .dropzone p { margin: 0; font-size: 0.84rem; }
+:root .dropzone input[type='file'] { margin-top: 10px; font-size: 0.84rem; color: var(--text-2); max-width: 100%; }
+:root .dropzone input[type='file']::file-selector-button {
+  margin-right: 10px; padding: 7px 12px; border-radius: 9px; cursor: pointer;
+  border: 1px solid var(--line-2); background: color-mix(in srgb, var(--text) 6%, transparent); color: var(--text);
+  font: inherit; font-size: 0.84rem;
+}
+:root .dropzone input[type='file']::file-selector-button:hover { background: color-mix(in srgb, var(--text) 10%, transparent); }
+
+/* ---------- 12. Company: keep the promise the subtitle makes -----------------------------------------------------
+   "This is what students see on your job posts" sat above a grey form. Now it sits above a live preview that reads the
+   same inputs, so the sentence is true while you type. */
+:root .company-split { align-items: start; }
+:root .company-preview { display: grid; gap: 12px; position: sticky; top: calc(var(--topbar-h, 56px) + 16px); }
+:root .company-preview .eyebrow { margin: 0; }
+:root .company-preview__head { display: flex; align-items: center; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+:root .company-preview__logo {
+  width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; flex: none;
+  font: 650 1.1rem/1 var(--font-display); color: #fff;
+  background: var(--accent-grad); box-shadow: 0 8px 20px -12px rgba(99, 102, 241, 0.9);
+}
+:root .company-preview__head strong { display: block; font-size: 1rem; letter-spacing: -0.01em; }
+:root .company-preview__head span { font-size: 0.82rem; }
+:root .company-preview__about { margin: 0; font-size: 0.88rem; line-height: 1.55; color: var(--text-2); }
+:root .company-preview__link { font-size: 0.82rem; color: var(--brand-hi); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+:root .company-preview__link:hover { text-decoration: underline; }
+@media (max-width: 900px) { :root .company-preview { position: static; } }
