@@ -94,6 +94,18 @@ try {
     }
     await tab.context().close();
 
+    // The employer dashboard carries six stat tiles where the student home carries four, and it is the screen where a
+    // four-column grid leaves two holes. It had no tablet shot.
+    const tabEmp = await newPage(browser, { width: 808, height: 908, theme });
+    await login(tabEmp, app.base, 'employer');
+    for (const [name, route] of [['tablet-employer-home', '/employer'], ['tablet-employer-candidates', '/employer/jobs/1/candidates']]) {
+      await tabEmp.goto(`${app.base}/#${route}`);
+      await settle(tabEmp);
+      await shoot(tabEmp, `${theme}--${name}.jpg`);
+      count += 1;
+    }
+    await tabEmp.context().close();
+
     // Phone: the drawer and the tab bar only exist at this width.
     const phone = await newPage(browser, { width: 390, height: 844, theme });
     // The landing bar before signing in carries more controls than any other bar - brand, theme, language, two calls
