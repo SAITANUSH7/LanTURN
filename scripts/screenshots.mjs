@@ -42,7 +42,9 @@ const settle = (page) => page.waitForFunction(() => {
 
 async function shoot(page, file) {
   await page.waitForTimeout(450); // let layout and the specular highlight settle
-  await page.screenshot({ path: path.join(out, file), fullPage: false });
+  // JPEG at 55: these are for reading layout and colour, not for print, and a fifth of the bytes matters when the
+  // only way out of CI is a commit.
+  await page.screenshot({ path: path.join(out, file), type: 'jpeg', quality: 55, fullPage: false });
 }
 
 const app = await startApp();
@@ -56,7 +58,7 @@ try {
       for (const [name, route] of routes) {
         await page.goto(`${app.base}/#${route}`);
         await settle(page);
-        await shoot(page, `${theme}--${role}--${name}.png`);
+        await shoot(page, `${theme}--${role}--${name}.jpg`);
         count += 1;
       }
       await page.context().close();
@@ -65,13 +67,13 @@ try {
     const phone = await newPage(browser, { width: 390, height: 844, theme });
     await phone.goto(`${app.base}/#/login`);
     await settle(phone);
-    await shoot(phone, `${theme}--phone-login.png`);
+    await shoot(phone, `${theme}--phone-login.jpg`);
     count += 1;
     await login(phone, app.base, 'student');
     for (const [name, route] of PHONE_ROUTES.filter(([, r]) => r.startsWith('/student'))) {
       await phone.goto(`${app.base}/#${route}`);
       await settle(phone);
-      await shoot(phone, `${theme}--${name}.png`);
+      await shoot(phone, `${theme}--${name}.jpg`);
       count += 1;
     }
     await phone.context().close();
