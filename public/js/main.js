@@ -191,7 +191,7 @@ async function render() {
   leave.forEach((fn) => { try { fn(); } catch { /* ignore */ } });
   leave = [];
   const path = currentPath();
-  const route = ROUTES.find((r) => r.re.test(crumbPath));
+  const route = ROUTES.find((r) => r.re.test(path));
   const user = session.user;
 
   if (!route) { location.hash = '#/'; return; }
