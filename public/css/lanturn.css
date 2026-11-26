@@ -2012,9 +2012,9 @@ body:has(#main .auth2) .topbar--pub .topbar__user > a.btn { display: none; }
 
 /* The auth page owns exactly one viewport: the top bar takes what it needs, the page takes the rest. Without this the
    page was a full 100vh *below* a 56px bar, so the bottom of it (the facts strip on narrow screens, the lower edge of
-   the panel on wide ones) sat under the fold. `:has` is the only way to scope this to the two auth routes; where it is
-   not supported the page simply collapses to its content height, which is harmless. */
-body:has(#main .auth2) #app { display: flex; flex-direction: column; min-height: 100dvh; }
+   the panel on wide ones) sat under the fold. The public shell is a bare wrapper div inside #app, so the column starts
+   there. `:has` scopes this to the two auth routes; without it the page just collapses to its content height. */
+body:has(#main .auth2) #app > div { display: flex; flex-direction: column; min-height: 100dvh; }
 body:has(#main .auth2) #main { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
 :root .auth2 { flex: 1 1 auto; min-height: 0; }
 
