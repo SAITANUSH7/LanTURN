@@ -2010,10 +2010,18 @@ body:has(#main .auth2) .topbar--pub .topbar__user > a.btn { display: none; }
 :root .auth2__box form + .auth2__alt,
 :root .auth2__box .auth2__alt { padding-top: 4px; border-top: 1px solid var(--line); }
 
+/* The auth page owns exactly one viewport: the top bar takes what it needs, the page takes the rest. Without this the
+   page was a full 100vh *below* a 56px bar, so the bottom of it (the facts strip on narrow screens, the lower edge of
+   the panel on wide ones) sat under the fold. `:has` is the only way to scope this to the two auth routes; where it is
+   not supported the page simply collapses to its content height, which is harmless. */
+body:has(#main .auth2) #app { display: flex; flex-direction: column; min-height: 100dvh; }
+body:has(#main .auth2) #main { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
+:root .auth2 { flex: 1 1 auto; min-height: 0; }
+
 /* Narrow screens: the right-hand panel used to vanish below 900px, leaving the lower half of the page empty. It keeps
    its three facts as a compact strip under the sheet - same words, read as a footer rather than a second column. */
 @media (max-width: 900px) {
-  :root .auth2 { display: flex; flex-direction: column; min-height: 100dvh; }
+  :root .auth2 { display: flex; flex-direction: column; }
   :root .auth2__form { order: 1; flex: 1; padding: 8px 18px 20px; }
   :root .auth2__box { margin: auto; padding: 22px 20px 20px; border-radius: 16px; }
   :root .auth2__side {
@@ -2029,7 +2037,7 @@ body:has(#main .auth2) .topbar--pub .topbar__user > a.btn { display: none; }
 /* Narrow screens: the right-hand panel used to vanish below 900px, which left the lower half of the page an empty
    field. It keeps its three claims as a strip pinned under the sheet - the same words, read as a footer. */
 @media (max-width: 900px) {
-  :root .auth2 { display: flex; flex-direction: column; min-height: 100dvh; }
+  :root .auth2 { display: flex; flex-direction: column; }
   :root .auth2__form { order: 1; flex: 1 1 auto; padding: 8px 18px 16px; }
   :root .auth2__box { margin: auto; padding: 22px 20px 20px; border-radius: 16px; gap: 18px; }
   :root .auth2__side {
