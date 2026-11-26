@@ -3684,3 +3684,45 @@ body:has(#main .auth2) .topbar .kbd-hint { display: none; }
   margin: 0; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
   color: var(--brand-hi); border: 0; background: none; padding: 0; display: block;
 }
+
+/* ---------- 27. Destructive actions, and disclosures that look like disclosures -------------------------------- */
+/* In the light theme every bare .btn painted #18181b, so "Withdraw application" was a black slab: the one control on
+   the card that should look cautious looked like the primary. */
+:root .btn--danger {
+  background: color-mix(in srgb, #ef4444 12%, transparent); color: #f87171; border: 1px solid color-mix(in srgb, #ef4444 38%, transparent); box-shadow: none;
+}
+:root .btn--danger:hover { background: color-mix(in srgb, #ef4444 20%, transparent); color: #fca5a5; }
+:root[data-theme='light'] .btn--danger { background: #fff5f5; color: #b42318; border-color: #f3c0c0; }
+:root[data-theme='light'] .btn--danger:hover { background: #ffe9e9; color: #8f1c14; }
+
+/* A collapsed <details> was a dashed box with one bold word: it read as an empty message panel. The chevron and the
+   hover state make it a control. */
+:root .fold { border: 1px solid var(--line); border-radius: 12px; padding: 0; background: color-mix(in srgb, var(--text) 2.5%, transparent); }
+:root .fold > summary {
+  padding: 11px 14px; min-height: 40px; display: flex; align-items: center; gap: 8px; list-style: none;
+  font-size: 0.9rem; color: var(--text-2); border-radius: 12px;
+}
+:root .fold > summary::-webkit-details-marker { display: none; }
+:root .fold > summary::after {
+  content: ''; margin-left: auto; width: 8px; height: 8px; flex: none;
+  border-right: 1.6px solid currentColor; border-bottom: 1.6px solid currentColor;
+  transform: rotate(45deg) translateY(-2px); transition: transform 0.2s var(--ease-out); opacity: 0.7;
+}
+:root .fold[open] > summary::after { transform: rotate(225deg) translateY(-2px); }
+:root .fold > summary:hover { color: var(--text); background: color-mix(in srgb, var(--text) 4%, transparent); }
+:root .fold[open] > summary { border-bottom-left-radius: 0; border-bottom-right-radius: 0; border-bottom: 1px solid var(--line); color: var(--text); }
+:root .fold[open] { padding-bottom: 12px; }
+:root .fold > :not(summary) { margin: 12px 14px 0; }
+
+/* ---------- 28. Phone topbar: icon-only controls, no empty pills ----------------------------------------------- */
+@media (max-width: 640px) {
+  :root .topbar__user { gap: 6px; }
+  :root .topbar .bell { width: 34px; min-width: 34px; padding: 0; justify-content: center; border-color: transparent; background: transparent; }
+  :root .topbar .kbd-hint { width: 34px; padding: 0; justify-content: center; border-color: transparent; background: transparent; }
+  :root .topbar .kbd-hint span { display: none; }
+  :root .topbar .kbd-hint kbd { font-size: 0.62rem; padding: 0 3px; }
+  :root .topbar__crumb b { font-size: 0.92rem; }
+  :root .topbar__crumb i { display: none; }
+}
+/* A board that scrolls should say so: a thin, always-visible scrollbar and a snap edge. */
+:root .board { scrollbar-width: thin; scroll-padding-inline: 12px; }
