@@ -147,16 +147,8 @@ export async function jobForm({ params, query = {}, navigate }) {
     }, 180);
   };
   const sugBox = h('div', { class: 'chips', 'aria-live': 'polite' });
-  const sugBtn = h('button', { type: 'button', class: 'btn btn--secondary btn--sm', onclick: () => busy(sugBtn, async () => {
-    try {
-      const d = await post('/employer/skills/suggest', { title: v.title.value.trim(), description: v.description.value.trim(), exclude: [...skills.keys()] });
-      clear(sugBox);
-      if (!d.items.length) { sugBox.append(h('p', { class: 'muted' }, 'No suggestions yet. Add a title or a few lines of description first.')); return; }
-      d.items.forEach((x) => sugBox.append(h('button', { type: 'button', class: 'chip chip--blue', title: x.reason, onclick: (ev) => { skills.set(x.skillId, { id: x.skillId, name: x.name, weight: Math.min(3, Math.max(1, x.weight)) }); paint(); ev.currentTarget.remove(); } }, `+ ${x.name}`, h('small', { class: 'muted' }, ` ${x.reason}`))));
-    } catch (e) { toast(e.message, 'error'); }
-  }) }, icon('target'), 'Suggest skills');
   const btn = h('button', { class: 'btn', type: 'submit', disabled: me.verification !== 'VERIFIED' ? true : null }, editing ? 'Save changes' : 'Publish job');
-  const form = h('form', { class: 'card stack', onsubmit: (e) => {
+  const form = h('form', { class: 'jobform', onsubmit: (e) => {
     e.preventDefault();
     const problem = v.title.value.trim().length < 3 ? ['Give the job a title of at least 3 characters.', v.title]
       : v.description.value.trim().length < 10 ? ['Add a short description (at least 10 characters).', v.description]
@@ -172,15 +164,32 @@ export async function jobForm({ params, query = {}, navigate }) {
       } catch (ex) { toast(ex.message, 'error'); }
     });
   } },
-  duplicating && existing ? h('div', { class: 'alert', role: 'status' }, icon('copy'), h('div', null, h('strong', null, `Copied from “${existing.title}”`), h('p', null, 'Review the details, set a new apply-by date and publish.'))) : null,
-  field('Job title', v.title), field('Description', v.description, { hint: 'Up to 5000 characters. Plain text with short bullet lists works best.' }),
-  jdWriter({ getInput: () => ({ title: v.title.value.trim(), type: v.type.value, location: v.location.value.trim(), skills: [...skills.values()].map((x) => x.name) }),
-    onResult: (r) => { v.description.value = [r.description, r.responsibilities.length ? `\nWhat you will do:\n${r.responsibilities.map((x) => `- ${x}`).join('\n')}` : '', r.requirements.length ? `\nWhat we look for:\n${r.requirements.map((x) => `- ${x}`).join('\n')}` : '', r.niceToHave.length ? `\nNice to have:\n${r.niceToHave.map((x) => `- ${x}`).join('\n')}` : ''].filter(Boolean).join('\n').slice(0, 5000); toast('Draft added. Edit it before publishing.', 'success'); } }),
-  h('div', { class: 'form-grid' }, field('Type', v.type), field('Location', v.location), field('Compensation', v.comp), field('Apply by', v.deadline)),
-  h('label', { class: 'check' }, v.remote, 'Remote friendly'),
-  h('div', { class: 'stack stack--sm' }, h('h3', null, 'Required skills'), h('p', { class: 'hint muted' }, 'Weights drive the match score students and you see.'), skillList, h('div', { class: 'picker' }, search, list), h('div', { class: 'row' }, sugBtn), sugBox),
-  h('div', { class: 'form-actions' }, btn, h('a', { class: 'btn btn--secondary', href: '#/employer/jobs' }, 'Cancel'), me.verification !== 'VERIFIED' ? h('span', { class: 'muted' }, 'Publishing unlocks after admin approval.') : null));
-  return wrapPage(h('a', { class: 'crumb', href: '#/employer/jobs' }, icon('arrow-left'), 'My jobs'), pageHead(editing ? 'Edit job' : duplicating ? 'Duplicate job' : 'Post a job'), pendingBanner(me.verification), form);
+  duplicating && existing ? h('div', { class: 'alert', role: 'status' }, icon('copy'), h('div', null, h('strong', null, `Copied from \u201c${existing.title}\u201d`), h('p', null, 'Review the details, set a new apply-by date and publish.'))) : null,
+  // One form, three questions: what is the job, where and when, who fits. They used to be fourteen siblings in one
+  // 960px card, so the eye had to re-find the next field every time.
+  h('section', { class: 'jf-sec' },
+    h('div', { class: 'jf-sec__head' }, h('h2', null, 'The role'), h('p', { class: 'muted' }, 'What candidates read first.')),
+    field('Job title', v.title),
+    field('Description', v.description, { hint: 'Up to 5000 characters. Plain text with short bullet lists works best.' }),
+    jdWriter({ getInput: () => ({ title: v.title.value.trim(), type: v.type.value, location: v.location.value.trim(), skills: [...skills.values()].map((x) => x.name) }),
+      onResult: (r) => { v.description.value = [r.description, r.responsibilities.length ? `\nWhat you will do:\n${r.responsibilities.map((x) => `- ${x}`).join('\n')}` : '', r.requirements.length ? `\nWhat we look for:\n${r.requirements.map((x) => `- ${x}`).join('\n')}` : '', r.niceToHave.length ? `\nNice to have:\n${r.niceToHave.map((x) => `- ${x}`).join('\n')}` : ''].filter(Boolean).join('\n').slice(0, 5000); toast('Draft added. Edit it before publishing.', 'success'); } })),
+  h('section', { class: 'jf-sec' },
+    h('div', { class: 'jf-sec__head' }, h('h2', null, 'Details'), h('p', { class: 'muted' }, 'Type, place, pay and the last day to apply.')),
+    h('div', { class: 'form-grid jf-grid' }, field('Type', v.type), field('Location', v.location), field('Compensation', v.comp), field('Apply by', v.deadline)),
+    h('label', { class: 'check jf-check' }, v.remote, h('span', null, 'Remote friendly'), h('small', { class: 'muted' }, 'Candidates filtering for remote see this job.'))),
+  h('section', { class: 'jf-sec' },
+    h('div', { class: 'jf-sec__head' }, h('h2', null, 'Required skills'), h('p', { class: 'muted' }, 'Weights drive the match score students and you see.'), h('button', { type: 'button', class: 'btn btn--secondary btn--sm', onclick: (ev) => busy(ev.currentTarget, async () => {
+      try {
+        const d = await post('/employer/skills/suggest', { title: v.title.value.trim(), description: v.description.value.trim(), exclude: [...skills.keys()] });
+        clear(sugBox);
+        if (!d.items.length) { sugBox.append(h('p', { class: 'muted' }, 'No suggestions yet. Add a title or a few lines of description first.')); return; }
+        d.items.forEach((x) => sugBox.append(h('button', { type: 'button', class: 'chip chip--blue', title: x.reason, onclick: (e2) => { skills.set(x.skillId, { id: x.skillId, name: x.name, weight: Math.min(3, Math.max(1, x.weight)) }); paint(); e2.currentTarget.remove(); } }, `+ ${x.name}`, h('small', { class: 'muted' }, ` ${x.reason}`))));
+      } catch (e) { toast(e.message, 'error'); }
+    }) }, icon('target'), 'Suggest skills')),
+    skillList, h('div', { class: 'picker' }, search, list),
+    sugBox),
+  h('div', { class: 'jf-foot' }, btn, h('a', { class: 'btn btn--secondary', href: '#/employer/jobs' }, 'Cancel'), me.verification !== 'VERIFIED' ? h('span', { class: 'muted' }, 'Publishing unlocks after admin approval.') : null));
+  return wrapPage(h('a', { class: 'crumb', href: '#/employer/jobs' }, icon('arrow-left'), 'My jobs'), pageHead(editing ? 'Edit job' : duplicating ? 'Duplicate job' : 'Post a job', editing ? 'Change anything here; candidates see the update straight away.' : 'Three sections: the role, the details, the skills you will match on.'), pendingBanner(me.verification), form);
 }
 
 // ---------------------------------------------------------------- Candidates
