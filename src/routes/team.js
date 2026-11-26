@@ -68,8 +68,9 @@ teamRouter.post('/auth/join', wrap(async (req, res) => {
   const weak = passwordProblem(b.password);
   if (weak) throw bad(`password: ${weak}`);
   if (db.prepare('SELECT 1 FROM users WHERE email = ?').get(inv.email)) throw conflict('An account with this email already exists');
+  const hash = await hashPassword(b.password);
   const user = tx(() => {
-    const id = Number(db.prepare("INSERT INTO users (email, password_hash, role, verification, team_owner_id) VALUES (?,?, 'EMPLOYER', 'VERIFIED', ?)").run(inv.email, hashPassword(b.password), inv.owner_id).lastInsertRowid);
+    const id = Number(db.prepare("INSERT INTO users (email, password_hash, role, verification, team_owner_id) VALUES (?,?, 'EMPLOYER', 'VERIFIED', ?)").run(inv.email, hash, inv.owner_id).lastInsertRowid);
     db.prepare("UPDATE team_invites SET accepted_at = datetime('now'), user_id = ?, name = ? WHERE id = ?").run(id, b.name, inv.id);
     return db.prepare('SELECT * FROM users WHERE id = ?').get(id);
   });

@@ -55,6 +55,7 @@ const PUBLIC = new Set([
   'GET /api/email/unsubscribe', 'GET /api/uploads/file/1', // avatars/logos are public; other upload kinds need a signed URL
   'POST /api/auth/register', 'POST /api/auth/login', 'POST /api/auth/session', 'POST /api/auth/logout',
   'POST /api/auth/refresh', 'POST /api/auth/forgot-password', 'POST /api/auth/reset-password',
+  'POST /api/auth/join', 'GET /api/auth/invite/1', // team invitations: the token in the link is the credential
   'POST /api/auth/admin-login', // answers 410 Gone on purpose, so old clients get a clear message
 ]);
 
