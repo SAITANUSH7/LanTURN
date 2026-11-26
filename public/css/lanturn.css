@@ -1969,3 +1969,65 @@ a.card:hover, .card--hover:hover, .card--link:hover {
   .stats .stat { padding: 14px 14px; }
   .stats .stat .stat__value { font-size: 1.6rem; }
 }
+
+/* =================================================================================================================
+   Studio polish I — the sign-in page.
+
+   Reported: "see how improper the credentials part looks". At 808px wide the page is a single centred column: the
+   dual-column auth layout drops the right panel, so a 400px card floats in a field of nothing, the brand is printed
+   twice (once by the top bar, once above the card), and the primary button is a white slab with no relationship to
+   the surface it sits on. Nothing here adds a new colour: it is the same dark-blue Studio palette, arranged properly.
+   ================================================================================================================= */
+
+/* One brand per page. The sign-in sheet already carries it, so the public bar keeps only its controls. */
+body:has(#main .auth2) .topbar--pub .brand,
+body:has(#main .auth2) .topbar .kbd-hint,
+body:has(#main .auth2) .topbar--pub .topbar__user > a.btn { display: none; }
+
+/* The form column itself: a sheet with edges, not a floating block. */
+:root .auth2__box {
+  max-width: 420px; gap: 22px; padding: 0;
+  border: 1px solid var(--line); border-radius: 18px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--text) 4%, transparent), transparent 46%), var(--panel);
+  box-shadow: 0 30px 70px -50px #000;
+  padding: 26px 26px 24px;
+}
+:root .auth2__box h1 { font-size: 1.6rem; letter-spacing: -0.03em; line-height: 1.15; }
+:root .auth2__box > div > p { margin-top: 4px; font-size: 0.9rem; }
+:root .auth2__form { padding-top: 12px; padding-bottom: 24px; }
+:root .auth2__form .brand { align-self: flex-start; }
+
+/* Fields and the submit line: one width, one height, one rhythm. */
+:root .auth2__box .field > label { font-size: 0.78rem; font-weight: 600; letter-spacing: 0.01em; color: var(--text-2); margin-bottom: 6px; }
+:root .auth2__box .input { height: 44px; }
+:root .auth2__box .btn--block { min-height: 46px; font-size: 0.95rem; font-weight: 600; letter-spacing: 0.01em; margin-top: 4px; }
+:root .auth2__box .btn--block:not(:disabled) { box-shadow: 0 14px 30px -20px rgba(255, 255, 255, 0.5); }
+:root .auth2__box .btn--block:not(:disabled):hover { transform: translateY(-1px); }
+:root .auth2__box form { display: grid; gap: 14px; }
+:root .auth2__box .row--between, :root .auth2__box form > .row { align-items: center; }
+:root .auth2__box form > p, :root .auth2__box form > .muted:last-child { font-size: 0.86rem; margin-top: 2px; }
+/* A quiet divider between "who you are" and "what we promise", instead of a second heading. */
+:root .auth2__box form + .auth2__alt,
+:root .auth2__box .auth2__alt { padding-top: 4px; border-top: 1px solid var(--line); }
+
+/* Narrow screens: the right-hand panel used to vanish below 900px, leaving the lower half of the page empty. It keeps
+   its three facts as a compact strip under the sheet - same words, read as a footer rather than a second column. */
+@media (max-width: 900px) {
+  :root .auth2 { display: flex; flex-direction: column; min-height: 100dvh; }
+  :root .auth2__form { order: 1; flex: 1; padding: 8px 18px 20px; }
+  :root .auth2__box { margin: auto; padding: 22px 20px 20px; border-radius: 16px; }
+  :root .auth2__side {
+    display: flex; order: 2; gap: 10px; padding: 18px 20px calc(20px + env(safe-area-inset-bottom));
+    border-left: 0; border-top: 1px solid var(--line); background: transparent; overflow: visible;
+  }
+  :root .auth2__side::before, :root .auth2__side h2, :root .auth2__pulse { display: none; }
+  :root .auth2__list { gap: 8px; max-width: none; }
+  :root .auth2__list li { font-size: 0.84rem; color: var(--text-2); }
+  :root .auth2__list b { font-size: 0.86rem; }
+  :root .auth2__foot { font-size: 0.78rem; margin-top: 4px; }
+}
+@media (max-width: 900px) and (min-width: 561px) {
+  :root .auth2__side { flex-direction: row; align-items: flex-start; gap: 22px; }
+  :root .auth2__side > .auth2__list { flex-direction: row; gap: 22px; display: flex; }
+  :root .auth2__list li { max-width: 26ch; font-size: 0.8rem; }
+}

@@ -76,6 +76,24 @@ try {
       }
       await page.context().close();
     }
+    // Tablet: the width where the dual-column sign-in collapses and the sidebar becomes a drawer. Layout problems
+    // live exactly there, and neither the desktop pass nor the 390px pass ever showed it.
+    const tab = await newPage(browser, { width: 808, height: 908, theme });
+    for (const [name, route] of [['tablet-login', '/login'], ['tablet-register', '/register']]) {
+      await tab.goto(`${app.base}/#${route}`);
+      await settle(tab);
+      await shoot(tab, `${theme}--${name}.jpg`);
+      count += 1;
+    }
+    await login(tab, app.base, 'student');
+    for (const [name, route] of [['tablet-home', '/student'], ['tablet-jobs', '/student/jobs']]) {
+      await tab.goto(`${app.base}/#${route}`);
+      await settle(tab);
+      await shoot(tab, `${theme}--${name}.jpg`);
+      count += 1;
+    }
+    await tab.context().close();
+
     // Phone: the drawer and the tab bar only exist at this width.
     const phone = await newPage(browser, { width: 390, height: 844, theme });
     await phone.goto(`${app.base}/#/login`);
