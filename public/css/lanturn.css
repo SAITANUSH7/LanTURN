@@ -3882,3 +3882,11 @@ body:has(#main .auth2) .topbar .kbd-hint { display: none; }
   :root .chat__side { order: 2; max-height: 220px; }
   :root .chat__main { min-height: 60vh; }
 }
+
+/* ---------- 9. Stop the header glow from drawing a line under the top bar ---------------------------------------
+   The page-head glow sits at top:-30px behind a sticky, opaque top bar. Once every section resolved to one brand
+   accent the clipped edge of that glow read as a 2px violet rule under the header in the light theme. Softening it
+   fixes the artefact and keeps the depth. */
+:root .page-head::before { opacity: 0.42; width: min(420px, 100%); height: 170px; }
+:root[data-theme='light'] .page-head::before { opacity: 0.2; background: radial-gradient(closest-side, color-mix(in srgb, var(--brand) 45%, transparent), transparent); }
+:root .topbar { border-bottom: 1px solid var(--line); }
