@@ -2010,6 +2010,25 @@ body:has(#main .auth2) .topbar--pub .topbar__user > a.btn { display: none; }
 :root .auth2__box form + .auth2__alt,
 :root .auth2__box .auth2__alt { padding-top: 4px; border-top: 1px solid var(--line); }
 
+/* The language select is the widest control in the public bar: brand, theme, language, "Sign in" and "Get started" need
+   489px, which a 390px phone does not have, so the last button was cut off at the edge (hidden by `overflow-x: clip`
+   rather than fixed). On phones the select moves to the landing footer, where the same choice is one scroll away. */
+.footer__cols .footer__lang { display: none; }
+@media (max-width: 560px) {
+  body:has(#main .lp) .topbar--pub .topbar__user .lang { display: none; }
+  .footer__cols .footer__lang { display: grid; gap: 8px; }
+  .footer__lang .lang { justify-self: start; min-width: 128px; }
+}
+/* What is left still needs 375px; the smallest phones are 360 and 320, so the bar tightens before it hides anything. */
+@media (max-width: 400px) {
+  body:has(#main .lp) .topbar--pub .topbar__in { padding-inline: 12px; }
+  body:has(#main .lp) .topbar--pub .topbar__user { gap: 6px; }
+  body:has(#main .lp) .topbar--pub .topbar__user .btn--sm { padding-inline: 9px; }
+}
+@media (max-width: 350px) {
+  body:has(#main .lp) .topbar--pub .topbar__user > .btn--secondary { display: none; }
+}
+
 /* The auth page owns exactly one viewport: the top bar takes what it needs, the page takes the rest. Without this the
    page was a full 100vh *below* a 56px bar, so the bottom of it (the facts strip on narrow screens, the lower edge of
    the panel on wide ones) sat under the fold. The public shell is a bare wrapper div inside #app, so the column starts

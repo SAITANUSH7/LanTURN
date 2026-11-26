@@ -1,4 +1,6 @@
 // Tiny DOM toolkit. Everything user-supplied goes through textContent, so no XSS by construction.
+import { LANGS, getLang, setLang } from './i18n.js';
+
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 export function h(tag, props, ...children) {
@@ -118,6 +120,15 @@ export function fmtDateTime(s) {
 export const initials = (name) => (name || '?').split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0].toUpperCase()).join('') || '?';
 
 // ---------- Components ----------
+/**
+ * The language select. It sits in the top bar while the bar has room for it, and in the landing footer on phones where
+ * it does not. It takes the re-render as a callback instead of importing the router, so both places can use it.
+ */
+export function langPicker({ onchange: after } = {}) {
+  return h('select', { class: 'lang', 'aria-label': 'Language', onchange: (e) => { setLang(e.target.value); if (after) after(); } },
+    LANGS.map(([v, l]) => h('option', { value: v, selected: v === getLang() ? true : null }, l)));
+}
+
 export function scoreRing(value, { size = '', label = true, accent = false } = {}) {
   const v = Math.max(0, Math.min(100, Math.round(value ?? 0)));
   return h('div', { class: `ring ${size === 'sm' ? 'ring--sm' : ''} ${accent ? 'ring--accent' : ''} ${v >= 75 ? 'ring--hi' : v >= 50 ? 'ring--mid' : 'ring--lo'}`, role: 'img', 'aria-label': `Score ${v} out of 100`, style: { '--p': v } },

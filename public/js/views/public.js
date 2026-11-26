@@ -1,5 +1,5 @@
 import { login as doLogin, register as doRegister, joinTeam, get } from '../api.js';
-import { h, icon, field, input, busy, skillChip, toast, passwordField, lantern } from '../ui.js';
+import { h, icon, field, input, busy, skillChip, toast, passwordField, lantern, langPicker } from '../ui.js';
 
 const home = (u) => (u.role === 'STUDENT' ? '/student' : u.role === 'EMPLOYER' ? '/employer' : '/admin');
 
@@ -60,7 +60,10 @@ export function landing({ navigate, user }) {
         h('div', { class: 'lp-cta' }, h('a', { class: 'btn btn--lg', href: '#/register' }, 'Get started', icon('arrow-right')), h('a', { class: 'btn btn--secondary btn--lg', href: '#/login' }, 'Sign in'))))),
     h('footer', { class: 'footer' }, h('div', { class: 'container footer__in' },
       h('div', null, h('p', { class: 'strong' }, 'LanTURN'), h('p', null, 'Batch 16 · A. Ganesh, Md. Noman, V. Sai Tanush')),
-      h('div', { class: 'footer__cols' }, h('div', null, h('b', null, 'Product'), h('a', { href: '#/register' }, 'Get started'), h('a', { href: '#/login' }, 'Sign in')), h('div', null, h('b', null, 'Resources'), h('a', { href: '/design-system.html' }, 'Design system'), h('a', { href: '/api/health' }, 'Status'))))));
+      h('div', { class: 'footer__cols' }, h('div', null, h('b', null, 'Product'), h('a', { href: '#/register' }, 'Get started'), h('a', { href: '#/login' }, 'Sign in')), h('div', null, h('b', null, 'Resources'), h('a', { href: '/design-system.html' }, 'Design system'), h('a', { href: '/api/health' }, 'Status')),
+        // On a phone the top bar has room for the brand, the theme and the two calls to action - not for the language
+        // select as well, which is the widest control in the bar. It moves down here, where there is room.
+        h('div', { class: 'footer__lang' }, h('b', null, 'Language'), langPicker({ onchange: () => location.reload() }))))));
 }
 
 function authLayout(title, subtitle, form) {
