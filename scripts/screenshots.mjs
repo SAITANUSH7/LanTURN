@@ -54,7 +54,20 @@ try {
   for (const theme of ['dark', 'light']) {
     for (const [role, routes] of Object.entries(ROUTES)) {
       const page = await newPage(browser, { theme });
-      if (role !== 'public') await login(page, app.base, role);
+      if (role !== 'public') {
+        // A failed login used to abort the whole capture with no evidence. Dump what the page really contained first.
+        try { await login(page, app.base, role); } catch (e) {
+          const info = await page.evaluate(() => ({
+            url: location.href,
+            inputs: [...document.querySelectorAll('input')].map((i) => ({ type: i.type, name: i.name, visible: !!i.offsetParent })),
+            mainHtml: (document.getElementById('main')?.innerHTML || '').slice(0, 1200),
+            bodyText: (document.body.innerText || '').slice(0, 600),
+          })).catch(() => ({ url: page.url() }));
+          await fs.promises.writeFile(path.join(out, `debug-login-${role}.txt`),
+            [`error: ${e.message}`, `theme: ${theme}`, JSON.stringify(info, null, 2)].join('\n')).catch(() => {});
+          throw e;
+        }
+      }
       for (const [name, route] of routes) {
         await page.goto(`${app.base}/#${route}`);
         await settle(page);

@@ -84,14 +84,25 @@ export async function chat({ user }) {
   const box = textarea({ rows: '2', maxlength: '1000', placeholder: employer ? 'Ask about your jobs and applicants…' : t('Ask me anything about your career') });
   const send = h('button', { class: 'btn', type: 'button' }, icon('arrow-right'), t('Send'));
   const bubble = (role, text, source) => h('div', { class: `bubble bubble--${role}` }, h('p', null, text), source ? badgeSource(source) : null);
-  const greet = () => clear(log).append(bubble('assistant', employer ? 'Hi! I can compare candidates and summarise your pipeline. I never see or share contact details.' : 'Hi! I can help with your resume, skill gaps, interviews and role choices.'));
+  const starters = employer
+    ? ['Which applicant fits this role best?', 'Write a rejection note that stays kind', 'What am I missing in my job post?']
+    : ['What is missing from my resume?', 'Is Android a good fit for me?', 'Practise an interview answer with me'];
+  const starterRow = () => h('div', { class: 'chat__starters' }, starters.map((q) => h('button', {
+    type: 'button', class: 'chip chip--starter', onclick: () => { box.value = q; box.focus(); },
+  }, q)));
+  const greet = () => clear(log).append(
+    bubble('assistant', employer ? 'Hi! I can compare candidates and summarise your pipeline. I never see or share contact details.' : 'Hi! I can help with your resume, skill gaps, interviews and role choices.'),
+    h('div', { class: 'chat__starter-wrap' }, h('p', { class: 'chat__hint' }, 'Not sure where to start?'), starterRow()));
 
   async function loadThreads() {
     const list = await get('/chat/threads');
-    clear(threads).append(h('button', { class: 'btn btn--secondary btn--sm', type: 'button', onclick: () => { threadId = null; greet(); loadThreads(); } }, icon('plus'), t('New conversation')),
-      ...list.map((th) => h('div', { class: 'row', style: { flexWrap: 'nowrap' } },
-        h('button', { class: 'thread', type: 'button', 'aria-current': th.id === threadId ? 'true' : null, onclick: () => openThread(th.id) }, th.title),
-        h('button', { class: 'btn btn--ghost btn--sm', type: 'button', 'aria-label': `Delete conversation ${th.title}`, onclick: async () => { await del(`/chat/threads/${th.id}`); if (threadId === th.id) { threadId = null; greet(); } loadThreads(); } }, icon('trash')))));
+    clear(threads).append(
+      h('button', { class: 'btn btn--secondary btn--block', type: 'button', onclick: () => { threadId = null; greet(); loadThreads(); } }, icon('plus'), t('New conversation')),
+      list.length
+        ? h('div', { class: 'chat__threads' }, list.map((th) => h('div', { class: 'chat__thread' },
+          h('button', { class: 'thread', type: 'button', 'aria-current': th.id === threadId ? 'true' : null, onclick: () => openThread(th.id) }, th.title),
+          h('button', { class: 'btn btn--ghost btn--sm chat__del', type: 'button', 'aria-label': `Delete conversation ${th.title}`, onclick: async () => { await del(`/chat/threads/${th.id}`); if (threadId === th.id) { threadId = null; greet(); } loadThreads(); } }, icon('trash')))))
+        : h('p', { class: 'chat__hint' }, 'Saved conversations stay here so you can pick one up later.'));
   }
   async function openThread(id) {
     const d = await get(`/chat/threads/${id}`);
@@ -121,7 +132,14 @@ export async function chat({ user }) {
   box.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); go(); } });
   greet(); await loadThreads();
   return wrapPage(pageHead(employer ? t('AI Assistant') : t('Career Coach'), employer ? 'Ask questions about your jobs and candidates.' : 'Your always-on career guide.'),
-    h('div', { class: 'chat' }, h('aside', { class: 'card chat__side' }, threads), h('div', { class: 'card chat__main stack' }, log, h('div', { class: 'chat__input' }, box, send))));
+    h('div', { class: 'chat' },
+      h('aside', { class: 'card chat__side' }, h('p', { class: 'chat__side-label' }, 'Conversations'), threads),
+      h('section', { class: 'card chat__main' },
+        h('header', { class: 'chat__head' },
+          h('div', null, h('strong', null, employer ? 'Assistant' : 'Career coach'), h('small', { class: 'muted' }, employer ? 'Reads your jobs and applicants, never contact details' : 'Reads your profile, resume and target role')),
+          h('span', { class: 'chat__status' }, icon('sparkle'), 'Answers from your own data')),
+        log,
+        h('div', { class: 'chat__input' }, box, send))));
 }
 
 // ---------------------------------------------------------------- Notifications
@@ -137,7 +155,7 @@ export async function notifications() {
         h('strong', null, n.title), n.body ? h('p', { class: 'muted' }, n.body) : null, h('small', { class: 'muted' }, fmtDateTime(n.createdAt)))));
   }
   await load();
-  return wrapPage(pageHead(t('Notifications')), host);
+  return wrapPage(pageHead(t('Notifications'), 'Status changes on your applications, interviews and replies.'), host);
 }
 
 /** Bell button for the top bar; the badge is updated by refreshBell(). */

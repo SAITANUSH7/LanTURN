@@ -108,7 +108,14 @@ function shell() {
       h('main', { id: 'main', tabindex: '-1' }));
   }
   const groups = NAV[user.role] || [];
-  const label = groups.flatMap(([, items]) => items).find(([to]) => active(to))?.[1] || '';
+  const routeLabel = () => {
+    try {
+      const crumbPath = (location.hash.replace(/^#/, '').split('?')[0]) || '/';
+      const hit = (typeof ROUTES !== 'undefined' ? ROUTES : []).find(([p]) => new RegExp(`^${p.replace(/:[^/]+/g, '[^/]+')}$`).test(crumbPath));
+      return hit ? hit[3] : '';
+    } catch { return ''; }
+  };
+  const label = groups.flatMap(([, items]) => items).find(([to]) => active(to))?.[1] || routeLabel() || '';
   const app = h('div', { class: 'app' });
   const side = h('aside', { class: 'side', id: 'side', 'aria-label': 'Sidebar' },
     h('a', { class: 'brand', href: `#${homeFor(user.role)}`, 'aria-label': 'LanTURN home' }, lantern(), h('span', null, 'Lan', h('b', null, 'TURN'))),

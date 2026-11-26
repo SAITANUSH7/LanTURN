@@ -47,10 +47,30 @@ jobs:
         with: { node-version: 22.x, cache: npm }
       - run: npm ci
       - run: npx playwright install --with-deps chromium
+      - name: Capture screenshots
+        if: hashFiles('.ui-shots') != '' && github.event_name == 'pull_request'
+        run: |
+          set -o pipefail
+          # The default checkout is the PR's merge commit; commit the images on top of the branch head instead, so the
+          # push is a fast-forward.
+          git fetch -q origin ${{ github.event.pull_request.head.ref }} 2>&1 | tee shots.log
+          git checkout -q FETCH_HEAD
+          node scripts/screenshots.mjs ui-shots 2>&1 | tee -a shots.log
+          git config user.name "lanturn-shots"
+          git config user.email "actions@users.noreply.github.com"
       - name: End-to-end and accessibility tests
         run: |
           set -o pipefail
           npm run e2e 2>&1 | tee e2e.log
+      # Publish whatever is in ui-shots/ - the captures above, and any dump a failing test wrote - even when the suite
+      # is red. A failed run used to leave no evidence at all.
+      - name: Publish ui-shots to the branch
+        if: always() && hashFiles('.ui-shots') != '' && github.event_name == 'pull_request'
+        run: |
+          set -o pipefail
+          git add -A ui-shots
+          git diff --cached --quiet || git commit -q -m "chore(shots): design review screenshots for ${{ github.event.pull_request.head.sha }} [skip ci]"
+          git push origin HEAD:refs/heads/${{ github.event.pull_request.head.ref }} 2>&1 | tee -a shots.log
       # Annotations go through api.github.com and are readable from any environment; the Actions log archive is not.
       - name: Report failures as annotations
         if: failure()
@@ -64,20 +84,6 @@ jobs:
       # The artifact archive host is not reachable from every environment that needs to look at these, so while the
       # marker file exists the job publishes them to the PR branch instead. Pushes made with GITHUB_TOKEN do not start
       # another run, so this cannot loop.
-      - name: Capture screenshots
-        if: hashFiles('.ui-shots') != '' && github.event_name == 'pull_request'
-        run: |
-          set -o pipefail
-          # The default checkout is the PR's merge commit; commit the images on top of the branch head instead, so the
-          # push is a fast-forward.
-          git fetch -q origin ${{ github.event.pull_request.head.ref }} 2>&1 | tee shots.log
-          git checkout -q FETCH_HEAD
-          node scripts/screenshots.mjs ui-shots 2>&1 | tee -a shots.log
-          git config user.name "lanturn-shots"
-          git config user.email "actions@users.noreply.github.com"
-          git add -A ui-shots
-          git commit -q -m "chore(shots): design review screenshots for ${{ github.event.pull_request.head.sha }} [skip ci]" 2>&1 | tee -a shots.log || exit 0
-          git push origin HEAD:refs/heads/${{ github.event.pull_request.head.ref }} 2>&1 | tee -a shots.log
       - name: Report screenshot problems as annotations
         if: failure() && hashFiles('.ui-shots') != ''
         run: node scripts/ci-annotate.mjs shots.log
