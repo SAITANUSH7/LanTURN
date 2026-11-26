@@ -146,8 +146,11 @@ test('uploaded files belong to someone: certificates are private, avatars are no
   const viaSigned = await fetch(`${getOrigin()}${own.body.url}`);
   assert.equal(viaSigned.status, 200);
   assert.equal(viaSigned.headers.get('x-content-type-options'), 'nosniff');
-  // A tampered signature is refused.
-  assert.notEqual((await fetch(`${getOrigin()}${own.body.url.replace(/t=./, 't=A')}`)).status, 200);
+  // A tampered signature is refused. Flip the first character to a different one: replacing it with a fixed letter
+  // silently "tampered" nothing whenever the real signature already started with that letter, and this test flaked.
+  const sig = /[?&]t=([^&]+)/.exec(own.body.url)[1];
+  const flipped = own.body.url.replace(`t=${sig}`, `t=${sig[0] === 'A' ? 'B' : 'A'}${sig.slice(1)}`);
+  assert.equal((await fetch(`${getOrigin()}${flipped}`)).status, 404);
 });
 
 test('a resume cannot be uploaded on someone else\'s behalf, and deleting it removes the bytes', async () => {
