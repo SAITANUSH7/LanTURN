@@ -108,10 +108,12 @@ function shell() {
       h('main', { id: 'main', tabindex: '-1' }));
   }
   const groups = NAV[user.role] || [];
-  const crumbPath = (location.hash.replace(/^#/, '').split('?')[0]) || '/';
   const routeLabel = () => {
-    const hit = ROUTES.find(([p]) => new RegExp(`^${p.replace(/:[^/]+/g, '[^/]+')}$`).test(crumbPath));
-    return hit ? hit[3] : '';
+    try {
+      const crumbPath = (location.hash.replace(/^#/, '').split('?')[0]) || '/';
+      const hit = (typeof ROUTES !== 'undefined' ? ROUTES : []).find(([p]) => new RegExp(`^${p.replace(/:[^/]+/g, '[^/]+')}$`).test(crumbPath));
+      return hit ? hit[3] : '';
+    } catch { return ''; }
   };
   const label = groups.flatMap(([, items]) => items).find(([to]) => active(to))?.[1] || routeLabel() || '';
   const app = h('div', { class: 'app' });

@@ -3787,9 +3787,9 @@ body:has(#main .auth2) .topbar .kbd-hint { display: none; }
 @keyframes fx-breathe { to { transform: none; opacity: 0.55; } }
 @keyframes fx-shine { to { background-position: 0 0; } }
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.001ms !important; animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important; scroll-behavior: auto !important;
+  :root .page-head h1, :root .page-head::before, :root .today, :root .board__card,
+  :root .card--hover, :root .side .nav a, :root .tabbar a, :root .bubble, :root .skeleton {
+    animation: none !important; transition-duration: 0.001ms !important;
   }
 }
 
@@ -3822,12 +3822,6 @@ body:has(#main .auth2) .topbar .kbd-hint { display: none; }
   --r-ctl: 10px;   /* buttons, inputs, chips */
   --r-row: 12px;   /* rows, list items */
   --r-card: 16px;  /* cards, panels */
-  --line: color-mix(in srgb, var(--text) 9%, transparent);
-  --line-2: color-mix(in srgb, var(--text) 14%, transparent);
-}
-:root[data-theme='light'] {
-  --line: rgba(9, 9, 11, 0.09);
-  --line-2: rgba(9, 9, 11, 0.14);
 }
 
 /* ---------- 6. Density: a dense tool, evenly spaced ----------------------------------------------------------- */
