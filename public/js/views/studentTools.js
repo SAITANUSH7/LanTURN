@@ -11,7 +11,7 @@ export async function todayCard() {
         h('b', null, streak.current ? `${streak.current}` : '0'),
         h('small', null, streak.current ? 'day streak' : 'no streak yet')),
       h('div', { class: 'today__body' },
-        h('p', { class: 'eyebrow' }, streak.current && !streak.doneToday ? 'One thing to keep your streak' : 'Do this next'),
+        h('p', { class: 'today__kicker' }, streak.current && !streak.doneToday ? 'One thing to keep your streak' : 'Do this next'),
         h('h3', null, next.title),
         h('p', { class: 'muted' }, next.why)),
       h('a', { class: 'btn', href: next.link }, 'Do it', icon('arrow-right')));

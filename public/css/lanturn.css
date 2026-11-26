@@ -3411,7 +3411,7 @@ body:has(#main .auth2) .topbar__user > a.btn { display: none; }
 :root ::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--text) 26%, transparent); background-clip: content-box; }
 
 /* ---------- 11. Auth pages: one brand mark, no toolbars that belong to the app ----------------------------------- */
-body:has(#main .auth2) .topbar__pub .brand,
+body:has(#main .auth2) .topbar--pub .brand,
 body:has(#main .auth2) .topbar .kbd-hint { display: none; }
 :root[data-theme='light'] .auth2__box .btn--block,
 :root[data-theme='dark'] .auth2__box .btn--block,
@@ -3657,3 +3657,30 @@ body:has(#main .auth2) .topbar .kbd-hint { display: none; }
 :root .board__card .btn--sm { flex: 1 1 auto; justify-content: center; padding: 0 8px; font-size: 0.78rem; }
 :root .board__empty { margin: 0; padding: 18px 6px; text-align: center; font-size: 0.78rem; color: var(--text-3); border: 1px dashed var(--line-2); border-radius: 10px; }
 :root .board__col--over { border-color: color-mix(in srgb, var(--brand) 60%, transparent); background: color-mix(in srgb, var(--brand) 8%, transparent); }
+
+/* ---------- 26. Filter toolbar, corrected ----------------------------------------------------------------------
+   The first cut let the sixth child wrap to a second row, so "Save search" sat alone under the search box and the
+   select rode higher than the inputs. Actions now share one flex row and every control is exactly 36px tall. */
+:root .filbar { grid-template-columns: minmax(0, 1.6fr) 132px 124px auto; align-items: center; }
+:root .filbar__acts { display: flex; align-items: center; gap: 8px; justify-self: end; flex-wrap: nowrap; }
+:root .filbar__acts .btn { white-space: nowrap; }
+:root .filbar .select,
+:root .filbar .input { height: 36px; min-height: 36px; line-height: 34px; font-size: 0.9rem; }
+:root .filbar .select { width: 100%; min-width: 0; padding: 0 24px 0 10px; }
+:root .filbar__q .input { padding-left: 32px; }
+:root .filbar__q > .icon { left: 10px; }
+@media (max-width: 1080px) {
+  :root .filbar { grid-template-columns: minmax(0, 1fr) 120px 110px; }
+  :root .filbar__acts { grid-column: 1 / -1; justify-self: stretch; }
+  :root .filbar__acts .btn[type='submit'] { margin-left: auto; }
+}
+
+/* A grid stretches its children: the AI writer button was as wide as the form and read like "Publish". */
+:root .jf-sec > .btn { justify-self: start; }
+:root .jf-sec .form-actions .btn { justify-self: auto; }
+
+/* The "do this next" kicker is a caption, not the landing page's bordered pill. */
+:root .today__kicker {
+  margin: 0; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--brand-hi); border: 0; background: none; padding: 0; display: block;
+}

@@ -113,7 +113,7 @@ export async function jobForm({ params, query = {}, navigate }) {
   const duplicating = !editing && Boolean(query.from);
   const [me, existing] = await Promise.all([get('/employer/dashboard'), source ? get(`/jobs/${source}`).catch(() => null) : null]);
   const v = {
-    title: input({ value: existing?.title || '', required: true, maxlength: '120' }),
+    title: input({ value: existing?.title || '', required: true, maxlength: '120', placeholder: 'e.g. Android Developer Intern' }),
     description: textarea({ rows: '7', maxlength: '5000', placeholder: 'What will this person do? What will they learn?' }, existing?.description || ''),
     type: select(Object.entries(TYPE_LABEL), existing?.type || 'INTERNSHIP'),
     location: input({ value: existing?.location || '', placeholder: 'City' }),

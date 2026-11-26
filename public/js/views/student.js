@@ -119,11 +119,11 @@ export async function jobs({ query }) {
     } catch (e) { clear(results).append(errorBox(e, load)); }
   }
   // Four stacked label+field pairs made the filter a form to fill in. It is a toolbar: type, narrow, go.
-  const form = h('form', { class: 'filbar', role: 'search', 'aria-label': 'Filter jobs', onsubmit: (e) => { e.preventDefault(); Object.assign(f, { q: qEl.value.trim(), type: typeEl.value, location: locEl.value.trim(), remote: remoteEl.checked, page: 1 }); load(); } },
-    h('div', { class: 'filbar__q' }, icon('search'), qEl),
-    typeEl, locEl,
+  const acts = h('div', { class: 'filbar__acts' },
     h('label', { class: 'filbar__check' }, remoteEl, h('span', null, 'Remote only')),
     h('button', { class: 'btn', type: 'submit' }, 'Search'));
+  const form = h('form', { class: 'filbar', role: 'search', 'aria-label': 'Filter jobs', onsubmit: (e) => { e.preventDefault(); Object.assign(f, { q: qEl.value.trim(), type: typeEl.value, location: locEl.value.trim(), remote: remoteEl.checked, page: 1 }); load(); } },
+    h('div', { class: 'filbar__q' }, icon('search'), qEl), typeEl, locEl, acts);
   // Saved searches: the filters you always type again, plus an alert when a job finally matches.
   const savedBar = h('section', { class: 'saved', hidden: true, 'aria-label': 'Saved searches' }, h('div', { class: 'chips' }));
   async function loadSaved() {
@@ -163,7 +163,7 @@ export async function jobs({ query }) {
       } catch (e) { toast(e.message, 'error'); }
     }),
   }, icon('star'), 'Save search');
-  form.append(saveBtn);
+  acts.append(saveBtn);
   await loadSaved();
   load();
   return wrapPage(pageHead('Jobs', 'Every card shows how well your skills match.'), form, activeBar, savedBar, results, liveJobs(() => qEl.value.trim() || f.q, () => locEl.value.trim()));
