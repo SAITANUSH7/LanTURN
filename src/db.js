@@ -419,6 +419,18 @@ CREATE TABLE IF NOT EXISTS team_invites (
 );
 CREATE INDEX IF NOT EXISTS idx_team_invites_owner ON team_invites(owner_id);
 `);
+db.exec(`
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  endpoint TEXT NOT NULL UNIQUE,
+  p256dh TEXT NOT NULL,
+  auth TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  last_ok_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_push_user ON push_subscriptions(user_id);
+`);
 db.exec("CREATE TABLE IF NOT EXISTS ml_feedback (user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, domain TEXT NOT NULL, consent_at TEXT NOT NULL)");
 db.exec('CREATE TABLE IF NOT EXISTS app_flags (key TEXT PRIMARY KEY, value TEXT NOT NULL)');
 

@@ -64,16 +64,49 @@ export function roadmapView(r) {
 
 export { fmtDate };
 
-/** Email notification switch. Hidden when the server has no email provider configured. */
+/** Browser push switch for this device. Null when unsupported or the server has no VAPID keys. */
+async function pushSwitch() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return null;
+  const k = await get('/push/key');
+  if (!k.enabled) return null;
+  const reg = await navigator.serviceWorker.ready;
+  const existing = await reg.pushManager.getSubscription();
+  const box = h('input', { type: 'checkbox', checked: existing && k.subscribed ? true : null, onchange: async (e) => {
+    const on = e.target.checked;
+    try {
+      if (on) {
+        if ((await Notification.requestPermission()) !== 'granted') throw new Error('Notifications are blocked for this site in your browser settings.');
+        const raw = atob(k.publicKey.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(k.publicKey.length / 4) * 4, '='));
+        const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: Uint8Array.from(raw, (c) => c.charCodeAt(0)) });
+        await post('/push/subscribe', sub.toJSON());
+        toast('Alerts on for this device', 'success');
+      } else {
+        const sub = await reg.pushManager.getSubscription();
+        if (sub) { await post('/push/unsubscribe', { endpoint: sub.endpoint }); await sub.unsubscribe(); }
+        toast('Alerts off for this device', 'success');
+      }
+    } catch (x) { e.target.checked = !on; toast(x.message, 'error'); }
+  } });
+  return h('div', { class: 'stack stack--sm' }, h('label', { class: 'check' }, box, 'Alert this device about applications, interviews and messages'), h('small', { class: 'muted' }, 'Works while the site is closed. You can turn it off any time.'));
+}
+
+/** Notification settings: email switch and browser push. Each part hides when the server can't do it. */
 export async function emailPrefsCard() {
-  try {
-    const p = await get('/email-prefs');
-    if (!p.available) return null;
-    const box = h('input', { type: 'checkbox', checked: p.enabled ? true : null, onchange: async (e) => {
-      try { await put('/email-prefs', { enabled: e.target.checked }); toast(e.target.checked ? 'Emails on' : 'Emails off', 'success'); } catch (x) { e.target.checked = !e.target.checked; toast(x.message, 'error'); }
-    } });
-    return h('div', { class: 'card stack stack--sm' }, h('h3', null, 'Email notifications'), h('label', { class: 'check' }, box, 'Email me about application updates, strong matches and new matching jobs'), h('small', { class: 'muted' }, 'Chat and connection activity is never emailed. Every email also has a one-click unsubscribe link.'));
-  } catch { return null; }
+  const [email, push] = await Promise.all([
+    (async () => {
+      try {
+        const p = await get('/email-prefs');
+        if (!p.available) return null;
+        const box = h('input', { type: 'checkbox', checked: p.enabled ? true : null, onchange: async (e) => {
+          try { await put('/email-prefs', { enabled: e.target.checked }); toast(e.target.checked ? 'Emails on' : 'Emails off', 'success'); } catch (x) { e.target.checked = !e.target.checked; toast(x.message, 'error'); }
+        } });
+        return h('div', { class: 'stack stack--sm' }, h('label', { class: 'check' }, box, 'Email me about application updates, strong matches and new matching jobs'), h('small', { class: 'muted' }, 'Chat and connection activity is never emailed. Every email also has a one-click unsubscribe link.'));
+      } catch { return null; }
+    })(),
+    pushSwitch().catch(() => null)
+  ]);
+  if (!email && !push) return null;
+  return h('div', { class: 'card stack stack--sm' }, h('h3', null, 'Notifications'), email, push);
 }
 
 

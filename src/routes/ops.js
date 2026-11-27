@@ -3,7 +3,9 @@ import { Router } from 'express';
 import { db } from '../db.js';
 import { config } from '../config.js';
 import { authenticate, requireRole } from '../auth.js';
-import { wrap, notFound, bad } from '../util.js';
+import { z } from 'zod';
+import { wrap, notFound, bad, parse } from '../util.js';
+import { pushEnabled, vapidPublicKey, subscriptionCount } from '../push.js';
 import { snapshot, prometheus } from '../metrics.js';
 import { metricHistory, maybeSample } from '../metricHistory.js';
 import { queueStats } from '../queue.js';
@@ -76,6 +78,27 @@ opsRouter.put('/email-prefs', authenticate, wrap(async (req, res) => {
   if (typeof req.body?.enabled !== 'boolean') throw bad('enabled must be true or false');
   setPrefs(req.actorId ?? req.user.id, req.body.enabled);
   res.json(prefsFor(req.actorId ?? req.user.id));
+}));
+// ---- Browser push ----
+opsRouter.get('/push/key', authenticate, wrap(async (req, res) => {
+  const id = req.actorId ?? req.user.id;
+  res.json({ enabled: pushEnabled(), publicKey: pushEnabled() ? vapidPublicKey() : '', subscribed: subscriptionCount(id) > 0 });
+}));
+opsRouter.post('/push/subscribe', authenticate, wrap(async (req, res) => {
+  if (!pushEnabled()) throw bad('Browser alerts are not set up on this server');
+  const b = parse(z.object({ endpoint: z.string().url().max(1000).refine((u) => u.startsWith('https://'), 'endpoint must be https'), keys: z.object({ p256dh: z.string().min(20).max(200), auth: z.string().min(8).max(100) }) }).strict(), req.body);
+  const id = req.actorId ?? req.user.id;
+  if (subscriptionCount(id) >= 10 && !db.prepare('SELECT 1 FROM push_subscriptions WHERE endpoint = ?').get(b.endpoint)) throw bad('Too many devices. Turn alerts off on one you no longer use.');
+  // A device belongs to whoever is signed in on it now (shared computers): re-registering moves the endpoint.
+  db.prepare('INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth) VALUES (?,?,?,?) ON CONFLICT(endpoint) DO UPDATE SET user_id = excluded.user_id, p256dh = excluded.p256dh, auth = excluded.auth')
+    .run(id, b.endpoint, b.keys.p256dh, b.keys.auth);
+  res.status(201).json({ subscribed: true, devices: subscriptionCount(id) });
+}));
+opsRouter.post('/push/unsubscribe', authenticate, wrap(async (req, res) => {
+  const b = parse(z.object({ endpoint: z.string().max(1000) }).strict(), req.body);
+  const id = req.actorId ?? req.user.id;
+  db.prepare('DELETE FROM push_subscriptions WHERE endpoint = ? AND user_id = ?').run(b.endpoint, id);
+  res.json({ subscribed: subscriptionCount(id) > 0, devices: subscriptionCount(id) });
 }));
 // One-click unsubscribe from the link in every email (no login needed; the token is an HMAC of the user id).
 opsRouter.get('/email/unsubscribe', (req, res) => {
